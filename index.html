@@ -18,6 +18,14 @@
     <div id="hud-right" aria-live="polite"></div>
   </div>
   <div id="goal" hidden aria-live="polite"></div>
+  <button id="sound-btn" class="btn icon-only" aria-label="소리 설정" aria-expanded="false" aria-controls="sound-pop"></button>
+  <div id="sound-pop" hidden role="dialog" aria-label="소리 설정">
+    <label for="bgm-vol">배경음악</label>
+    <div class="vol-row">
+      <input id="bgm-vol" type="range" min="0" max="100" step="1">
+      <output id="bgm-out" for="bgm-vol">60</output>
+    </div>
+  </div>
   <button id="memo-btn" class="btn icon-label" hidden>메모 보기</button>
   <div id="dialog" hidden role="dialog" aria-live="polite"></div>
   <section id="panel" class="panel" hidden></section>

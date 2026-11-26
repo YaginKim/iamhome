@@ -1,3 +1,5 @@
+import { duckBgm } from './bgm.js';
+
 // 음성: voice/manifest.json에 적힌 녹음 파일이 있으면 그 파일을, 없으면 브라우저 TTS를 씁니다.
 // 녹음으로 바꾸는 법: voice/대사ID.mp3 파일을 넣고 manifest.json 목록에 대사 ID를 추가하세요.
 let recorded = new Set();
@@ -25,6 +27,8 @@ export function say(text, id) {
   stop();
   if (id && recorded.has(id)) {
     current = new Audio(`voice/${id}.mp3`);
+    current.onplay = () => duckBgm(true);
+    current.onended = current.onpause = () => duckBgm(false);
     current.play().catch(() => speakTTS(text));
     return;
   }
@@ -38,6 +42,8 @@ function speakTTS(text) {
   u.rate = 0.9;
   const ko = speechSynthesis.getVoices().find(v => v.lang && v.lang.startsWith('ko'));
   if (ko) u.voice = ko;
+  u.onstart = () => duckBgm(true);
+  u.onend = u.onerror = () => duckBgm(false);
   speechSynthesis.speak(u);
 }
 

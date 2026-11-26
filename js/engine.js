@@ -298,6 +298,15 @@ export class World {
       ctx.fillStyle = `rgba(244,200,70,${0.35 + a * 0.4})`;
       ctx.fillRect(this.marker.x * T + 2, this.marker.y * T + 2, T - 4, T - 4);
     }
+    const actors = (this.map.npcs || []).map((n, i) => ({ y: n.y, draw: () => this.drawPerson(this.npcSprites[i][0], n.x, n.y, false) }));
+    const p = this.player;
+    // 걷기 순서: 왼발 → 서기 → 오른발 → 서기. 걸을 때는 한 칸씩 몸이 살짝 들썩여요.
+    const set = this.playerSprites[p.dir === 'left' ? 'right' : p.dir];
+    const moving = this.isMoving();
+    const idx = moving ? [1, 0, 2, 0][p.frame] : 0;
+    const bob = moving && (p.frame === 1 || p.frame === 3) ? -1 / T : 0;
+    actors.push({ y: p.ry, draw: () => this.drawPerson(set[idx], p.rx, p.ry + bob, p.dir === 'left') });
+    actors.sort((a, b) => a.y - b.y).forEach(a => a.draw());
     if (this.goal) {
       // 가야 할 곳: 위아래로 움직이는 빨간 화살표
       const g = this.goal, bob = Math.round(Math.sin(performance.now() / 180) * 2);
@@ -312,15 +321,6 @@ export class World {
       ctx.fillStyle = '#f08080';
       ctx.fillRect(x0 + 4, y0, 1, 4);
     }
-    const actors = (this.map.npcs || []).map((n, i) => ({ y: n.y, draw: () => this.drawPerson(this.npcSprites[i][0], n.x, n.y, false) }));
-    const p = this.player;
-    // 걷기 순서: 왼발 → 서기 → 오른발 → 서기. 걸을 때는 한 칸씩 몸이 살짝 들썩여요.
-    const set = this.playerSprites[p.dir === 'left' ? 'right' : p.dir];
-    const moving = this.isMoving();
-    const idx = moving ? [1, 0, 2, 0][p.frame] : 0;
-    const bob = moving && (p.frame === 1 || p.frame === 3) ? -1 / T : 0;
-    actors.push({ y: p.ry, draw: () => this.drawPerson(set[idx], p.rx, p.ry + bob, p.dir === 'left') });
-    actors.sort((a, b) => a.y - b.y).forEach(a => a.draw());
   }
 
   drawPerson(img, x, y, flip) {

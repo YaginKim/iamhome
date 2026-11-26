@@ -1,5 +1,6 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
 import { loadData, itemsFor, won, LEVELS } from './data.js';
+import { playBgm, getVolume, setVolume } from './bgm.js';
 import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js';
 import { World, townMap, homeMap, shopMap, bankMap } from './engine.js';
 import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, panel, closePanel, fade, flashHud } from './ui.js';
@@ -19,11 +20,30 @@ async function boot() {
   world = new World($('#world'));
   world.onArrive = (x, y, settled) => onArrive(x, y, settled);
   world.onStep = () => onStep();
+  soundButton();
   await world.load(townMap(null, ['home', 'school', 'snackbar', 'convenience', 'hairshop', 'market', 'bank', 'mart', 'edu_office', 'moe']), { x: 17, y: 9 });
   titleScreen();
 }
 
 function persist() { save(S); }
+
+// 오른쪽 위 소리 설정 버튼
+function soundButton() {
+  const btn = $('#sound-btn'), pop = $('#sound-pop'), range = $('#bgm-vol'), out = $('#bgm-out');
+  btn.append(toImg(iconCanvas('speaker'), 4, ''));
+  const show = v => { range.value = v; out.textContent = v; btn.classList.toggle('muted', v === 0); range.style.setProperty('--fill', v + '%'); };
+  show(getVolume());
+  btn.onclick = e => {
+    e.stopPropagation();
+    pop.hidden = !pop.hidden;
+    btn.setAttribute('aria-expanded', String(!pop.hidden));
+    if (!pop.hidden) range.focus();
+  };
+  range.oninput = () => { setVolume(Number(range.value)); show(getVolume()); };
+  pop.addEventListener('pointerdown', e => e.stopPropagation());
+  window.addEventListener('pointerdown', () => { if (!pop.hidden) { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
+  window.addEventListener('keydown', e => { if (e.key === 'Escape' && !pop.hidden) { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); btn.focus(); } });
+}
 function hud(place) { renderHud(S, D.config, place ?? run.place); }
 function L() { return D.config.levels[S.level]; }
 
@@ -78,6 +98,7 @@ function poster(sc) {
 }
 
 function titleScreen() {
+  playBgm('title');
   world.frozen = true;
   $('#hud').hidden = true; setGoal('');
   const sc = $('#screen'); sc.hidden = false; sc.innerHTML = '';
@@ -197,6 +218,7 @@ function unlocked() {
 }
 
 async function enterTown(spawn) {
+  playBgm('town');
   run.nearNpc = null;
   document.body.dataset.map = 'town';
   run.map = 'town'; run.place = '우리 동네';
@@ -206,6 +228,7 @@ async function enterTown(spawn) {
   updateGoalMarker();
 }
 async function enterHome(spawn) {
+  playBgm('ingame');
   run.nearNpc = null;
   document.body.dataset.map = 'indoor';
   run.map = 'home'; run.place = '우리 집';
@@ -217,6 +240,7 @@ async function enterHome(spawn) {
   if (run.tutorialReturn) setTimeout(tutorialHome, 300);
 }
 async function enterShop() {
+  playBgm('ingame');
   run.nearNpc = null;
   document.body.dataset.map = 'indoor';
   run.map = 'snackbar'; run.place = '분식점';
@@ -224,6 +248,7 @@ async function enterShop() {
   hud(); world.frozen = false; updateGoalMarker();
 }
 async function enterBank() {
+  playBgm('ingame');
   run.nearNpc = null;
   document.body.dataset.map = 'indoor';
   run.map = 'bank'; run.place = '은행';
@@ -238,7 +263,7 @@ function updateGoalMarker() {
   if (run.map === 'town') {
     const b = world.map.buildings.find(b => b.id === g);
     if (b) world.goal = { x: b.doorX, y: b.doorY - (b.doorY > 9 ? -1 : 1) };
-  } else if (run.map === 'home' && g === 'home') world.goal = { x: 9, y: 4 };
+  } else if (run.map === 'home' && g === 'home') world.goal = { x: 9, y: 3 }; // 엄마 머리 위
   else if (run.map === 'snackbar' && g === 'snackbar') world.goal = { ...world.map.counter };
   else if (run.map === 'bank' && g === 'bank') world.goal = (L().bank.mode === 'atm' && run.tutorial?.step !== 'bank') ? { x: world.map.atm.x, y: world.map.atm.y + 1 } : { ...world.map.counter };
   else if (world.map.door) world.goal = { ...world.map.door };
