@@ -5,7 +5,7 @@ import { World, townMap, homeMap, shopMap, bankMap } from './engine.js';
 import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, panel, closePanel, fade, flashHud } from './ui.js';
 import { pay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js';
 import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js';
-import { iconCanvas, toImg, cardCanvas, PEOPLE } from './sprites.js';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js';
 
 const $ = s => document.querySelector(s);
 let D, S, world;
@@ -28,22 +28,71 @@ function hud(place) { renderHud(S, D.config, place ?? run.place); }
 function L() { return D.config.levels[S.level]; }
 
 // ---------- 타이틀 ----------
+// ---------- 시작 화면 배경 (포스터) ----------
+let walkTimer = null;
+function poster(sc) {
+  clearInterval(walkTimer);
+  document.body.dataset.map = 'poster';
+  const bg = el('div', 'poster');
+  bg.setAttribute('aria-hidden', 'true');
+  const band = (cls, words) => {
+    const b = el('div', 'band ' + cls);
+    const track = el('div', 'track');
+    const text = words.join('  ✦  ') + '  ✦  ';
+    track.append(el('span', null, text), el('span', null, text));
+    b.append(track);
+    return b;
+  };
+  bg.append(
+    band('band-a', ['우리 집', '교실', '체육관', '운동장', '분식점', '편의점', '전통시장', '미용실', '대형마트', '교육지원청', '교육부']),
+    band('band-b', ['낯선 길', '낯선 사람', '낯선 계산대', '그래도 한 걸음']),
+  );
+  const stickers = [
+    ['kimbap', 6, 14, -12, 6], ['tteokbokki', 82, 10, 9, 6], ['onigiri', 90, 46, -8, 5], ['eggs', 4, 62, 8, 5],
+    ['greenonion', 14, 84, -16, 6], ['coolpis', 74, 80, 12, 6], ['eomuk', 30, 8, 18, 5], ['shampoo', 62, 6, -10, 5],
+    ['badge', 92, 78, -6, 5],
+  ];
+  for (const [id, x, y, r, sc2] of stickers) {
+    const st = el('div', 'sticker');
+    st.style.left = x + '%'; st.style.top = y + '%';
+    st.style.setProperty('--r', r + 'deg');
+    st.style.animationDelay = (-(x + y) / 30).toFixed(2) + 's';
+    st.append(toImg(itemCanvas(id), sc2, ''));
+    bg.append(st);
+  }
+  for (const [v, x, y, r] of [[1000, 20, 30, -14], [500, 82, 30, 20], [100, 24, 72, 10], [5000, 80, 62, -8]]) {
+    const st = el('div', 'sticker money');
+    st.style.left = x + '%'; st.style.top = y + '%';
+    st.style.setProperty('--r', r + 'deg');
+    st.append(toImg(moneyCanvas(v), 4, ''));
+    bg.append(st);
+  }
+  const hero = el('div', 'hero');
+  const frames = PEOPLE.player().map(c => c.toDataURL());
+  const img = toImg(PEOPLE.player()[0], 10, '');
+  hero.append(img, el('div', 'hero-shadow'));
+  let f = 0;
+  walkTimer = setInterval(() => { f ^= 1; img.src = frames[f]; }, 260);
+  bg.append(hero);
+  sc.append(bg);
+}
+
 function titleScreen() {
   world.frozen = true;
   $('#hud').hidden = true; setGoal('');
   const sc = $('#screen'); sc.hidden = false; sc.innerHTML = '';
+  poster(sc);
   const t = el('div', 'title-screen');
   const logo = el('div', 'logo-wrap');
   logo.append(el('h1', 'logo', '다녀오겠습니다'));
   const trial = el('span', 'trial', '체험판');
-  trial.setAttribute('aria-label', '체험판');
   logo.append(trial);
   t.append(logo, el('p', 'tagline', line('title.copy')));
   const row = el('div', 'row');
   const saved = load();
   if (saved) {
     const c = el('button', 'btn primary big', '이어서 하기');
-    c.onclick = () => { S = saved; sc.hidden = true; resume(); };
+    c.onclick = () => { clearInterval(walkTimer); S = saved; sc.hidden = true; resume(); };
     row.append(c);
   }
   const n = el('button', 'btn big' + (saved ? '' : ' primary'), saved ? '처음부터' : '시작하기');
@@ -58,6 +107,7 @@ function titleScreen() {
 
 function setupScreen() {
   const sc = $('#screen'); sc.innerHTML = '';
+  poster(sc);
   const sh = el('div', 'screen-sheet');
   sh.append(el('h2', null, '누가 다녀올까요?'), el('p', 'lead', '난이도와 꿈이든 카드에 적을 이름, 주소를 정해요. 선생님이 함께 정해 주세요.'));
   const lv = el('div', 'levels');
@@ -86,6 +136,7 @@ function setupScreen() {
   go.onclick = () => {
     S = newState(D.config, pick, { name: i1.value.trim() || DEFAULT_STUDENT.name, address: i2.value.trim() || DEFAULT_STUDENT.address });
     persist();
+    clearInterval(walkTimer);
     $('#screen').hidden = true;
     startTutorial();
   };
@@ -96,6 +147,7 @@ function setupScreen() {
 
 function settingsScreen() {
   const sc = $('#screen'); sc.innerHTML = ''; sc.hidden = false;
+  poster(sc);
   const cur = load();
   const sh = el('div', 'screen-sheet');
   sh.append(el('h2', null, '선생님 설정'), el('p', 'lead', '이 기기에만 적용돼요.'));
