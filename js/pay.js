@@ -57,7 +57,10 @@ export function dragCard(host, dev, kind, tipText) {
     });
     wrap.addEventListener('pointermove', e => {
       if (!dragging) return;
-      wrap.style.transform = `translate(${e.clientX - sx}px, ${e.clientY - sy}px) rotate(-8deg) scale(1.06)`;
+      let dx = e.clientX - sx, dy = e.clientY - sy;
+      // 화면을 90도 돌려 출력 중이면 손가락 움직임도 돌려서 계산
+      if (document.body.classList.contains('rotated')) [dx, dy] = [dy, -dx];
+      wrap.style.transform = `translate(${dx}px, ${dy}px) rotate(-8deg) scale(1.06)`;
       dev.dataset.over = zoneAt(e.clientX, e.clientY) || '';
     });
     wrap.addEventListener('pointerup', e => {

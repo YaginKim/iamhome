@@ -65,7 +65,10 @@ img.px, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 [hidden] { display: none !important; }
 body[data-map="indoor"] { background: var(--ink); }
 
-#game { position: fixed; inset: 0; display: grid; place-items: center; }
+#game { position: fixed; inset: 0; display: grid; place-items: center; container: game / size; overflow: hidden; }
+/* 휴대폰·패드를 세로로 들고 있으면 게임 화면 전체를 90도 돌려서 출력 (기기를 옆으로 눕혀서 플레이) */
+body.rotated #game { inset: auto; top: 0; left: 100vw; left: 100dvw; width: 100vh; width: 100dvh; height: 100vw; height: 100dvw;
+  transform: rotate(90deg); transform-origin: top left; }
 #world { display: block; cursor: pointer; }
 
 /* ---------- 도트 테두리: 모서리가 비는 4px 테두리 ---------- */
@@ -125,7 +128,7 @@ body[data-map="indoor"] { background: var(--ink); }
 .hud-ico .icons { display: flex; align-items: center; gap: 4px; }
 .hud-ico .cap, #sound-btn .cap { font-family: var(--font-body); font-size: 13px; line-height: 1; white-space: nowrap; color: var(--card); }
 .money-row .hud-ico .cap { color: var(--ink-soft); }
-body.has-hud #game { padding-top: var(--hud-h); }
+body.has-hud #world { margin-top: var(--hud-h); }
 
 /* 소리 설정 */
 #sound-btn { position: fixed; top: calc(max(0px, env(safe-area-inset-top)) + 10px); right: max(16px, env(safe-area-inset-right)); z-index: 50;
@@ -134,7 +137,7 @@ body.has-hud #game { padding-top: var(--hud-h); }
 #sound-btn.muted img { opacity: 0.35; }
 #sound-btn.muted::after { content: ''; position: absolute; left: 50%; top: 50%; width: 40px; height: 5px; background: var(--tomato); transform: translate(-50%, -50%) rotate(-45deg); }
 #sound-pop { position: fixed; top: calc(var(--hud-h) + 8px); right: max(16px, env(safe-area-inset-right)); z-index: 51;
-  background: var(--card); padding: 14px 18px 16px; width: min(320px, calc(100vw - 32px)); margin: var(--px);
+  background: var(--card); padding: 14px 18px 16px; width: min(320px, calc(100cqw - 32px)); margin: var(--px);
   box-shadow: 0 -4px 0 var(--ink), 0 4px 0 var(--ink), -4px 0 0 var(--ink), 4px 0 0 var(--ink), 0 16px 28px var(--shade);
   animation: sheetIn 220ms var(--ease-out); }
 #sound-pop label { font-family: var(--font-ui); font-size: var(--step-0); display: block; margin-bottom: 8px; }
@@ -183,6 +186,52 @@ body.has-hud #game { padding-top: var(--hud-h); }
 @keyframes blink { 50% { opacity: 0.35; } }
 @keyframes spot { 50% { transform: translateY(-3px); } }
 
+/* ---------- 방향키 (휴대폰·패드에서만) ---------- */
+#dpad { display: none; }
+body.touch.has-hud #dpad { display: grid; position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); z-index: 6;
+  grid-template-columns: repeat(3, 64px); grid-template-rows: repeat(3, 64px); gap: 4px; touch-action: none; user-select: none; }
+#dpad button { width: 64px; height: 64px; padding: 0; border: 0; cursor: pointer; display: grid; place-items: center; touch-action: none;
+  background: rgba(255, 253, 246, 0.88); box-shadow: inset 0 -4px 0 #e2d6c0, 0 -4px 0 var(--ink), 0 4px 0 var(--ink), -4px 0 0 var(--ink), 4px 0 0 var(--ink); }
+#dpad button.on { background: var(--sun); box-shadow: inset 0 3px 0 var(--sun-deep), 0 -4px 0 var(--ink), 0 4px 0 var(--ink), -4px 0 0 var(--ink), 4px 0 0 var(--ink); }
+#dpad svg { width: 28px; height: 28px; fill: var(--ink); shape-rendering: crispEdges; }
+#dpad .up { grid-area: 1 / 2; } #dpad .left { grid-area: 2 / 1; } #dpad .right { grid-area: 2 / 3; } #dpad .down { grid-area: 3 / 2; }
+#dpad .hub { grid-area: 2 / 2; background: rgba(34, 32, 58, 0.35); }
+@container game (max-height: 500px) {
+  body.touch.has-hud #dpad { grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px); gap: 2px; right: 12px; bottom: 10px; }
+  #dpad button { width: 50px; height: 50px; }
+  #dpad svg { width: 22px; height: 22px; }
+}
+
+/* 휴대폰처럼 좁은 화면: 막대에 넣을 것을 더 줄이고, 지도는 왼쪽에 붙여 오른쪽 빈자리에 방향키 */
+@container game (max-width: 760px) {
+  #hud { gap: 6px; }
+  #hud-left, #hud-right { gap: 6px; }
+  .stamina .bar { display: none; }
+  .stamina-num { margin-left: 4px; }
+  .stamina-num small { display: none; }
+  #hud .money-row { padding: 2px 6px; gap: 4px; grid-template-columns: auto auto; }
+  #hud .money-row .value { font-size: 13px; }
+  .hud-ico .cap { font-size: 9px; }
+  .lives img { width: 16px; height: 16px; }
+  .money-row .hud-ico img { max-height: 18px; }
+}
+body.touch.has-hud #game { justify-items: start; }
+body.touch.has-hud #world { margin-left: max(8px, env(safe-area-inset-left)); }
+
+/* 휴대폰·패드 첫 화면 안내: 게임 화면 밖(돌리지 않은 화면)에 똑바로 */
+.orient { position: fixed; inset: 0; z-index: 200; background: var(--ink); display: grid; place-items: center; padding: 20px; overflow: auto; }
+.orient-card { background: var(--card); width: min(440px, 100%); padding: 26px 22px 22px; text-align: center;
+  box-shadow: 0 -4px 0 var(--sun), 0 4px 0 var(--sun), -4px 0 0 var(--sun), 4px 0 0 var(--sun); }
+.orient-card h2 { font-family: var(--font-ui); font-size: 26px; margin: 18px 0 14px; color: var(--ink); }
+.orient-pic { height: 150px; display: grid; place-items: center; }
+.orient-phone { width: 66px; height: 116px; border: 8px solid var(--ink); background: #bfe4f4; position: relative; animation: layLeft 2.6s var(--ease-out) infinite; }
+.orient-phone i { position: absolute; left: 50%; bottom: 5px; width: 14px; height: 5px; background: var(--ink); transform: translateX(-50%); }
+@keyframes layLeft { 0%, 30% { transform: rotate(0); } 65%, 100% { transform: rotate(-90deg); } }
+.orient-steps { text-align: left; margin: 0 0 20px; padding-left: 26px; display: grid; gap: 12px; font-size: 17px; }
+.orient-steps b { display: block; font-family: var(--font-ui); font-weight: normal; font-size: 19px; margin-bottom: 2px; }
+.orient-steps span { display: block; color: var(--ink-soft); }
+.orient .btn { width: 100%; }
+
 /* ---------- 목표 ---------- */
 #goal { font-family: var(--font-world); position: fixed; top: calc(var(--hud-h) + 12px); left: 50%; transform: translateX(-50%);
   background: var(--ink); color: var(--card); --edge: var(--ink); padding: 8px 20px 10px; margin: var(--px);
@@ -191,7 +240,7 @@ body.has-hud #game { padding-top: var(--hud-h); }
 
 /* ---------- 대화창 ---------- */
 #dialog { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%);
-  width: min(1000px, calc(100vw - 40px)); background: var(--card); z-index: 20; margin: var(--px);
+  width: min(1000px, calc(100cqw - 40px)); background: var(--card); z-index: 20; margin: var(--px);
   display: grid; grid-template-columns: auto 1fr auto; gap: 18px; padding: 18px 18px 18px 20px; align-items: start;
   animation: rise 260ms var(--ease-out); }
 #dialog .face { width: 88px; height: 100px; display: grid; place-items: end center; background: #f3e9d2; overflow: hidden; }
@@ -207,7 +256,7 @@ body.has-hud #game { padding-top: var(--hud-h); }
 /* ---------- 큰 패널 ---------- */
 .panel { position: fixed; inset: 0; z-index: 15; background: rgba(34, 32, 58, 0.82); overflow: auto; padding: 28px 20px 40px;
   display: grid; place-items: start center; animation: veil 200ms var(--ease-out); }
-.panel > .sheet { width: min(1000px, 100%, calc(100vw - 190px)); background: var(--paper); padding: 22px clamp(16px, 3vw, 32px) 26px; margin: var(--px) auto;
+.panel > .sheet { width: min(1000px, 100%, calc(100cqw - 190px)); background: var(--paper); padding: 22px clamp(16px, 3vw, 32px) 26px; margin: var(--px) auto;
   animation: sheetIn 320ms var(--ease-out); }
 .panel.trycard { place-content: center; justify-items: center; gap: 22px; }
 .panel.trycard h2 { color: var(--card); text-shadow: 0 3px 0 var(--ink), 3px 0 0 var(--ink), -3px 0 0 var(--ink), 0 -3px 0 var(--ink); }
@@ -343,7 +392,7 @@ body.has-hud #game { padding-top: var(--hud-h); }
   font-family: var(--font-world); font-size: var(--step-2); box-shadow: 0 -6px 0 var(--ink), 0 6px 0 var(--ink), -6px 0 0 var(--ink), 6px 0 0 var(--ink); }
 .fp-owner { position: absolute; left: 50%; bottom: 30%; transform: translateX(-50%); }
 .fp-counter { position: absolute; left: 0; right: 0; bottom: 0; height: 36%; background: #c48e28; box-shadow: inset 0 14px 0 #f4c846, inset 0 -20px 0 #8a5e18, 0 -6px 0 var(--ink); }
-.fp-q { position: absolute; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(980px, calc(100vw - 40px));
+.fp-q { position: absolute; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(980px, calc(100cqw - 40px));
   background: var(--card); padding: 18px 22px 22px; text-align: center; animation: rise 300ms var(--ease-out); }
 .fp-q h3 { color: var(--ink); text-shadow: none; font-size: var(--step-1); margin: 4px 0 14px; }
 .fp-count { font-family: var(--font-num); color: var(--ink-soft); font-size: var(--step--1); }
@@ -381,8 +430,8 @@ body[data-map="poster"] .btn.primary { background: var(--tomato); color: #fff; b
     0 calc(var(--px) * -1) 0 var(--line), 0 var(--px) 0 var(--line),
     calc(var(--px) * -1) 0 0 var(--line), var(--px) 0 0 var(--line); }
 body[data-map="poster"] .btn.primary:hover { background: #e85a5a; }
-@media (max-height: 760px) { .hero { display: none; } }
-@media (max-width: 720px) {
+@container game (max-height: 760px) { .hero { display: none; } }
+@container game (max-width: 720px) {
   .sticker { scale: 0.6; }
   .hero { display: none; }
   .band-a { top: 8%; } .band-b { bottom: 8%; }
@@ -403,7 +452,7 @@ body[data-map="poster"] .btn.primary:hover { background: #e85a5a; }
 .title-screen .row { animation: fadeUp 700ms 550ms var(--ease-out) both; }
 @keyframes logoIn { from { opacity: 0; transform: translateY(24px) scale(0.96); } to { opacity: 1; transform: none; } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-.screen-sheet { background: var(--paper); width: min(980px, calc(100vw - 32px)); margin: 32px auto; padding: 28px clamp(18px, 4vw, 40px) 32px;
+.screen-sheet { background: var(--paper); width: min(980px, calc(100cqw - 32px)); margin: 32px auto; padding: 28px clamp(18px, 4vw, 40px) 32px;
   box-shadow: 0 -4px 0 var(--ink), 0 4px 0 var(--ink), -4px 0 0 var(--ink), 4px 0 0 var(--ink), 0 24px 48px var(--shade); }
 .screen-sheet h2 { font-family: var(--font-ui); font-size: var(--step-2); margin: 0 0 8px; }
 .screen-sheet p.lead { margin: 0 0 22px; color: var(--ink-soft); max-width: 40em; }
@@ -442,14 +491,14 @@ body[data-map="poster"] .btn.primary:hover { background: #e85a5a; }
 #fade { position: fixed; inset: 0; background: var(--ink); opacity: 0; pointer-events: none; z-index: 60; transition: opacity 260ms var(--ease-out); }
 #fade.on { opacity: 1; }
 
-@media (max-width: 900px) {
+@container game (max-width: 900px) {
   .panel > .sheet { width: 100%; }
   .panel { padding-top: 88px; }
 }
-@media (max-width: 1360px) {
+@container game (max-width: 1360px) {
   .place, .lives-text { display: none; }
 }
-@media (max-width: 1100px) {
+@container game (max-width: 1100px) {
   #hud { gap: 10px; }
   #hud-left, #hud-right { gap: 10px; }
   .lives img { width: 24px; height: 24px; }
@@ -459,8 +508,8 @@ body[data-map="poster"] .btn.primary:hover { background: #e85a5a; }
   .money-row .value { font-size: var(--step--1); }
 }
 /* 휴대폰 가로 화면: 높이가 낮으니 막대와 글자를 줄여요 */
-@media (max-height: 500px) {
-  :root { --hud-h: 62px; --step--1: 12px; --step-0: 15px; --step-1: 17px; --step-2: 22px; --step-3: 44px; }
+@container game (max-height: 500px) {
+  #game > * { --hud-h: 62px; --step--1: 12px; --step-0: 15px; --step-1: 17px; --step-2: 22px; --step-3: 44px; }
   #hud { gap: 8px; padding-right: calc(max(12px, env(safe-area-inset-right)) + 58px); }
   #hud-left, #hud-right { gap: 8px; }
   .hud-ico .cap, #sound-btn .cap { font-size: 10px; }
@@ -486,10 +535,10 @@ body[data-map="poster"] .btn.primary:hover { background: #e85a5a; }
   .tagline { margin: 12px 0 16px; }
 }
 /* 휴대폰 가로 화면: 결제·은행은 좌우 두 칸으로 나눠 한 화면에 모두 보이게 */
-@media (max-height: 500px) {
+@container game (max-height: 500px) {
   .panel.pay { padding: 6px calc(max(10px, env(safe-area-inset-right)) + 56px) 6px max(10px, env(safe-area-inset-left)); }
   .panel.pay > .sheet { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 14px; row-gap: 6px;
-    align-content: start; height: calc(100dvh - 12px); overflow: hidden; padding: 8px 10px; margin: 0; }
+    align-content: start; height: calc(100cqh - 12px); overflow: hidden; padding: 8px 10px; margin: 0; }
   .panel.pay .pay-top { grid-column: 1; grid-row: 1; flex-wrap: nowrap; gap: 6px; align-items: center; }
   .panel.pay .pay-owner > img { display: none; }
   .panel.pay .owner-line { font-size: 13px; padding: 4px 8px 6px; margin: 2px; }
@@ -527,19 +576,8 @@ body[data-map="poster"] .btn.primary:hover { background: #e85a5a; }
   .drag-card img { height: 56px; width: auto; }
 }
 
-/* 휴대폰을 세로로 들었을 때 */
-#rotate { display: none; }
-@media (orientation: portrait) and (max-width: 600px) and (hover: none) {
-  #rotate { display: grid; position: fixed; inset: 0; z-index: 100; place-content: center; justify-items: center; gap: 28px;
-    background: var(--ink); color: var(--card); text-align: center; padding: 24px; }
-  #rotate p { font-family: var(--font-ui); font-size: 24px; margin: 0; }
-  #rotate b { color: var(--sun); font-weight: normal; }
-  .rotate-phone { width: 70px; height: 120px; border: 8px solid var(--card); position: relative; animation: turn 2.4s var(--ease-out) infinite; }
-  .rotate-phone i { position: absolute; left: 50%; bottom: 6px; width: 14px; height: 6px; background: var(--card); transform: translateX(-50%); }
-  @keyframes turn { 0%, 25% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
-}
-@media (max-width: 720px) {
-  #goal { top: auto; bottom: 110px; max-width: calc(100vw - 32px); }
+@container game (max-width: 720px) {
+  #goal { top: auto; bottom: 110px; max-width: calc(100cqw - 32px); }
   .money-row { grid-template-columns: auto minmax(5em, auto); }
   .money-row .label { display: none; }
   #dialog { grid-template-columns: 1fr auto; }

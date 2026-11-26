@@ -186,9 +186,12 @@ export class World {
 
   fit() {
     if (!this.map) return;
-    const hudH = document.body.classList.contains('has-hud')
-      ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hud-h')) || 0 : 0;
-    const vw = window.innerWidth, vh = window.innerHeight - hudH;
+    const hud = document.getElementById('hud');
+    const hudH = document.body.classList.contains('has-hud') && hud
+      ? parseFloat(getComputedStyle(hud).getPropertyValue('--hud-h')) || 0 : 0;
+    // 게임 화면 크기 (화면을 90도 돌려 출력할 때도 돌리기 전 크기 기준)
+    const game = document.getElementById('game');
+    const vw = game?.offsetWidth || window.innerWidth, vh = (game?.offsetHeight || window.innerHeight) - hudH;
     const s = Math.min(vw / this.cv.width, vh / this.cv.height);
     const scale = s >= 2 ? Math.floor(s) : s;
     this.cv.style.width = Math.floor(this.cv.width * scale) + 'px';
@@ -209,10 +212,25 @@ export class World {
     this.cv.addEventListener('pointerdown', e => {
       if (this.frozen || !this.map) return;
       const r = this.cv.getBoundingClientRect();
-      const tx = Math.floor((e.clientX - r.left) / r.width * this.W);
-      const ty = Math.floor((e.clientY - r.top) / r.height * this.H);
+      let fx, fy;
+      if (document.body.classList.contains('rotated')) {
+        // 화면을 시계 방향으로 90도 돌려 출력 중: 화면의 아래쪽 = 지도의 오른쪽, 화면의 왼쪽 = 지도의 아래쪽
+        fx = (e.clientY - r.top) / r.height;
+        fy = (r.right - e.clientX) / r.width;
+      } else {
+        fx = (e.clientX - r.left) / r.width;
+        fy = (e.clientY - r.top) / r.height;
+      }
+      const tx = Math.floor(fx * this.W);
+      const ty = Math.floor(fy * this.H);
       this.goTo(tx, ty);
     });
+  }
+
+  // 화면 방향키(휴대폰·패드): 누르고 있는 동안 그쪽으로 걸어요
+  pressKey(k, on) {
+    if (on) { if (this.frozen) return; this.keys.add(k); this.player.path = []; this.marker = null; }
+    else this.keys.delete(k);
   }
 
   // 누른 곳으로 걸어가기. 건물이나 사람을 누르면 그 앞까지 갑니다.

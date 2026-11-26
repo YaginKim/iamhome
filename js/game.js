@@ -21,25 +21,35 @@ async function boot() {
   world.onArrive = (x, y, settled) => onArrive(x, y, settled);
   world.onStep = () => onStep();
   soundButton();
-  phoneLandscape();
+  touchLayout();
   await loadBuildingManifest();
   await world.load(townMap(null, ['home', 'school', 'snackbar', 'convenience', 'hairshop', 'market', 'bank', 'mart', 'edu_office', 'moe']), { x: 17, y: 9 });
   titleScreen();
 }
 
 function persist() { save(S); }
-// 휴대폰: 처음 누를 때 전체 화면 + 가로 고정을 시도합니다 (안 되는 기기는 '가로로 돌려 주세요' 안내가 나와요)
-function phoneLandscape() {
-  const phone = matchMedia('(hover: none) and (pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
-  if (!phone) return;
-  window.addEventListener('pointerdown', () => {
-    const el = document.documentElement;
-    if (!el.requestFullscreen || document.fullscreenElement) return;
-    el.requestFullscreen({ navigationUI: 'hide' })
-      .then(() => screen.orientation?.lock?.('landscape'))
-      .catch(() => {})
-      .finally(() => setTimeout(() => world?.fit(), 300));
-  }, { once: true });
+// 휴대폰·패드: 세로로 들고 있으면 게임 화면을 90도 돌려 출력하고, 오른쪽 아래에 방향키를 보여 줘요 (PC는 그대로)
+function touchLayout() {
+  const apply = () => {
+    const touch = matchMedia('(hover: none) and (pointer: coarse)').matches;
+    document.body.classList.toggle('touch', touch);
+    document.body.classList.toggle('rotated', touch && window.innerHeight > window.innerWidth);
+    requestAnimationFrame(() => world?.fit());
+  };
+  apply();
+  window.addEventListener('resize', apply);
+  window.addEventListener('orientationchange', () => setTimeout(apply, 200));
+  // 방향키
+  for (const b of document.querySelectorAll('#dpad button')) {
+    const k = b.dataset.k;
+    const down = e => { e.preventDefault(); b.setPointerCapture?.(e.pointerId); b.classList.add('on'); world.pressKey(k, true); };
+    const up = () => { b.classList.remove('on'); world.pressKey(k, false); };
+    b.addEventListener('pointerdown', down);
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+    b.addEventListener('lostpointercapture', up);
+    b.addEventListener('contextmenu', e => e.preventDefault());
+  }
 }
 // 위쪽 정보 막대 보이기 (지도는 막대 아래 남은 공간에 맞춰 그려요)
 function showHud(on) {
@@ -130,8 +140,32 @@ function poster(sc) {
   sc.append(bg);
 }
 
+// 휴대폰·패드 첫 화면: 세로 모드로 고정하고 기기를 왼쪽으로 눕히라는 안내 (게임 화면 밖에 똑바로 띄움)
+function orientGuide() {
+  if (!document.body.classList.contains('touch')) return;
+  try { if (sessionStorage.getItem('dagyeo-orient')) return; } catch { /* */ }
+  const ov = el('div', 'orient');
+  ov.id = 'orient';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-label', '화면 방향 안내');
+  const card = el('div', 'orient-card');
+  const pic = el('div', 'orient-pic'); pic.setAttribute('aria-hidden', 'true');
+  const phone = el('div', 'orient-phone'); phone.append(el('i'));
+  pic.append(phone);
+  const how = el('ol', 'orient-steps');
+  const li1 = el('li'); li1.append(el('b', null, '세로 모드로 고정'), el('span', null, '아이폰·아이패드: 제어 센터 → 화면 방향 잠금 켜기'), el('span', null, '갤럭시: 빠른 설정 → 자동 회전 끄기 (세로)'));
+  const li2 = el('li'); li2.append(el('b', null, '기기를 왼쪽으로 눕히기'), el('span', null, '게임 화면이 똑바로 보여요'));
+  how.append(li1, li2);
+  const ok = el('button', 'btn primary big', '확인했어요');
+  ok.onclick = () => { try { sessionStorage.setItem('dagyeo-orient', '1'); } catch { /* */ } ov.remove(); };
+  card.append(pic, el('h2', null, '세로 모드로 고정해 주세요'), how, ok);
+  ov.append(card);
+  document.body.append(ov);
+}
+
 function titleScreen() {
   playBgm('title');
+  orientGuide();
   world.frozen = true;
   showHud(false); setGoal('');
   const sc = $('#screen'); sc.hidden = false; sc.innerHTML = '';
