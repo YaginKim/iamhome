@@ -485,6 +485,48 @@ body[data-map="poster"] .btn.primary:hover { background: #e85a5a; }
   #toasts { top: calc(var(--hud-h) + 40px); }
   .tagline { margin: 12px 0 16px; }
 }
+/* 휴대폰 가로 화면: 결제·은행은 좌우 두 칸으로 나눠 한 화면에 모두 보이게 */
+@media (max-height: 500px) {
+  .panel.pay { padding: 6px calc(max(10px, env(safe-area-inset-right)) + 56px) 6px max(10px, env(safe-area-inset-left)); }
+  .panel.pay > .sheet { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 14px; row-gap: 6px;
+    align-content: start; height: calc(100dvh - 12px); overflow: hidden; padding: 8px 10px; margin: 0; }
+  .panel.pay .pay-top { grid-column: 1; grid-row: 1; flex-wrap: nowrap; gap: 6px; align-items: center; }
+  .panel.pay .pay-owner > img { display: none; }
+  .panel.pay .owner-line { font-size: 13px; padding: 4px 8px 6px; margin: 2px; }
+  .panel.pay .pay-head { gap: 4px; }
+  .panel.pay .due, .panel.pay .paid { min-width: 0; padding: 3px 8px 5px; margin: 2px; }
+  .panel.pay .due b, .panel.pay .paid b { font-size: 18px; }
+  .panel.pay .due span, .panel.pay .paid span { font-size: 11px; }
+  .panel.pay .tray { grid-column: 1; grid-row: 2 / span 2; min-height: 0; margin: 2px; padding: 6px; gap: 4px; align-content: center; }
+  .panel.pay .tray-hint { font-size: 13px; }
+  .panel.pay .pay-bottom { grid-column: 2; grid-row: 1 / span 2; gap: 0; align-content: start; }
+  .panel.pay h3 { font-size: 12px; margin: 2px 0; }
+  .panel.pay .wallet, .panel.pay .cards { gap: 6px; }
+  .panel.pay .money-btn, .panel.pay .card-btn { min-width: 0; min-height: 0; padding: 4px 6px; margin: 3px; gap: 1px; }
+  .panel.pay .money-btn img, .panel.pay .tray img, .panel.pay .ghost img { height: 28px; width: auto; }
+  .panel.pay .card-btn img { height: 26px; width: auto; }
+  .panel.pay .card-btn span { font-size: 10px; }
+  .panel.pay .money-btn .count { min-width: 22px; height: 22px; font-size: 13px; top: -8px; right: -8px; }
+  .panel.pay .pay-done { grid-column: 2; grid-row: 3; margin: 2px 0 0 !important; min-width: 0; width: 100%; min-height: 44px; align-self: end; }
+  .panel.pay .change { grid-column: 2; grid-row: 1 / span 3; overflow: auto; }
+  .panel.pay .change h3 { font-size: 14px; }
+  .panel.pay .keypad { gap: 2px; width: 100%; margin-bottom: 4px; }
+  .panel.pay .keypad .btn { min-height: 34px; padding: 2px; margin: 2px; font-size: 16px; }
+  .panel.pay .num-out { font-size: 20px; margin: 2px auto 6px; padding: 2px 10px; }
+  /* 은행 입금 화면 */
+  .panel.pay.bank > .sheet > h3 { grid-column: 2; grid-row: 1; }
+  .panel.pay.bank .wallet { grid-column: 2; grid-row: 2; align-content: start; }
+  .panel.pay.bank > .sheet > .row { grid-column: 2; grid-row: 3; align-self: end; gap: 6px; }
+  .panel.pay.bank > .sheet > .row .btn { font-size: 14px; }
+  /* 카드 단말기: 왼쪽에 단말기, 오른쪽에 카드 */
+  .terminal, .panel.trycard { grid-template-columns: auto minmax(0, 280px); column-gap: 28px; align-items: center; justify-items: center; }
+  .terminal .device, .panel.trycard .device { grid-column: 1; grid-row: 1 / span 3; width: 150px; height: 200px; }
+  .device .screen { inset: 14px 14px auto; height: 78px; font-size: 14px; }
+  .panel.trycard h2 { grid-column: 2; font-size: 20px; margin: 0; }
+  .drag-tip, .term-msg { font-size: 14px; }
+  .drag-card img { height: 56px; width: auto; }
+}
+
 /* 휴대폰을 세로로 들었을 때 */
 #rotate { display: none; }
 @media (orientation: portrait) and (max-width: 600px) and (hover: none) {
