@@ -20,21 +20,31 @@ export function line(id, vars = {}) {
 
 // ---------- HUD ----------
 let lastLeft = null;
+// 아이콘 아래에 작은 글자를 붙인 묶음
+function captioned(icons, caption) {
+  const box = el('div', 'hud-ico');
+  const row = el('div', 'icons');
+  row.append(...icons);
+  box.append(row, el('span', 'cap', caption));
+  return box;
+}
+
 export function renderHud(state, config, place, lives) {
   const left = $('#hud-left');
   left.innerHTML = '';
   if (place) left.append(el('div', 'place', place));
-  // 실수 기회 (하트)
+  // 실수 기회 (초록 하트)
   if (lives) {
     const lv = el('div', 'lives');
     lv.setAttribute('aria-label', `실수 기회 ${lives.left}번 남음 (모두 ${lives.max}번)`);
+    const hearts = [];
     for (let i = 0; i < lives.max; i++) {
       const full = i < lives.left;
-      const img = toImg(iconCanvas(full ? 'heartGreen' : 'heartEmpty'), 5);
+      const img = toImg(iconCanvas(full ? 'heartGreen' : 'heartEmpty'), 4);
       if (!full && lastLeft != null && i === lives.left && lastLeft > lives.left) img.classList.add('break');
-      lv.append(img);
+      hearts.push(img);
     }
-    lv.append(el('span', 'lives-text', lives.left ? `${lives.left}번 더 틀려도 돼요` : '나를 확인할 차례예요'));
+    lv.append(captioned(hearts, '실수 기회'), el('span', 'lives-text', lives.left ? `${lives.left}번 더 틀려도 돼요` : '나를 확인할 차례예요'));
     left.append(lv);
     lastLeft = lives.left;
   } else lastLeft = null;
@@ -42,7 +52,7 @@ export function renderHud(state, config, place, lives) {
   if (state.settings.stamina) {
     const st = el('div', 'stamina');
     st.setAttribute('aria-label', `체력 ${state.stamina} / ${config.stamina.max}`);
-    st.append(toImg(iconCanvas('bowl'), 4), el('span', 'stamina-label', '체력'));
+    st.append(captioned([toImg(iconCanvas('bowl'), 4)], '체력'));
     const bar = el('div', 'bar'); const fill = el('i');
     fill.style.width = (state.stamina / config.stamina.max * 100) + '%';
     if (state.stamina < 30) bar.classList.add('low');
@@ -56,7 +66,8 @@ export function renderHud(state, config, place, lives) {
   right.innerHTML = '';
   const row = (icon, label, value, key) => {
     const r = el('div', 'money-row'); r.dataset.key = key;
-    r.append(toImg(iconCanvas(icon), 3), el('span', 'label', label), el('b', 'value', won(value)));
+    r.setAttribute('aria-label', `${label} ${won(value)}`);
+    r.append(captioned([toImg(iconCanvas(icon), 3)], label), el('b', 'value', won(value)));
     right.append(r);
   };
   row('cash', '현금', cashTotal(state.cash), 'cash');

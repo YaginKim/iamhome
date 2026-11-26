@@ -21,12 +21,26 @@ async function boot() {
   world.onArrive = (x, y, settled) => onArrive(x, y, settled);
   world.onStep = () => onStep();
   soundButton();
+  phoneLandscape();
   await loadBuildingManifest();
   await world.load(townMap(null, ['home', 'school', 'snackbar', 'convenience', 'hairshop', 'market', 'bank', 'mart', 'edu_office', 'moe']), { x: 17, y: 9 });
   titleScreen();
 }
 
 function persist() { save(S); }
+// 휴대폰: 처음 누를 때 전체 화면 + 가로 고정을 시도합니다 (안 되는 기기는 '가로로 돌려 주세요' 안내가 나와요)
+function phoneLandscape() {
+  const phone = matchMedia('(hover: none) and (pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
+  if (!phone) return;
+  window.addEventListener('pointerdown', () => {
+    const el = document.documentElement;
+    if (!el.requestFullscreen || document.fullscreenElement) return;
+    el.requestFullscreen({ navigationUI: 'hide' })
+      .then(() => screen.orientation?.lock?.('landscape'))
+      .catch(() => {})
+      .finally(() => setTimeout(() => world?.fit(), 300));
+  }, { once: true });
+}
 // 위쪽 정보 막대 보이기 (지도는 막대 아래 남은 공간에 맞춰 그려요)
 function showHud(on) {
   $('#hud').hidden = !on;
@@ -42,7 +56,7 @@ function townSpawn(id) {
 // 오른쪽 위 소리 설정 버튼
 function soundButton() {
   const btn = $('#sound-btn'), pop = $('#sound-pop'), range = $('#bgm-vol'), out = $('#bgm-out');
-  btn.append(toImg(iconCanvas('speaker'), 4, ''));
+  btn.append(toImg(iconCanvas('speaker'), 4, ''), el('span', 'cap', '소리'));
   const show = v => { range.value = v; out.textContent = v; btn.classList.toggle('muted', v === 0); range.style.setProperty('--fill', v + '%'); };
   show(getVolume());
   btn.onclick = e => {
