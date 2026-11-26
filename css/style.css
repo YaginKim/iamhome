@@ -9,6 +9,7 @@
 @font-face { font-family: 'Ending'; src: url('../assets/fonts/WILDgag-Bold.woff2') format('woff2'); font-display: swap; }
 
 :root {
+  color-scheme: only light;
   --paper: #fbf5e6;
   --card: #fffdf6;
   --ink: #22203a;

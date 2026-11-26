@@ -1,12 +1,12 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
-import { loadData, itemsFor, won, LEVELS } from './data.js';
-import { playBgm, getVolume, setVolume } from './bgm.js';
-import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js';
-import { World, townMap, homeMap, shopMap, bankMap, loadBuildingManifest } from './engine.js';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, panel, closePanel, fade, flashHud } from './ui.js';
-import { pay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js';
-import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js';
-import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js';
+import { loadData, itemsFor, won, LEVELS } from './data.js?v=202611261357';
+import { playBgm, getVolume, setVolume } from './bgm.js?v=202611261357';
+import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611261357';
+import { World, townMap, homeMap, shopMap, bankMap, loadBuildingManifest } from './engine.js?v=202611261357';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, panel, closePanel, fade, flashHud } from './ui.js?v=202611261357';
+import { pay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611261357';
+import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611261357';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611261357';
 
 const $ = s => document.querySelector(s);
 let D, S, world;
@@ -31,7 +31,12 @@ function persist() { save(S); }
 // 휴대폰·패드: 세로로 들고 있으면 게임 화면을 90도 돌려 출력하고, 오른쪽 아래에 방향키를 보여 줘요 (PC는 그대로)
 function touchLayout() {
   const apply = () => {
-    const touch = matchMedia('(hover: none) and (pointer: coarse)').matches;
+    // 휴대폰·패드 판단: 브라우저마다 알려 주는 정보가 달라서 여러 가지를 함께 봐요
+    const ua = navigator.userAgent || '';
+    const mobileUA = /Android|iPhone|iPad|iPod|Mobile|SamsungBrowser/i.test(ua);
+    const ipadOS = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+    const coarse = matchMedia('(pointer: coarse)').matches || matchMedia('(any-pointer: coarse)').matches;
+    const touch = mobileUA || ipadOS || (navigator.maxTouchPoints > 0 && coarse && !matchMedia('(pointer: fine)').matches);
     document.body.classList.toggle('touch', touch);
     document.body.classList.toggle('rotated', touch && window.innerHeight > window.innerWidth);
     requestAnimationFrame(() => world?.fit());
