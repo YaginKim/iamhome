@@ -2,7 +2,7 @@
 import { loadData, itemsFor, won, LEVELS } from './data.js';
 import { playBgm, getVolume, setVolume } from './bgm.js';
 import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js';
-import { World, townMap, homeMap, shopMap, bankMap } from './engine.js';
+import { World, townMap, homeMap, shopMap, bankMap, loadBuildingManifest } from './engine.js';
 import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, panel, closePanel, fade, flashHud } from './ui.js';
 import { pay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js';
 import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js';
@@ -21,11 +21,17 @@ async function boot() {
   world.onArrive = (x, y, settled) => onArrive(x, y, settled);
   world.onStep = () => onStep();
   soundButton();
+  await loadBuildingManifest();
   await world.load(townMap(null, ['home', 'school', 'snackbar', 'convenience', 'hairshop', 'market', 'bank', 'mart', 'edu_office', 'moe']), { x: 17, y: 9 });
   titleScreen();
 }
 
 function persist() { save(S); }
+// 건물 문 바로 아래 인도 칸
+function townSpawn(id) {
+  const b = townMap(S, []).buildings.find(b => b.id === id);
+  return { x: b.doorX, y: b.doorY + 1 };
+}
 
 // 오른쪽 위 소리 설정 버튼
 function soundButton() {
@@ -213,7 +219,7 @@ function resume() {
   setVoiceEnabled(S.settings.voice);
   if (!S.tutorialDone) return startTutorial();
   if (S.day.date !== today()) S.day = { date: today(), count: 0 };
-  enterTown({ x: 4, y: 8 });
+  enterTown(townSpawn('home'));
   freeRoamGoal();
 }
 
@@ -269,7 +275,7 @@ function updateGoalMarker() {
   if (!g) return;
   if (run.map === 'town') {
     const b = world.map.buildings.find(b => b.id === g);
-    if (b) world.goal = { x: b.doorX, y: b.doorY - (b.doorY > 9 ? -1 : 1) };
+    if (b) world.goal = { x: b.doorX, y: b.doorY }; // 문 위를 가리키는 화살표
   } else if (run.map === 'home' && g === 'home') world.goal = { x: 9, y: 3 }; // 엄마 머리 위
   else if (run.map === 'snackbar' && g === 'snackbar') world.goal = { ...world.map.counter };
   else if (run.map === 'bank' && g === 'bank') world.goal = (L().bank.mode === 'atm' && run.tutorial?.step !== 'bank') ? { x: world.map.atm.x, y: world.map.atm.y + 1 } : { ...world.map.counter };
@@ -289,7 +295,7 @@ async function onArrive(x, y, settled) {
     if (b.locked) {
       world.player.path = [];
       busy = true;
-      await fade(() => world.load(townMap(S, unlocked()), { x, y: y + (y > 9 ? -1 : 1) }));
+      await fade(() => world.load(townMap(S, unlocked()), { x, y: y + 1 }));
       notify(b.id === 'school' ? '학교는 다음 체험판에서 열려요.' : `${b.label}은 아직 열리지 않았어요.`, 'no');
       busy = false;
       return;
@@ -309,7 +315,7 @@ async function onArrive(x, y, settled) {
       return;
     }
     busy = true; world.frozen = true;
-    const spawnOf = { home: { x: 4, y: 8 }, snackbar: { x: 22, y: 8 }, bank: { x: 11, y: 11 } }[run.map];
+    const spawnOf = townSpawn(run.map);
     await fade(() => enterTown(spawnOf));
     busy = false;
     return;
@@ -433,7 +439,7 @@ async function tutorialLesson() {
     hud(); flashHud('cash');
     notify('엄마가 용돈 2,000원을 현금으로 줬어요!', 'coin');
     persist();
-    await fade(() => enterTown({ x: 4, y: 8 }));
+    await fade(() => enterTown(townSpawn('home')));
     goal('bank', '은행에 가서 돈을 계좌에 넣어 봐요.');
   };
 }

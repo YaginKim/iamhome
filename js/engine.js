@@ -94,7 +94,11 @@ function drawBuilding(ctx, b, fontReady) {
   f(b.locked ? '#8c92a0' : '#a0643c', dx + 3, dy - 1, 10, 17);
   f(b.locked ? '#ccd0d8' : '#f4c846', dx + 10, dy + 7, 2, 2);
   }
-  // 간판
+  // 간판 (그림에 간판이 이미 있으면 그리지 않음)
+  if (b.art && b.showSign === false) {
+    if (b.locked) ctx.drawImage(iconCanvas('lock'), px + w - 14, py + 6);
+    return;
+  }
   if (fontReady) {
     ctx.font = '16px Sam3KR';
     if ('letterSpacing' in ctx) ctx.letterSpacing = '-3px';
@@ -111,19 +115,28 @@ function drawBuilding(ctx, b, fontReady) {
 }
 
 // 건물 그림 교체: assets/buildings/manifest.json 에 적힌 건물만 PNG를 읽습니다
-let artList = null;
+let artList = {};
+let manifestLoaded = false;
 const artCache = new Map();
+// 건물 그림 목록(문 위치 포함). 지도를 만들기 전에 한 번 읽어 둡니다.
+export async function loadBuildingManifest() {
+  if (manifestLoaded) return artList;
+  try { artList = await fetch('assets/buildings/manifest.json').then(r => r.json()); } catch { artList = {}; }
+  if (Array.isArray(artList)) artList = Object.fromEntries(artList.map(id => [id, {}])); // 예전 목록 형식도 읽기
+  manifestLoaded = true;
+  return artList;
+}
 async function loadBuildingArt(buildings) {
-  if (!artList) {
-    try { artList = await fetch('assets/buildings/manifest.json').then(r => r.json()); } catch { artList = []; }
-  }
-  await Promise.all(buildings.filter(b => artList.includes(b.id)).map(b => {
+  await loadBuildingManifest();
+  await Promise.all(buildings.filter(b => artList[b.id]).map(b => {
+    const info = artList[b.id];
+    b.showSign = info.sign !== false;
     if (artCache.has(b.id)) { b.art = artCache.get(b.id); return null; }
     return new Promise(res => {
       const img = new Image();
       img.onload = () => { artCache.set(b.id, img); b.art = img; res(); };
       img.onerror = () => res();
-      img.src = `assets/buildings/${b.id}.png`;
+      img.src = `assets/buildings/${info.file || b.id + '.png'}`;
     });
   }));
 }
@@ -336,30 +349,34 @@ export class World {
 
 // ---------- 지도 ----------
 export function townMap(state, unlocked) {
-  const W = 35, H = 19;
+  // 위쪽 건물 줄 → 큰길 → 아래쪽 건물 줄 → 아랫길. 모든 건물 문은 아래쪽 길을 바라봅니다.
+  const W = 35, H = 23;
+  const SIDE = [8, 11, 18, 21], ROAD = [9, 10, 19, 20];
   const rows = [];
   for (let y = 0; y < H; y++) {
     let r = '';
     for (let x = 0; x < W; x++) {
       let ch = 'g';
       if (y === 0 || y === H - 1 || x === 0 || x === W - 1) ch = 't';
-      if (y === 8 || y === 11) ch = 's';
-      if (y === 9) ch = x % 3 === 0 ? '-' : 'r';
-      if (y === 10) ch = 'r';
-      if (x === 15 || x === 18) ch = (y >= 1 && y <= H - 2) ? 's' : ch;
+      if (SIDE.includes(y) && x > 0 && x < W - 1) ch = 's';
+      if (y === 9 || y === 19) ch = x % 3 === 0 && x > 0 && x < W - 1 ? '-' : 'r';
+      if (y === 10 || y === 20) ch = x > 0 && x < W - 1 ? 'r' : 't';
+      if (x === 15 || x === 18) ch = (y >= 1 && y <= H - 2) ? (ROAD.includes(y) ? 'r' : 's') : ch;
       if (x === 16 || x === 17) {
-        if (y >= 1 && y <= H - 2) ch = (y === 9 || y === 10) ? 'r' : (x === 16 && y % 3 === 0 ? '|' : 'r');
+        if (y >= 1 && y <= H - 2) ch = ROAD.includes(y) ? 'r' : (x === 16 && y % 3 === 0 ? '|' : 'r');
       }
-      if ((x === 14 || x === 19) && (y === 9 || y === 10)) ch = 'z';
-      if ((y === 7 || y === 12) && (x === 16 || x === 17)) ch = 'Z';
+      if ((x === 14 || x === 19) && ROAD.includes(y)) ch = 'z';
+      if (SIDE.includes(y) && (x === 16 || x === 17)) ch = 'Z';
+      if ((y === 9 || y === 19) && (x === 0 || x === W - 1)) ch = 't';
       r += ch;
     }
     rows.push(r);
   }
   // 건물 앞 길
   const B = (id, label, x, y, w, h, top, colors) => {
-    const doorX = x + Math.floor(w / 2);
-    const doorY = top ? y + h - 1 : y;
+    const col = artList[id]?.door;
+    const doorX = x + (Number.isInteger(col) && col >= 0 && col < w ? col : Math.floor(w / 2));
+    const doorY = y + h - 1; // 문은 맨 아래 줄
     return { id, label, x, y, w, h, doorX, doorY, locked: !unlocked.includes(id), ...colors };
   };
   const C = {

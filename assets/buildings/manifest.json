@@ -1,1 +1,12 @@
-[]
+{
+  "home":        { "file": "home.png",        "door": 0, "sign": false },
+  "school":      { "file": "school.png",      "door": 3, "sign": false },
+  "snackbar":    { "file": "snackbar.png",    "door": 2, "sign": false },
+  "convenience": { "file": "convenience.png", "door": 0, "sign": false },
+  "hairshop":    { "file": "hairshop.png",    "door": 3, "sign": false },
+  "market":      { "file": "market.png",      "door": 3, "sign": false },
+  "bank":        { "file": "bank.png",        "door": 2, "sign": false },
+  "mart":        { "file": "mart.png",        "door": 2, "sign": false },
+  "edu_office":  { "file": "edu_office.png",  "door": 1, "sign": false },
+  "moe":         { "file": "moe.png",         "door": 1, "sign": false }
+}
