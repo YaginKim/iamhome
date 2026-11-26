@@ -1,5 +1,5 @@
 // 위에서 내려다보는 지도: 타일 그리기, 이동(키보드·터치), 길찾기, 문·사람과 만나기
-import { PAL, PEOPLE, iconCanvas } from './sprites.js';
+import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js';
 import { sfx } from './voice.js';
 
 export const T = 16;
@@ -68,6 +68,13 @@ function drawBuilding(ctx, b, fontReady) {
   const px = b.x * T, py = b.y * T, w = b.w * T, h = b.h * T;
   const f = (c, a, bb, ww, hh) => { ctx.fillStyle = c; ctx.fillRect(px + a, py + bb, ww, hh); };
   const roofH = 14;
+  if (b.art) {
+    // assets/buildings/<id>.png 그림이 있으면 그 그림을 씁니다 (간판·자물쇠는 위에 그대로 그림)
+    const a = b.art;
+    if (a.width <= w && a.height <= h) ctx.drawImage(a, px + Math.floor((w - a.width) / 2), py + h - a.height);
+    else { const k = Math.min(w / a.width, h / a.height); ctx.drawImage(a, px + (w - a.width * k) / 2, py + h - a.height * k, a.width * k, a.height * k); }
+    if (b.locked) { ctx.fillStyle = 'rgba(140,146,160,0.45)'; ctx.fillRect(px, py, w, h); }
+  } else {
   // 그림자 (바닥)
   ctx.fillStyle = 'rgba(34,32,58,0.18)'; ctx.fillRect(px + 2, py + h - 2, w, 4);
   f(PAL.k, 0, 0, w, h);
@@ -86,6 +93,7 @@ function drawBuilding(ctx, b, fontReady) {
   f(PAL.k, dx + 2, dy - 2, 12, 18);
   f(b.locked ? '#8c92a0' : '#a0643c', dx + 3, dy - 1, 10, 17);
   f(b.locked ? '#ccd0d8' : '#f4c846', dx + 10, dy + 7, 2, 2);
+  }
   // 간판
   if (fontReady) {
     ctx.font = '16px Sam3KR';
@@ -102,18 +110,36 @@ function drawBuilding(ctx, b, fontReady) {
   }
 }
 
+// 건물 그림 교체: assets/buildings/manifest.json 에 적힌 건물만 PNG를 읽습니다
+let artList = null;
+const artCache = new Map();
+async function loadBuildingArt(buildings) {
+  if (!artList) {
+    try { artList = await fetch('assets/buildings/manifest.json').then(r => r.json()); } catch { artList = []; }
+  }
+  await Promise.all(buildings.filter(b => artList.includes(b.id)).map(b => {
+    if (artCache.has(b.id)) { b.art = artCache.get(b.id); return null; }
+    return new Promise(res => {
+      const img = new Image();
+      img.onload = () => { artCache.set(b.id, img); b.art = img; res(); };
+      img.onerror = () => res();
+      img.src = `assets/buildings/${b.id}.png`;
+    });
+  }));
+}
+
 export class World {
   constructor(canvas) {
     this.cv = canvas;
     this.ctx = canvas.getContext('2d');
     this.map = null;
-    this.player = { x: 0, y: 0, rx: 0, ry: 0, path: [], frame: 0, t: 0 };
+    this.player = { x: 0, y: 0, rx: 0, ry: 0, path: [], frame: 0, t: 0, dir: 'down' };
     this.frozen = true;
     this.keys = new Set();
     this.speed = 6; // 초당 타일
     this.onArrive = null; // (x, y) => void
     this.marker = null;
-    this.playerSprite = PEOPLE.player();
+    this.playerSprites = playerSprites();
     this.last = performance.now();
     this.bindInput();
     requestAnimationFrame(t => this.loop(t));
@@ -121,6 +147,7 @@ export class World {
 
   async load(map, spawn) {
     await document.fonts.load('16px Sam3KR').catch(() => {});
+    await loadBuildingArt(map.buildings || []);
     this.map = map;
     this.grid = map.tiles.map(r => [...r]);
     const W = map.tiles[0].length, H = map.tiles.length;
@@ -239,7 +266,12 @@ export class World {
         const nx = p.x + dx, ny = p.y + dy;
         if (this.blocked[ny]?.[nx] === false) next = [nx, ny];
       }
-      if (next) { p.x = next[0]; p.y = next[1]; p.flip = next[0] < p.rx; this.stepped = (this.stepped || 0) + 1; }
+      if (next) {
+        const dx = next[0] - p.x, dy = next[1] - p.y;
+        p.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy < 0 ? 'up' : 'down';
+        p.x = next[0]; p.y = next[1];
+        this.stepped = (this.stepped || 0) + 1;
+      }
     }
     if (this.isMoving()) {
       const step = sp * dt;
@@ -247,7 +279,7 @@ export class World {
       p.rx += Math.sign(dx) * Math.min(Math.abs(dx), step);
       p.ry += Math.sign(dy) * Math.min(Math.abs(dy), step);
       p.t += dt;
-      if (p.t > 0.14) { p.t = 0; p.frame ^= 1; if (p.frame) sfx('step'); }
+      if (p.t > 0.12) { p.t = 0; p.frame = (p.frame + 1) % 4; if (p.frame % 2) sfx('step'); }
       if (!this.isMoving()) {
         if (!p.path.length) this.marker = null;
         this.onArrive?.(p.x, p.y, p.path.length === 0 && !this.keys.size);
@@ -267,13 +299,27 @@ export class World {
       ctx.fillRect(this.marker.x * T + 2, this.marker.y * T + 2, T - 4, T - 4);
     }
     if (this.goal) {
+      // 가야 할 곳: 위아래로 움직이는 빨간 화살표
       const g = this.goal, bob = Math.round(Math.sin(performance.now() / 180) * 2);
-      ctx.fillStyle = PAL.k; ctx.fillRect(g.x * T + 4, g.y * T - 14 + bob, 8, 9); ctx.fillRect(g.x * T + 6, g.y * T - 5 + bob, 4, 2);
-      ctx.fillStyle = PAL.y; ctx.fillRect(g.x * T + 5, g.y * T - 13 + bob, 6, 7); ctx.fillRect(g.x * T + 7, g.y * T - 6 + bob, 2, 1);
+      const x0 = g.x * T + 2, y0 = g.y * T - 15 + bob;
+      const rows = [[4, 8], [4, 8], [4, 8], [4, 8], [0, 12], [1, 11], [2, 10], [3, 9], [4, 8], [5, 7]];
+      ctx.fillStyle = PAL.k;
+      ctx.fillRect(x0 + 3, y0 - 1, 6, 1);
+      rows.forEach(([a, b], i) => ctx.fillRect(x0 + a - 1, y0 + i, b - a + 2, 1));
+      ctx.fillRect(x0 + 5, y0 + rows.length, 2, 1);
+      ctx.fillStyle = PAL.r;
+      rows.forEach(([a, b], i) => ctx.fillRect(x0 + a, y0 + i, b - a, 1));
+      ctx.fillStyle = '#f08080';
+      ctx.fillRect(x0 + 4, y0, 1, 4);
     }
     const actors = (this.map.npcs || []).map((n, i) => ({ y: n.y, draw: () => this.drawPerson(this.npcSprites[i][0], n.x, n.y, false) }));
     const p = this.player;
-    actors.push({ y: p.ry, draw: () => this.drawPerson(this.playerSprite[p.frame], p.rx, p.ry, p.flip) });
+    // 걷기 순서: 왼발 → 서기 → 오른발 → 서기. 걸을 때는 한 칸씩 몸이 살짝 들썩여요.
+    const set = this.playerSprites[p.dir === 'left' ? 'right' : p.dir];
+    const moving = this.isMoving();
+    const idx = moving ? [1, 0, 2, 0][p.frame] : 0;
+    const bob = moving && (p.frame === 1 || p.frame === 3) ? -1 / T : 0;
+    actors.push({ y: p.ry, draw: () => this.drawPerson(set[idx], p.rx, p.ry + bob, p.dir === 'left') });
     actors.sort((a, b) => a.y - b.y).forEach(a => a.draw());
   }
 

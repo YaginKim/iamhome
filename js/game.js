@@ -102,7 +102,6 @@ function titleScreen() {
   row.append(n, st);
   t.append(row);
   sc.append(t);
-  say(line('title.copy'), 'title.copy');
 }
 
 function setupScreen() {
@@ -198,6 +197,7 @@ function unlocked() {
 }
 
 async function enterTown(spawn) {
+  run.nearNpc = null;
   document.body.dataset.map = 'town';
   run.map = 'town'; run.place = '우리 동네';
   await world.load(townMap(S, unlocked()), spawn);
@@ -206,6 +206,7 @@ async function enterTown(spawn) {
   updateGoalMarker();
 }
 async function enterHome(spawn) {
+  run.nearNpc = null;
   document.body.dataset.map = 'indoor';
   run.map = 'home'; run.place = '우리 집';
   await world.load(homeMap(), spawn);
@@ -216,12 +217,14 @@ async function enterHome(spawn) {
   if (run.tutorialReturn) setTimeout(tutorialHome, 300);
 }
 async function enterShop() {
+  run.nearNpc = null;
   document.body.dataset.map = 'indoor';
   run.map = 'snackbar'; run.place = '분식점';
   await world.load(shopMap());
   hud(); world.frozen = false; updateGoalMarker();
 }
 async function enterBank() {
+  run.nearNpc = null;
   document.body.dataset.map = 'indoor';
   run.map = 'bank'; run.place = '은행';
   await world.load(bankMap());
@@ -279,19 +282,19 @@ async function onArrive(x, y, settled) {
     busy = false;
     return;
   }
-  if (!settled) return;
-  // 사람 옆
-  for (const n of m.npcs || []) {
-    if (Math.abs(n.x - x) + Math.abs(n.y - y) <= 1 || (run.map !== 'home' && x === n.x && y === n.y + 2)) {
-      busy = true; world.frozen = true;
-      await meet(n.id);
-      world.frozen = false; busy = false;
-      return;
-    }
-  }
-  if (run.map === 'bank' && m.atm && Math.abs(m.atm.x - x) + Math.abs(m.atm.y - y) <= 1) {
-    busy = true; world.frozen = true; await meet('atm'); world.frozen = false; busy = false;
-  }
+  // 사람 가까이 (1칸 안, 대각선 포함). 계산대 뒤 사람은 계산대 앞 3칸.
+  const near = n => (run.map === 'home'
+    ? Math.max(Math.abs(n.x - x), Math.abs(n.y - y)) <= 1
+    : y === n.y + 2 && Math.abs(n.x - x) <= 1);
+  const who = (m.npcs || []).find(near)?.id
+    || (run.map === 'bank' && m.atm && Math.max(Math.abs(m.atm.x - x), Math.abs(m.atm.y - y)) <= 1 ? 'atm' : null);
+  if (!who) { run.nearNpc = null; return; }
+  if (run.nearNpc === who) return;
+  run.nearNpc = who;
+  world.keys.clear(); world.player.path = []; world.marker = null;
+  busy = true; world.frozen = true;
+  await meet(who);
+  world.frozen = false; busy = false;
 }
 
 async function onEnter(id) {

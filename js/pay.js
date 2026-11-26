@@ -29,6 +29,57 @@ function ownerSays(box, text) {
   say(text);
 }
 
+
+// 카드를 꾹 누른 채로 끌어서 단말기에 대기 (마우스·터치 모두). 'tap'(화면 쪽) 또는 'insert'(꽂는 곳)을 돌려줍니다.
+export function dragCard(host, dev, kind, tipText) {
+  return new Promise(res => {
+    const wrap = el('div', 'drag-card');
+    wrap.append(toImg(cardCanvas(kind), 5, ''));
+    wrap.setAttribute('role', 'button');
+    wrap.tabIndex = 0;
+    wrap.setAttribute('aria-label', '카드를 단말기로 끌어 놓기. 엔터를 누르면 대기');
+    const tip = el('p', 'drag-tip', tipText || '카드를 꾹 누른 채로 끌어서 단말기에 대 주세요');
+    host.append(wrap, tip);
+    let sx = 0, sy = 0, dragging = false;
+    const zoneAt = (x, y) => {
+      const sl = dev.querySelector('.slot').getBoundingClientRect();
+      if (x > sl.left - 30 && x < sl.right + 30 && y > sl.top - 36 && y < sl.bottom + 36) return 'insert';
+      const d = dev.getBoundingClientRect();
+      if (x > d.left - 24 && x < d.right + 24 && y > d.top - 24 && y < d.bottom + 24) return 'tap';
+      return null;
+    };
+    const finish = z => { wrap.remove(); tip.remove(); dev.dataset.over = ''; res(z); };
+    wrap.addEventListener('pointerdown', e => {
+      dragging = true; sx = e.clientX; sy = e.clientY;
+      wrap.setPointerCapture(e.pointerId);
+      wrap.classList.add('dragging');
+      sfx('step');
+    });
+    wrap.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      wrap.style.transform = `translate(${e.clientX - sx}px, ${e.clientY - sy}px) rotate(-8deg) scale(1.06)`;
+      dev.dataset.over = zoneAt(e.clientX, e.clientY) || '';
+    });
+    wrap.addEventListener('pointerup', e => {
+      if (!dragging) return;
+      dragging = false;
+      wrap.classList.remove('dragging');
+      const z = zoneAt(e.clientX, e.clientY);
+      if (z) finish(z);
+      else { wrap.style.transform = ''; dev.dataset.over = ''; }
+    });
+    wrap.addEventListener('pointercancel', () => { dragging = false; wrap.classList.remove('dragging'); wrap.style.transform = ''; dev.dataset.over = ''; });
+    wrap.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); finish('tap'); } });
+  });
+}
+
+function makeDevice(withSlotLabel) {
+  const dev = el('div', 'device');
+  dev.append(el('div', 'screen', ''), el('div', 'slot'));
+  if (withSlotLabel) dev.append(el('span', 'slot-label', '카드 꽂는 곳'));
+  return dev;
+}
+
 // ---------- 결제 ----------
 // ctx: { state, config, total, purpose: 'errand'|'eat'|'tutorial', mistake(), log, items }
 export function pay(ctx) {
@@ -164,37 +215,35 @@ export function pay(ctx) {
 
     async function terminal(kind) {
       const steps = L.card.steps;
+      const choose = steps.includes('tapOrInsert');
       const ov = el('div', 'terminal');
-      const dev = el('div', 'device');
-      dev.append(el('div', 'screen', ''), el('div', 'slot'));
+      const dev = makeDevice(choose);
       const msg = el('p', 'term-msg');
       ov.append(dev, msg);
       m.append(ov);
-      const tap = !steps.includes('tapOrInsert') || Math.random() < 0.5;
-      const prompt = tap ? '카드를 단말기에 대 주세요' : 'IC 카드를 꽂아 주세요';
+      const tap = !choose || Math.random() < 0.5;
+      const prompt = tap ? '카드를 단말기 화면에 대 주세요' : 'IC 카드를 아래 꽂는 곳에 꽂아 주세요';
       dev.querySelector('.screen').textContent = tap ? '카드를 대 주세요' : '카드를 꽂아 주세요';
       msg.textContent = prompt;
       say(prompt);
-      await new Promise(res => {
-        if (!steps.includes('tapOrInsert')) {
-          const c = el('button', 'btn primary big', '');
-          c.append(toImg(cardCanvas(kind), 3, ''), el('span', null, '단말기에 대기'));
-          c.onclick = res;
-          ov.append(c);
-          return;
-        }
-        const row = el('div', 'row');
-        const a = el('button', 'btn big', '카드 대기');
-        const b = el('button', 'btn big', '카드 꽂기');
-        a.onclick = () => (tap ? res() : (sfx('no'), msg.textContent = '화면을 다시 읽어 봐요. 꽂아 달래요!', say(msg.textContent), ctx.mistake?.('cardMethod')));
-        b.onclick = () => (!tap ? res() : (sfx('no'), msg.textContent = '화면을 다시 읽어 봐요. 대 달래요!', say(msg.textContent), ctx.mistake?.('cardMethod')));
-        row.append(a, b); ov.append(row);
-      });
+      for (;;) {
+        const z = await dragCard(ov, dev, kind, choose ? '카드를 꾹 누른 채로 끌어서, 화면에 대거나 아래에 꽂아요' : null);
+        if (!choose || z === (tap ? 'tap' : 'insert')) break;
+        sfx('no');
+        msg.textContent = tap ? '화면을 다시 읽어 봐요. 대 달래요!' : '화면을 다시 읽어 봐요. 꽂아 달래요!';
+        say(msg.textContent);
+        ctx.mistake?.('cardMethod');
+      }
+      if (!tap) {
+        const stuck = el('div', 'stuck-card');
+        stuck.append(toImg(cardCanvas(kind), 3, ''));
+        dev.append(stuck);
+      }
       sfx('beep');
       dev.querySelector('.screen').textContent = '결제 완료';
       msg.textContent = '삑! 결제가 끝났어요.';
       say('결제가 끝났어요.');
-      await wait(900);
+      await wait(1000);
       ov.remove();
       return tap ? 'tap' : 'insert';
     }
@@ -421,28 +470,24 @@ export function moneyIntro(levelMoney) {
 
 // ---------- 카드 대 보기 (튜토리얼) ----------
 export function tryCard(kind, state) {
-  return new Promise(res => {
+  return new Promise(async res => {
     const m = panel('trycard');
-    const dev = el('div', 'device');
-    dev.append(el('div', 'screen', '카드를 대 주세요'), el('div', 'slot'));
-    const b = el('button', 'btn primary big');
-    b.append(toImg(cardCanvas(kind), 4, ''), el('span', null, '단말기에 대기'));
-    m.append(el('h2', null, kind === 'check' ? '체크카드 대 보기' : '꿈이든 카드 대 보기'), dev, b);
-    b.onclick = async () => {
-      if (b.disabled) return;
-      b.disabled = true;
-      sfx('beep');
-      if (kind === 'check') {
-        const ok = state.account > 0;
-        dev.querySelector('.screen').textContent = ok ? '결제 가능' : '잔액 부족';
-        await wait(700);
-        closePanel(); res(ok);
-      } else {
-        dev.querySelector('.screen').textContent = '사용할 수 없는 카드';
-        await warn('popup.dream', 'popup.dream_sub', 'dream');
-        closePanel(); res(false);
-      }
-    };
+    const dev = makeDevice(false);
+    dev.querySelector('.screen').textContent = '카드를 대 주세요';
+    m.append(el('h2', null, kind === 'check' ? '체크카드 대 보기' : '꿈이든 카드 대 보기'), dev);
+    say('카드를 꾹 누른 채로 끌어서 단말기에 대 보세요.');
+    await dragCard(m, dev, kind);
+    sfx('beep');
+    if (kind === 'check') {
+      const ok = state.account > 0;
+      dev.querySelector('.screen').textContent = ok ? '결제 가능' : '잔액 부족';
+      await wait(900);
+      closePanel(); res(ok);
+    } else {
+      dev.querySelector('.screen').textContent = '사용할 수 없는 카드';
+      await warn('popup.dream', 'popup.dream_sub', 'dream');
+      closePanel(); res(false);
+    }
   });
 }
 
