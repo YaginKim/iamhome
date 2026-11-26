@@ -186,7 +186,9 @@ export class World {
 
   fit() {
     if (!this.map) return;
-    const vw = window.innerWidth, vh = window.innerHeight;
+    const hudH = document.body.classList.contains('has-hud')
+      ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hud-h')) || 0 : 0;
+    const vw = window.innerWidth, vh = window.innerHeight - hudH;
     const s = Math.min(vw / this.cv.width, vh / this.cv.height);
     const scale = s >= 2 ? Math.floor(s) : s;
     this.cv.style.width = Math.floor(this.cv.width * scale) + 'px';

@@ -27,6 +27,12 @@ async function boot() {
 }
 
 function persist() { save(S); }
+// 위쪽 정보 막대 보이기 (지도는 막대 아래 남은 공간에 맞춰 그려요)
+function showHud(on) {
+  $('#hud').hidden = !on;
+  document.body.classList.toggle('has-hud', on);
+  world?.fit();
+}
 // 건물 문 바로 아래 인도 칸
 function townSpawn(id) {
   const b = townMap(S, []).buildings.find(b => b.id === id);
@@ -113,7 +119,7 @@ function poster(sc) {
 function titleScreen() {
   playBgm('title');
   world.frozen = true;
-  $('#hud').hidden = true; setGoal('');
+  showHud(false); setGoal('');
   const sc = $('#screen'); sc.hidden = false; sc.innerHTML = '';
   poster(sc);
   const t = el('div', 'title-screen');
@@ -236,7 +242,7 @@ async function enterTown(spawn) {
   document.body.dataset.map = 'town';
   run.map = 'town'; run.place = '우리 동네';
   await world.load(townMap(S, unlocked()), spawn);
-  $('#hud').hidden = false; hud();
+  showHud(true); hud();
   world.frozen = false;
   updateGoalMarker();
 }
@@ -246,7 +252,7 @@ async function enterHome(spawn) {
   document.body.dataset.map = 'indoor';
   run.map = 'home'; run.place = '우리 집';
   await world.load(homeMap(), spawn);
-  $('#hud').hidden = false; hud();
+  showHud(true); hud();
   world.frozen = false;
   updateGoalMarker();
   if (run.endingNext) setTimeout(comeHome, 300);
