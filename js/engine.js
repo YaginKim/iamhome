@@ -89,17 +89,16 @@ function drawBuilding(ctx, b, fontReady) {
   // 간판
   if (fontReady) {
     ctx.font = '16px Sam3KR';
-    const tw = Math.ceil(ctx.measureText(b.label).width);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '-3px';
+    const tw = Math.ceil(ctx.measureText(b.label).width) - ('letterSpacing' in ctx ? 0 : 0);
     const sw = tw + 10, sx = Math.round(px + w / 2 - sw / 2), sy = py + roofH - 4;
     ctx.fillStyle = PAL.k; ctx.fillRect(sx, sy, sw, 20);
     ctx.fillStyle = b.locked ? '#ccd0d8' : '#fffdf6'; ctx.fillRect(sx + 1, sy + 1, sw - 2, 18);
     ctx.fillStyle = b.locked ? '#6c6a7e' : PAL.k;
     ctx.textBaseline = 'top';
     ctx.fillText(b.label, sx + 5, sy + 2);
-  }
-  if (b.locked) {
-    const lk = iconCanvas('lock');
-    ctx.drawImage(lk, px + w - 12, py + roofH + 2);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    if (b.locked) ctx.drawImage(iconCanvas('lock'), sx + sw - 4, sy + 12);
   }
 }
 

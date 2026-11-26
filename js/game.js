@@ -19,7 +19,7 @@ async function boot() {
   world = new World($('#world'));
   world.onArrive = (x, y, settled) => onArrive(x, y, settled);
   world.onStep = () => onStep();
-  await world.load(townMap(null, []), { x: 17, y: 9 });
+  await world.load(townMap(null, ['home', 'school', 'snackbar', 'convenience', 'hairshop', 'market', 'bank', 'mart', 'edu_office', 'moe']), { x: 17, y: 9 });
   titleScreen();
 }
 
