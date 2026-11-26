@@ -148,6 +148,11 @@ body[data-map="indoor"] { background: var(--ink); }
 .stamina .bar { width: 160px; height: 22px; background: var(--card); margin-left: 8px;
   box-shadow: 0 -3px 0 var(--ink), 0 3px 0 var(--ink), -3px 0 0 var(--ink), 3px 0 0 var(--ink); }
 .stamina .bar i { display: block; height: 100%; background: var(--tomato); transition: width 600ms var(--ease-out); box-shadow: inset 0 -5px 0 var(--tomato-deep); }
+.stamina-num { margin-left: 12px; font-family: var(--font-num); color: var(--card); line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 0 var(--ink), 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 -2px 0 var(--ink); }
+.stamina-num b { font-weight: normal; font-size: var(--step-1); }
+.stamina-num small { font-size: var(--step--1); opacity: 0.85; }
+.stamina-num.low b { color: #ff9a9a; }
 .stamina .bar.low i { animation: blink 1s steps(2) infinite; }
 .money-row { display: grid; grid-template-columns: auto auto minmax(6.2em, auto); align-items: center; gap: 10px;
   background: var(--card); padding: 6px 14px 6px 10px; margin: var(--px); }

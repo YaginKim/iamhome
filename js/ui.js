@@ -25,7 +25,7 @@ export function renderHud(state, config, place) {
   if (place) left.append(el('div', 'place', place));
   if (state.settings.stamina) {
     const st = el('div', 'stamina');
-    st.setAttribute('aria-label', `체력 ${state.stamina}`);
+    st.setAttribute('aria-label', `체력 ${state.stamina} / ${config.stamina.max}`);
     if (config.stamina.display[state.level] === 'hearts5') {
       const full = Math.ceil(state.stamina / 20);
       for (let i = 0; i < 5; i++) st.append(toImg(iconCanvas(i < full ? 'heart' : 'heartEmpty'), 3));
@@ -36,6 +36,10 @@ export function renderHud(state, config, place) {
       if (state.stamina < 30) bar.classList.add('low');
       bar.append(fill); st.append(bar);
     }
+    // 숫자로도 보여 줍니다 (예: 76 / 100)
+    const num = el('span', 'stamina-num' + (state.stamina < 30 ? ' low' : ''));
+    num.append(el('b', null, String(state.stamina)), el('small', null, ` / ${config.stamina.max}`));
+    st.append(num);
     left.append(st);
   }
   const right = $('#hud-right');
