@@ -33,7 +33,12 @@ function titleScreen() {
   $('#hud').hidden = true; setGoal('');
   const sc = $('#screen'); sc.hidden = false; sc.innerHTML = '';
   const t = el('div', 'title-screen');
-  t.append(el('h1', 'logo', '다녀오겠습니다'), el('p', 'tagline', line('title.copy')));
+  const logo = el('div', 'logo-wrap');
+  logo.append(el('h1', 'logo', '다녀오겠습니다'));
+  const trial = el('span', 'trial', '체험판');
+  trial.setAttribute('aria-label', '체험판');
+  logo.append(trial);
+  t.append(logo, el('p', 'tagline', line('title.copy')));
   const row = el('div', 'row');
   const saved = load();
   if (saved) {
