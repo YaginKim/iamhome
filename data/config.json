@@ -235,7 +235,7 @@
     "max": 100,
     "start": 100,
     "display": {
-      "하": "hearts5",
+      "하": "bar",
       "중": "bar",
       "상": "bar"
     },

@@ -3,7 +3,7 @@ import { loadData, itemsFor, won, LEVELS } from './data.js';
 import { playBgm, getVolume, setVolume } from './bgm.js';
 import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js';
 import { World, townMap, homeMap, shopMap, bankMap } from './engine.js';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, panel, closePanel, fade, flashHud } from './ui.js';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, panel, closePanel, fade, flashHud } from './ui.js';
 import { pay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js';
 import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js';
 import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js';
@@ -44,7 +44,14 @@ function soundButton() {
   window.addEventListener('pointerdown', () => { if (!pop.hidden) { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
   window.addEventListener('keydown', e => { if (e.key === 'Escape' && !pop.hidden) { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); btn.focus(); } });
 }
-function hud(place) { renderHud(S, D.config, place ?? run.place); }
+function hud(place) { renderHud(S, D.config, place ?? run.place, lives()); }
+// 하트 = 실수 기회. 틀릴 때마다 하나씩 깨지고, 다 깨지면 꿈이든 카드로 나를 확인한 뒤 다시 채워집니다.
+function lives() {
+  const st = run.stage || run.tutorial;
+  if (!st || !S) return null;
+  const max = L().triesBeforeIdCheck;
+  return { max, left: max - Math.min(max, st.tries || 0) };
+}
 function L() { return D.config.levels[S.level]; }
 
 // ---------- 타이틀 ----------
@@ -383,6 +390,7 @@ async function tutorialLesson() {
   if (S.hasMealCard) await talk('mom', 'home.mom.hud_meal');
   highlightHud(false);
   if (S.settings.stamina) { highlightStamina(true); await talk('mom', 'home.mom.stamina'); highlightStamina(false); }
+  highlightLives(true); await talk('mom', 'home.mom.hearts', { n: L().triesBeforeIdCheck }); highlightLives(false);
   await talk('mom', 'home.mom.money');
   await moneyIntro(L().money);
   // 체크카드: 계좌에 있는 돈만
@@ -473,8 +481,8 @@ async function mistake(kind) {
   st.mistakes = (st.mistakes || 0) + 1;
   st.tries = (st.tries || 0) + 1;
   log('mistake', { kind });
+  hud();
   if (st.tries >= L().triesBeforeIdCheck) {
-    st.tries = 0;
     st.pendingId = true;
     return true;
   }
@@ -482,7 +490,13 @@ async function mistake(kind) {
 }
 async function maybeIdCheck() {
   const st = run.stage || run.tutorial;
-  if (st?.pendingId) { st.pendingId = false; await idCheck(S, D.config); }
+  if (st?.pendingId) {
+    st.pendingId = false;
+    await idCheck(S, D.config);
+    st.tries = 0;
+    hud();
+    notify('하트가 다시 가득 찼어요!', 'ok');
+  }
 }
 
 function log(type, data) {

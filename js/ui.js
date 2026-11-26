@@ -19,24 +19,34 @@ export function line(id, vars = {}) {
 }
 
 // ---------- HUD ----------
-export function renderHud(state, config, place) {
+let lastLeft = null;
+export function renderHud(state, config, place, lives) {
   const left = $('#hud-left');
   left.innerHTML = '';
   if (place) left.append(el('div', 'place', place));
+  // 실수 기회 (하트)
+  if (lives) {
+    const lv = el('div', 'lives');
+    lv.setAttribute('aria-label', `실수 기회 ${lives.left}번 남음 (모두 ${lives.max}번)`);
+    for (let i = 0; i < lives.max; i++) {
+      const full = i < lives.left;
+      const img = toImg(iconCanvas(full ? 'heartGreen' : 'heartEmpty'), 5);
+      if (!full && lastLeft != null && i === lives.left && lastLeft > lives.left) img.classList.add('break');
+      lv.append(img);
+    }
+    lv.append(el('span', 'lives-text', lives.left ? `${lives.left}번 더 틀려도 돼요` : '나를 확인할 차례예요'));
+    left.append(lv);
+    lastLeft = lives.left;
+  } else lastLeft = null;
+  // 체력 (배고픔): 막대와 숫자
   if (state.settings.stamina) {
     const st = el('div', 'stamina');
     st.setAttribute('aria-label', `체력 ${state.stamina} / ${config.stamina.max}`);
-    if (config.stamina.display[state.level] === 'hearts5') {
-      const full = Math.ceil(state.stamina / 20);
-      for (let i = 0; i < 5; i++) st.append(toImg(iconCanvas(i < full ? 'heart' : 'heartEmpty'), 3));
-    } else {
-      st.append(toImg(iconCanvas('heart'), 3));
-      const bar = el('div', 'bar'); const fill = el('i');
-      fill.style.width = state.stamina + '%';
-      if (state.stamina < 30) bar.classList.add('low');
-      bar.append(fill); st.append(bar);
-    }
-    // 숫자로도 보여 줍니다 (예: 76 / 100)
+    st.append(toImg(iconCanvas('bowl'), 4), el('span', 'stamina-label', '체력'));
+    const bar = el('div', 'bar'); const fill = el('i');
+    fill.style.width = (state.stamina / config.stamina.max * 100) + '%';
+    if (state.stamina < 30) bar.classList.add('low');
+    bar.append(fill); st.append(bar);
     const num = el('span', 'stamina-num' + (state.stamina < 30 ? ' low' : ''));
     num.append(el('b', null, String(state.stamina)), el('small', null, ` / ${config.stamina.max}`));
     st.append(num);
@@ -61,7 +71,8 @@ export function flashHud(key) {
 }
 
 export function highlightHud(on) { $('#hud-right').classList.toggle('spot', on); }
-export function highlightStamina(on) { $('#hud-left').classList.toggle('spot', on); }
+export function highlightStamina(on) { $('#hud-left').classList.toggle('spot', on); $('#hud-left').classList.toggle('spot-stamina', on); }
+export function highlightLives(on) { $('#hud-left').classList.toggle('spot-lives', on); }
 
 // ---------- 목표 배너 ----------
 export function setGoal(text) {

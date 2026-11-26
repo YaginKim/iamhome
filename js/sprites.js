@@ -420,6 +420,14 @@ krrrrrk
 .krrrk.
 ..krk..
 ...k...`,
+  heartGreen: `
+.kk.kk.
+knnknnk
+knwnnnk
+knnnnNk
+.knnNk.
+..kNk..
+...k...`,
   heartEmpty: `
 .kk.kk.
 kggkggk
@@ -428,6 +436,15 @@ kgggggk
 .kgggk.
 ..kgk..
 ...k...`,
+  bowl: `
+..........
+.k.k.k....
+..k.k.k...
+kkkkkkkkkk
+kwwwwwwwwk
+.kwwwwwwk.
+.kbbbbbbk.
+..kkkkkk..`,
   cash: `
 kkkkkkkkkk
 knnnnnnnnk
