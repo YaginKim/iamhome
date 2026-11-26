@@ -1,0 +1,541 @@
+// 모든 도트 그림은 이 파일의 글자 격자로 그립니다. 글자 하나 = 픽셀 하나, '.' = 투명.
+export const PAL = {
+  k: '#22203a', w: '#f8f6f0', s: '#f2c49c', S: '#d69a72', h: '#3c2c28', H: '#5a4038',
+  b: '#4278d2', B: '#284e96', c: '#96d2f0', r: '#dc4646', R: '#962a2c', p: '#f6a0b4', P: '#c86482',
+  y: '#f4c846', Y: '#c48e28', o: '#ee8032', O: '#b4501e', n: '#6eb45a', N: '#3c7840',
+  d: '#2c3a30', q: '#f07890', g: '#ccd0d8', G: '#8c92a0', e: '#fce8c8', E: '#cea874',
+  t: '#a0643c', T: '#6c3c24', u: '#8c64c8', a: '#f8e08c', m: '#e8d8b8', M: '#b8a888',
+};
+
+const cache = new Map();
+
+export function gridCanvas(rows, key) {
+  if (key && cache.has(key)) return cache.get(key);
+  const lines = rows.replace(/^\n+|\n+$/g, '').split('\n');
+  const w = Math.max(...lines.map(l => l.length));
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = lines.length;
+  const ctx = cv.getContext('2d');
+  lines.forEach((line, y) => {
+    [...line].forEach((ch, x) => {
+      if (PAL[ch]) { ctx.fillStyle = PAL[ch]; ctx.fillRect(x, y, 1, 1); }
+    });
+  });
+  if (key) cache.set(key, cv);
+  return cv;
+}
+
+// ---------- 인물 ----------
+const PERSON = (hair, hairShade, top, topShade, bottom, extra = '') => `
+.....kkkkkk.....
+....k${hair}${hair}${hair}${hair}${hair}${hair}k....
+...k${hair}${hair}${hair}${hair}${hair}${hair}${hair}${hair}k...
+...k${hair}${hairShade}${hair}${hair}${hair}${hair}${hairShade}${hair}k...
+...k${hair}ssssss${hair}k...
+...kssksskssk...
+...kssssssssk...
+....ksspps sk....
+.....kssssk.....
+....k${top}${top}${top}${top}${top}${top}k....
+...k${top}${top}${top}${top}${top}${top}${top}${top}k...
+..ks${top}${top}${top}${extra || top}${extra || top}${top}${top}${top}sk..
+..ks${top}${top}${top}${top}${top}${top}${top}${top}sk..
+..kSk${topShade}${topShade}${topShade}${topShade}${topShade}${topShade}kSk..
+....k${bottom}${bottom}${bottom}${bottom}${bottom}${bottom}k....
+`.replace(/ /g, '');
+
+const LEGS_A = (c) => `
+....k${c}${c}kk${c}${c}k....
+....k${c}${c}k.k${c}${c}k...
+....kkk...kkk...`;
+const LEGS_B = (c) => `
+....k${c}${c}kk${c}${c}k....
+...k${c}${c}k.k${c}${c}k....
+...kkk...kkk....`;
+
+function person(key, hair, hairShade, top, topShade, bottom, extra) {
+  const body = PERSON(hair, hairShade, top, topShade, bottom, extra);
+  return [
+    gridCanvas(body + LEGS_A(bottom), key + '0'),
+    gridCanvas(body + LEGS_B(bottom), key + '1'),
+  ];
+}
+
+export const PEOPLE = {
+  player: () => person('player', 'h', 'H', 'b', 'B', 'B', 'y'),
+  mom: () => person('mom', 'T', 'h', 'p', 'P', 'u'),
+  owner: () => person('owner', 'G', 'g', 'r', 'R', 'k', 'w'),
+  teller: () => person('teller', 'h', 'H', 'N', 'd', 'k', 'w'),
+};
+
+// ---------- 품목 ----------
+export const ITEM_GRIDS = {
+  toothbrush: `
+......kkkk......
+.....kwcwck.....
+.....kcwcwk.....
+.....kwcwck.....
+.....kkkkkk.....
+......kbck......
+......kbBk......
+......kbBk......
+......kbBk......
+......kbBk......
+......kbBk......
+.......kk.......`,
+  pencil: `
+.kkkkkkkkkkkk...
+kppgyyyyyyyyskk.
+kPPgYYYYYYYYsssk
+kPPgYYYYYYYYskk.
+.kkkkkkkkkkkk...`,
+  kimbap: `
+.....kkkkkk.....
+...kkddddddkk...
+..kddwwwwwwddk..
+.kdwwwwwwwwwwdk.
+.kdwwwyyyppwwdk.
+kdwwwnyyyppowwdk
+kdwwnnyyppoowwdk
+kdwwnnqqppoowwdk
+kdwwwnqqppowwwdk
+.kdwwwwqqwwwwdk.
+.kdwwwwwwwwwwdk.
+..kddwwwwwwddk..
+...kkddddddkk...
+.....kkkkkk.....`,
+  kimbap_tuna: `
+.....kkkkkk.....
+...kkddddddkk...
+..kddwwwwwwddk..
+.kdwwwwwwwwwwdk.
+.kdwwwnnyyywwdk.
+kdwwwnmmmmyowwdk
+kdwwnnmmmmyoowdk
+kdwwnnmmmmooowdk
+kdwwwnnyyyowwwdk
+.kdwwwwwwwwwwdk.
+.kdwwwwwwwwwwdk.
+..kddwwwwwwddk..
+...kkddddddkk...
+.....kkkkkk.....`,
+  tteokbokki: `
+................
+...kkkkkkkkkk...
+..krrRrrrRrrrk..
+.krwrrRrRrwrRrk.
+.krrRwrrrrRrrrk.
+.kRrrrrRrwrRrRk.
+kwwwwwwwwwwwwwwk
+kgwwwwwwwwwwwwgk
+.kgggggggggggk..
+..kkkkkkkkkkk...`,
+  cuptteok: `
+....kkkkkkkk....
+...krrRrrRrrk...
+...kRrwrrRwrk...
+...kkkkkkkkkk...
+...kwwwwwwwwk...
+....kwrrrrwk....
+....kwrwwrwk....
+....kwrrrrwk....
+....kwwwwwwk....
+.....kkkkkk.....`,
+  sundae: `
+................
+.kkk..kkk..kkk..
+kdddkkdddkkdddk.
+kdGdkkdmdkkdGdk.
+kdmdkkdGdkkdmdk.
+kdddkkdddkkdddk.
+.kkk..kkk..kkk..
+kwwwwwwwwwwwwwwk
+.kgggggggggggggk
+..kkkkkkkkkkkkk.`,
+  eomuk: `
+.......kk.......
+......kEEk......
+.....kEaaEk.....
+......kEaEk.....
+.....kEaaEk.....
+......kEaEk.....
+.....kEaaEk.....
+......kEEk......
+.......kTk......
+.......kTk......
+.......kTk......
+.......kTk......
+........k.......`,
+  twigim: `
+................
+....kkkk........
+...kyaayk.kkkk..
+..kyaYayykyaayk.
+..kyYaYyykaYaYk.
+...kyyyyk.kyYyk.
+....kkkkkkkkkk..
+...kyaaYaayyk...
+...kyYaYYaYyk...
+....kkkkkkkk....
+kwwwwwwwwwwwwwwk
+.kggggggggggggk.
+..kkkkkkkkkkkk..`,
+  ramen: `
+................
+.....k.k.k......
+....k.k.k.......
+................
+.kkkkkkkkkkkkkk.
+kaaayaaaynaaaaak
+kayaaaoaaayaaaak
+.kwwwwwwwwwwwwk.
+.kwrwwrwwrwwrwk.
+..kwwwwwwwwwwk..
+...kkkkkkkkkk...`,
+  coolpis: `
+.....kkkkk......
+....kwwwwwk.....
+...kwwwwwwwk....
+...kkkkkkkkk....
+...kpppppppk....
+...kpwwwwwpk....
+...kpwqqqwpk....
+...kpwwwwwpk....
+...kpppppppk....
+...kPPPPPPPk....
+...kkkkkkkkk....`,
+  tteokkochi: `
+...........kk...
+..........kTk...
+.........krrk...
+........krRrk...
+.......krrRk....
+......krRrk.....
+.....krrRk......
+....krRrk.......
+...krrRk........
+...kTkk.........
+..kTk...........
+..kk............`,
+  slush: `
+.........kk.....
+........kpk.....
+.......kpk......
+...kkkkkpkkkk...
+...kcccckcccck..
+....kcbccccck...
+....kcccbccck...
+....kbcccccbk...
+.....kccbcck....
+.....kcccbck....
+......kkkkk.....`,
+  onigiri: `
+.......kk.......
+......kwrk......
+.....kwwrwk.....
+....kwwwrwwk....
+....kwwwrwwk....
+...kwwwwrwwwk...
+...kwwwwrwwwk...
+..kwwwwwrwwwwk..
+..kddddddddddk..
+.kddddddddddddk.
+.kddddnnnnddddk.
+kddddddddddddddk
+kkkkkkkkkkkkkkkk`,
+  greenonion: `
+.kk.....kk......
+knNk...knNk.....
+knNk...knNk.....
+.knNk..knNk.....
+.knNk.knNk......
+..knNkknNk......
+..knnnnNk.......
+...kwwwgk.......
+...kwwwgk.......
+...kwwwgk.......
+...kwwwgk.......
+...kwwwgk.......
+...kgkgkk.......`,
+  shampoo: `
+...kkkkk........
+...kGGGGk.......
+......kGk.......
+.....kkkkk......
+.....kgggk......
+...kkkkkkkkk....
+...kppppppPk....
+..kpwpppppPPk...
+..kpwwwwwwwPk...
+..kpwkkwkkwPk...
+..kpwwwwwwwPk...
+..kpppppppPPk...
+...kkkkkkkkk....`,
+  eggs: `
+kkkkkkkkkkkkkkkk
+kEEEEEEEEEEEEEEk
+kEkkEEEkkEEEkkEk
+kkwekEkwekEkwekk
+kkeekEkeekEkeekk
+kEkkEEEkkEEEkkEk
+kEEEEEEEEEEEEEEk
+kEkkEEEkkEEEkkEk
+kkwekEkwekEkwekk
+kkeekEkeekEkeekk
+kEkkEEEkkEEEkkEk
+kkkkkkkkkkkkkkkk`,
+  ticket: `
+...kkkkkkkkkk...
+...kwwwwwwwwk...
+...kwGGGGGGwk...
+...kwwwwwwwwk...
+...kwwrwwrrrk...
+...kwrrwwwwrk...
+...kwwrwwwrwk...
+...kwwrwwwrwk...
+...kwrrrwwrwk...
+...kwwwwwwwwk...
+...kkkkkkkkkk...`,
+  badge: `
+..b..........b..
+...b........b...
+....b......b....
+.....b....b.....
+......bGGb......
+...kkkkkkkkkk...
+...kbbbbbbbbk...
+...kwwwwwwwwk...
+...kwhhwGGGwk...
+...kwsswwwwwk...
+...kwbbwGGwwk...
+...kkkkkkkkkk...`,
+};
+
+export function itemCanvas(spriteId, item) {
+  if (spriteId && ITEM_GRIDS[spriteId]) return gridCanvas(ITEM_GRIDS[spriteId], 'item:' + spriteId);
+  // 그림이 아직 없는 품목: 상자 모양 임시 그림
+  return gridCanvas(`
+..kkkkkkkkkkkk..
+.kmmmmmmmmmmmmk.
+kmmmmmmmmmmmmmMk
+kMMMMMMMMMMMMMMk
+kmmmmmmkkmmmmmMk
+kmmmmmmkkmmmmmMk
+kmmmmmmmmmmmmmMk
+kmmmmmmmmmmmmmMk
+kmmmmmmmmmmmmmMk
+kMMMMMMMMMMMMMMk
+kkkkkkkkkkkkkkkk`, 'item:placeholder');
+}
+
+// ---------- 아이콘 ----------
+export const ICONS = {
+  heart: `
+.kk.kk.
+krrkrrk
+krwrrrk
+krrrrrk
+.krrrk.
+..krk..
+...k...`,
+  heartEmpty: `
+.kk.kk.
+kggkggk
+kgggggk
+kgggggk
+.kgggk.
+..kgk..
+...k...`,
+  cash: `
+kkkkkkkkkk
+knnnnnnnnk
+knkknnkknk
+knnkkkknnk
+knkknnkknk
+knnnnnnnnk
+kkkkkkkkkk`,
+  bank: `
+....kk....
+..kkyykk..
+kkyyyyyykk
+kkkkkkkkkk
+.kwk.kwk..
+.kwk.kwk..
+.kwk.kwk..
+kkkkkkkkkk`,
+  meal: `
+kkkkkkkkkk
+kwwwkwwwwk
+kwrwkwnnwk
+kwwwkwwwwk
+kkkkkkkkkk
+kwwwyywwwk
+kwwyyyywwk
+kkkkkkkkkk`,
+  speaker: `
+....k...
+...kk.k.
+kkkwk..k
+kwwwk.k.
+kwwwk..k
+kkkwk.k.
+...kk...
+....k...`,
+  star: `
+....k....
+...kyk...
+kkkyyykkk
+kyyyyyyyk
+.kyyyyyk.
+.kyykyyk.
+kyk...kyk
+kk.....kk`,
+  starEmpty: `
+....k....
+...kgk...
+kkkgggkkk
+kgggggggk
+.kgggggk.
+.kggkggk.
+kgk...kgk
+kk.....kk`,
+  lock: `
+..kkkk..
+.kk..kk.
+.k....k.
+kkkkkkkk
+kyyyyyyk
+kyyYYyyk
+kyyYYyyk
+kkkkkkkk`,
+  memo: `
+kkkkkkkk
+kwwwwwwk
+kwkkkkwk
+kwwwwwwk
+kwkkkwwk
+kwwwwwwk
+kwkkkkwk
+kkkkkkkk`,
+  stamp: `
+..kkkk..
+.krrrrk.
+krrwwrrk
+krwrrwrk
+krwrrwrk
+krrwwrrk
+.krrrrk.
+..kkkk..`,
+};
+
+export function iconCanvas(name) { return gridCanvas(ICONS[name], 'icon:' + name); }
+
+// ---------- 화폐 ----------
+const DIGITS = {
+  0: ['111', '101', '101', '101', '111'], 1: ['010', '110', '010', '010', '111'],
+  5: ['111', '100', '111', '001', '111'],
+};
+function drawDigits(ctx, text, x, y, color) {
+  ctx.fillStyle = color;
+  [...text].forEach((d, i) => {
+    DIGITS[d].forEach((row, ry) => [...row].forEach((v, rx) => {
+      if (v === '1') ctx.fillRect(x + i * 4 + rx, y + ry, 1, 1);
+    }));
+  });
+}
+
+export const MONEY = {
+  10: { kind: 'coin', r: 6, body: '#d49a52', shade: '#a06a30', ink: '#6c3c24' },
+  50: { kind: 'coin', r: 7, body: '#d8dce4', shade: '#9aa0ae', ink: '#4a5060' },
+  100: { kind: 'coin', r: 7.5, body: '#d8dce4', shade: '#9aa0ae', ink: '#4a5060' },
+  500: { kind: 'coin', r: 8.5, body: '#e4e8ee', shade: '#9aa0ae', ink: '#4a5060' },
+  1000: { kind: 'bill', body: '#a8d4f4', shade: '#4278d2', ink: '#284e96' },
+  5000: { kind: 'bill', body: '#f8c8a0', shade: '#dc6a3c', ink: '#962a2c' },
+  10000: { kind: 'bill', body: '#bfe4b0', shade: '#3c7840', ink: '#2c4a30' },
+  50000: { kind: 'bill', body: '#f8e8a0', shade: '#c48e28', ink: '#6c4a10' },
+};
+
+export function moneyCanvas(value) {
+  const key = 'money:' + value;
+  if (cache.has(key)) return cache.get(key);
+  const m = MONEY[value];
+  const cv = document.createElement('canvas');
+  const ctx = cv.getContext('2d');
+  const label = String(value);
+  if (m.kind === 'coin') {
+    const size = 18; cv.width = size; cv.height = size;
+    const c = (size - 1) / 2;
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const d = Math.hypot(x - c, y - c);
+      if (d > m.r + 0.4) continue;
+      let col = m.body;
+      if (d > m.r - 0.8) col = PAL.k;
+      else if (d > m.r - 2 && (x - c) + (y - c) > 0) col = m.shade;
+      else if ((x - c) + (y - c) < -m.r) col = '#ffffff';
+      ctx.fillStyle = col; ctx.fillRect(x, y, 1, 1);
+    }
+    const tw = label.length * 4 - 1;
+    drawDigits(ctx, label, Math.round(c - tw / 2 + 0.5), 7, m.ink);
+  } else {
+    cv.width = 34; cv.height = 18;
+    ctx.fillStyle = PAL.k; ctx.fillRect(0, 0, 34, 18);
+    ctx.fillStyle = m.body; ctx.fillRect(1, 1, 32, 16);
+    ctx.fillStyle = m.shade; ctx.fillRect(1, 15, 32, 2); ctx.fillRect(1, 1, 2, 16);
+    // 인물 실루엣 (실제 도안이 아닌 단순화한 모양)
+    ctx.fillStyle = m.shade;
+    ctx.fillRect(24, 4, 5, 5); ctx.fillRect(23, 9, 7, 5);
+    ctx.fillStyle = m.body; ctx.fillRect(25, 5, 3, 3);
+    drawDigits(ctx, label, 5, 6, m.ink);
+  }
+  cache.set(key, cv);
+  return cv;
+}
+
+// ---------- 카드 ----------
+export const CARDS = {
+  check: { name: '체크카드', pay: 'account' },
+  meal: { name: '급식카드', pay: 'meal' },
+  dream: { name: '꿈이든 카드', pay: null },
+  welfare: { name: '복지카드', pay: null },
+};
+
+export function cardCanvas(kind) {
+  const key = 'card:' + kind;
+  if (cache.has(key)) return cache.get(key);
+  const W = 26, H = 16;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const body = { check: PAL.b, meal: PAL.n, dream: '#f6d06a', welfare: PAL.w }[kind];
+  ctx.fillStyle = PAL.k; ctx.fillRect(1, 0, W - 2, H); ctx.fillRect(0, 1, W, H - 2);
+  ctx.fillStyle = body; ctx.fillRect(1, 1, W - 2, H - 2);
+  const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+  if (kind === 'check' || kind === 'meal') {
+    px(3, 5, 5, 4, PAL.y); px(3, 5, 5, 1, PAL.Y); px(5, 6, 1, 2, PAL.Y);
+  }
+  if (kind === 'check') {
+    for (let i = 0; i < 4; i++) px(3 + i * 5, 12, 3, 1, PAL.w);
+    px(18, 3, 5, 3, PAL.c);
+  } else if (kind === 'meal') {
+    px(15, 3, 3, 3, PAL.w); px(16, 6, 1, 7, PAL.w);
+    px(19, 3, 1, 4, PAL.w); px(21, 3, 1, 4, PAL.w); px(19, 6, 3, 1, PAL.w); px(20, 6, 1, 7, PAL.w);
+  } else {
+    const head = kind === 'dream' ? PAL.u : PAL.b;
+    px(1, 1, W - 2, 3, head);
+    px(3, 6, 6, 7, PAL.g); px(5, 7, 2, 3, PAL.s); px(4, 10, 4, 3, PAL.B);
+    px(11, 7, 11, 1, PAL.G); px(11, 9, 8, 1, PAL.G); px(11, 11, 10, 1, PAL.G);
+    if (kind === 'dream') { px(20, 1, 1, 1, PAL.y); px(22, 2, 1, 1, PAL.y); }
+  }
+  cache.set(key, cv);
+  return cv;
+}
+
+// 캔버스를 화면용 <img>로 (정수 배율, 픽셀 그대로)
+export function toImg(cv, scale, alt = '') {
+  const img = new Image();
+  img.src = cv.toDataURL();
+  img.width = cv.width * scale; img.height = cv.height * scale;
+  img.alt = alt;
+  img.className = 'px';
+  img.draggable = false;
+  return img;
+}

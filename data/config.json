@@ -1,0 +1,247 @@
+{
+  "idCard": {
+    "name": "꿈이든 카드",
+    "fields": [
+      "사진",
+      "이름",
+      "주소"
+    ]
+  },
+  "nonPaymentCards": {
+    "꿈이든 카드": "꿈이든 카드는 돈으로 쓸 수 없어!",
+    "복지카드": "복지카드는 돈으로 쓸 수 없어!"
+  },
+  "wallet": {
+    "startCash": {
+      "하": {
+        "1000": 3,
+        "500": 2,
+        "100": 10
+      },
+      "중": {
+        "5000": 1,
+        "1000": 3,
+        "500": 2,
+        "100": 10
+      },
+      "상": {
+        "10000": 1,
+        "5000": 1,
+        "1000": 3,
+        "500": 2,
+        "100": 8,
+        "50": 2,
+        "10": 5
+      }
+    },
+    "startAccount": 0,
+    "hud": "topRight",
+    "_note": "startCash는 화폐 종류별 개수입니다 (예: \"1000\": 3 은 천 원짜리 3장)"
+  },
+  "bank": {
+    "visitAfterEachStage": true,
+    "depositUnit": 1000,
+    "interestRate": 0.1,
+    "interestRoundDown": 10,
+    "interestOn": "stageClear"
+  },
+  "accountEvents": [
+    {
+      "id": "mom_allowance",
+      "from": "엄마",
+      "amount": 3000,
+      "message": "띵동! 엄마가 계좌로 3,000원을 보냈어요."
+    },
+    {
+      "id": "grandma_birthday",
+      "from": "할머니",
+      "amount": 10000,
+      "message": "띵동! 할머니가 생일 축하금 10,000원을 계좌로 보냈어요."
+    },
+    {
+      "id": "school_award",
+      "from": "학교",
+      "amount": 5000,
+      "message": "띵동! 학교에서 칭찬 상금 5,000원이 계좌로 들어왔어요."
+    }
+  ],
+  "session": {
+    "targetMinutes": [
+      15,
+      20
+    ],
+    "missionsPerStage": {
+      "하": 3,
+      "중": 4,
+      "상": 5
+    },
+    "incidentsPerStage": 1,
+    "maxStagesPerDay": 2
+  },
+  "levels": {
+    "하": {
+      "money": [
+        100,
+        500,
+        1000
+      ],
+      "priceUnit": 100,
+      "maxPrice": 1000,
+      "pay": {
+        "mode": "match",
+        "maxPieces": 5,
+        "showSilhouette": true,
+        "showRunningTotal": true
+      },
+      "change": {
+        "mode": "receiveOnly"
+      },
+      "card": {
+        "types": [
+          "체크"
+        ],
+        "steps": [
+          "tap"
+        ],
+        "kiosk": false,
+        "splitPayment": "guided"
+      },
+      "itemsPerMission": 1,
+      "choices": 2,
+      "triesBeforeIdCheck": 3,
+      "bank": {
+        "mode": "teller",
+        "deposit": "billsOnly"
+      }
+    },
+    "중": {
+      "money": [
+        100,
+        500,
+        1000,
+        5000
+      ],
+      "priceUnit": 100,
+      "maxPrice": 5000,
+      "pay": {
+        "mode": "combine",
+        "showSilhouette": false,
+        "showRunningTotal": true
+      },
+      "change": {
+        "mode": "choose",
+        "choices": 3,
+        "payWith": "single_bill",
+        "maxChange": 4900
+      },
+      "card": {
+        "types": [
+          "체크",
+          "급식"
+        ],
+        "steps": [
+          "chooseCard",
+          "tapOrInsert",
+          "takeCardBack"
+        ],
+        "kiosk": "simple",
+        "splitPayment": "choose"
+      },
+      "itemsPerMission": [
+        2,
+        3
+      ],
+      "choices": 4,
+      "triesBeforeIdCheck": 2,
+      "bank": {
+        "mode": "atm",
+        "deposit": "chooseAmount"
+      }
+    },
+    "상": {
+      "money": [
+        10,
+        50,
+        100,
+        500,
+        1000,
+        5000,
+        10000,
+        50000
+      ],
+      "priceUnit": 100,
+      "maxPrice": 50000,
+      "pay": {
+        "mode": "fewestPieces",
+        "showSilhouette": false,
+        "showRunningTotal": false
+      },
+      "change": {
+        "mode": "inputAndVerify",
+        "wrongChangeIncident": true
+      },
+      "card": {
+        "types": [
+          "체크",
+          "급식"
+        ],
+        "steps": [
+          "chooseCard",
+          "tapOrInsert",
+          "takeCardBack",
+          "checkReceipt"
+        ],
+        "mealCardLimit": true,
+        "splitPayment": "plan",
+        "selfCheckout": true,
+        "kiosk": "full"
+      },
+      "itemsPerMission": [
+        4,
+        6
+      ],
+      "budget": true,
+      "discounts": [
+        "1+1",
+        "percent"
+      ],
+      "choices": "free",
+      "triesBeforeIdCheck": 2,
+      "bank": {
+        "mode": "atm",
+        "deposit": "planKeepCash"
+      }
+    }
+  },
+  "mealCard": {
+    "separateFromAccount": true,
+    "hudLine": 3,
+    "showFromLevel": [
+      "중",
+      "상"
+    ],
+    "onlyWhenHeld": true,
+    "usableFor": "healItemsOnly",
+    "autoChargePerStage": {
+      "중": 5000,
+      "상": 7000
+    },
+    "carryOver": true,
+    "depositToBank": false,
+    "interest": false,
+    "rejectMessage": "급식카드는 먹을거리(체력 회복)에만 쓸 수 있어!"
+  },
+  "stamina": {
+    "max": 100,
+    "start": 100,
+    "display": {
+      "하": "hearts5",
+      "중": "bar",
+      "상": "bar"
+    },
+    "drainPerMission": 20,
+    "drainPerMinuteWalking": 2,
+    "atZero": "slowWalkAndHint",
+    "canFail": false
+  }
+}

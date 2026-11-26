@@ -1,0 +1,405 @@
+// 위에서 내려다보는 지도: 타일 그리기, 이동(키보드·터치), 길찾기, 문·사람과 만나기
+import { PAL, PEOPLE, iconCanvas } from './sprites.js';
+import { sfx } from './voice.js';
+
+export const T = 16;
+const BLOCK = new Set(['t', 'W', 'c', 'T', 'B', 'x', 'S', 'k', 'A']);
+
+function hash(x, y) { return ((x * 73856093) ^ (y * 19349663)) >>> 0; }
+
+function drawTile(ctx, ch, x, y) {
+  const px = x * T, py = y * T;
+  const f = (c, a, b, w, h) => { ctx.fillStyle = c; ctx.fillRect(px + a, py + b, w, h); };
+  const hv = hash(x, y);
+  switch (ch) {
+    case 'g':
+      f('#9fd27e', 0, 0, T, T);
+      if (hv % 5 === 0) { f('#7fb862', 3, 9, 1, 2); f('#7fb862', 5, 8, 1, 3); }
+      if (hv % 11 === 0) { f('#f8f6f0', 10, 4, 2, 2); f('#f4c846', 10, 4, 1, 1); }
+      break;
+    case 'r':
+      f('#6c6a7e', 0, 0, T, T);
+      if (hv % 7 === 0) f('#605e72', 4, 6, 2, 1);
+      break;
+    case '-': f('#6c6a7e', 0, 0, T, T); f('#f8f6f0', 2, 7, 8, 2); break; // 가로 차선
+    case '|': f('#6c6a7e', 0, 0, T, T); f('#f8f6f0', 7, 2, 2, 8); break; // 세로 차선
+    case 'z': // 횡단보도
+      f('#6c6a7e', 0, 0, T, T);
+      for (let i = 0; i < 4; i++) f('#f8f6f0', 1 + i * 4, 1, 2, 14);
+      break;
+    case 'Z':
+      f('#6c6a7e', 0, 0, T, T);
+      for (let i = 0; i < 4; i++) f('#f8f6f0', 1, 1 + i * 4, 14, 2);
+      break;
+    case 's':
+      f('#e2d6c0', 0, 0, T, T); f('#cfc0a6', 0, 15, T, 1); f('#cfc0a6', 15, 0, 1, T);
+      break;
+    case 't':
+      f('#9fd27e', 0, 0, T, T);
+      f(PAL.k, 3, 1, 10, 11); f('#3c7840', 4, 2, 8, 9); f('#6eb45a', 5, 3, 4, 4);
+      f(PAL.k, 6, 11, 4, 4); f('#a0643c', 7, 11, 2, 4);
+      break;
+    case 'f': // 나무 바닥
+      f('#e8c898', 0, 0, T, T); f('#d4b07c', 0, (y % 2) ? 5 : 11, T, 1); f('#d4b07c', (hv % 2) ? 4 : 10, 0, 1, T);
+      break;
+    case 'm': f('#f6a0b4', 0, 0, T, T); f('#f8c8d4', 2, 2, 12, 12); break;
+    case 'q': f('#cfe8f4', 0, 0, T, T); f('#b4d8ea', 0, 0, T, 1); f('#b4d8ea', 0, 0, 1, T); break; // 타일 바닥
+    case 'W':
+      f('#f4e6c8', 0, 0, T, T); f('#e0cca4', 0, 12, T, 4); f(PAL.k, 0, 15, T, 1);
+      break;
+    case 'c': // 계산대
+      f(PAL.k, 0, 0, T, T); f('#c48e28', 0, 1, T, 10); f('#f4c846', 0, 1, T, 3); f('#a06a24', 0, 11, T, 4);
+      break;
+    case 'T': f('#e8c898', 0, 0, T, T); f(PAL.k, 1, 2, 14, 12); f('#c48e28', 2, 3, 12, 8); f('#f4c846', 2, 3, 12, 2); break;
+    case 'B': f('#e8c898', 0, 0, T, T); f(PAL.k, 1, 0, 14, 16); f('#96d2f0', 2, 1, 12, 14); f('#f8f6f0', 3, 2, 10, 4); break;
+    case 'S': // 메뉴판·선반 (벽에 붙은)
+      f('#f4e6c8', 0, 0, T, T); f(PAL.k, 1, 2, 14, 11); f('#2c3a30', 2, 3, 12, 9); f('#f8f6f0', 3, 5, 6, 1); f('#f8f6f0', 3, 8, 8, 1);
+      break;
+    case 'A': // ATM
+      f('#cfe8f4', 0, 0, T, T); f(PAL.k, 2, 0, 12, 16); f('#8c92a0', 3, 1, 10, 14); f('#96d2f0', 4, 2, 8, 5); f('#22203a', 5, 9, 6, 1);
+      break;
+    case 'D': f('#e8c898', 0, 0, T, T); f('#a0643c', 2, 4, 12, 9); f('#c48e28', 3, 5, 10, 7); break; // 현관 매트
+    case 'x': f('#22203a', 0, 0, T, T); break;
+    default: f('#9fd27e', 0, 0, T, T);
+  }
+}
+
+function drawBuilding(ctx, b, fontReady) {
+  const px = b.x * T, py = b.y * T, w = b.w * T, h = b.h * T;
+  const f = (c, a, bb, ww, hh) => { ctx.fillStyle = c; ctx.fillRect(px + a, py + bb, ww, hh); };
+  const roofH = 14;
+  // 그림자 (바닥)
+  ctx.fillStyle = 'rgba(34,32,58,0.18)'; ctx.fillRect(px + 2, py + h - 2, w, 4);
+  f(PAL.k, 0, 0, w, h);
+  f(b.wall, 1, roofH, w - 2, h - roofH - 1);
+  f(b.roof, 1, 1, w - 2, roofH - 2);
+  f(b.roofShade, 1, roofH - 3, w - 2, 2);
+  for (let i = 4; i < w - 4; i += 8) f(b.roofShade, i, 3, 3, 1);
+  // 창문
+  const winY = roofH + 6;
+  for (let i = 6; i + 10 < w - 4; i += 18) {
+    if (Math.abs(i + 5 - (b.doorX - b.x) * T - 8) < 12) continue;
+    f(PAL.k, i, winY, 12, 10); f('#bfe4f4', i + 1, winY + 1, 10, 8); f('#f8f6f0', i + 2, winY + 2, 3, 2);
+  }
+  // 문
+  const dx = (b.doorX - b.x) * T, dy = (b.doorY - b.y) * T;
+  f(PAL.k, dx + 2, dy - 2, 12, 18);
+  f(b.locked ? '#8c92a0' : '#a0643c', dx + 3, dy - 1, 10, 17);
+  f(b.locked ? '#ccd0d8' : '#f4c846', dx + 10, dy + 7, 2, 2);
+  // 간판
+  if (fontReady) {
+    ctx.font = '16px Sam3KR';
+    const tw = Math.ceil(ctx.measureText(b.label).width);
+    const sw = tw + 10, sx = Math.round(px + w / 2 - sw / 2), sy = py + roofH - 4;
+    ctx.fillStyle = PAL.k; ctx.fillRect(sx, sy, sw, 20);
+    ctx.fillStyle = b.locked ? '#ccd0d8' : '#fffdf6'; ctx.fillRect(sx + 1, sy + 1, sw - 2, 18);
+    ctx.fillStyle = b.locked ? '#6c6a7e' : PAL.k;
+    ctx.textBaseline = 'top';
+    ctx.fillText(b.label, sx + 5, sy + 2);
+  }
+  if (b.locked) {
+    const lk = iconCanvas('lock');
+    ctx.drawImage(lk, px + w - 12, py + roofH + 2);
+  }
+}
+
+export class World {
+  constructor(canvas) {
+    this.cv = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.map = null;
+    this.player = { x: 0, y: 0, rx: 0, ry: 0, path: [], frame: 0, t: 0 };
+    this.frozen = true;
+    this.keys = new Set();
+    this.speed = 6; // 초당 타일
+    this.onArrive = null; // (x, y) => void
+    this.marker = null;
+    this.playerSprite = PEOPLE.player();
+    this.last = performance.now();
+    this.bindInput();
+    requestAnimationFrame(t => this.loop(t));
+  }
+
+  async load(map, spawn) {
+    await document.fonts.load('16px Sam3KR').catch(() => {});
+    this.map = map;
+    this.grid = map.tiles.map(r => [...r]);
+    const W = map.tiles[0].length, H = map.tiles.length;
+    this.W = W; this.H = H;
+    this.blocked = this.grid.map(r => r.map(ch => BLOCK.has(ch)));
+    for (const b of map.buildings || []) {
+      for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) this.blocked[y][x] = true;
+      this.blocked[b.doorY][b.doorX] = false;
+    }
+    for (const n of map.npcs || []) this.blocked[n.y][n.x] = true;
+    this.cv.width = W * T; this.cv.height = H * T;
+    // 고정된 바닥은 한 번만 그립니다
+    this.bg = document.createElement('canvas');
+    this.bg.width = W * T; this.bg.height = H * T;
+    const bctx = this.bg.getContext('2d');
+    this.grid.forEach((row, y) => row.forEach((ch, x) => drawTile(bctx, ch, x, y)));
+    for (const b of map.buildings || []) drawBuilding(bctx, b, true);
+    this.npcSprites = (map.npcs || []).map(n => PEOPLE[n.sprite]());
+    const p = spawn || map.spawn;
+    Object.assign(this.player, { x: p.x, y: p.y, rx: p.x, ry: p.y, path: [] });
+    this.fit();
+  }
+
+  fit() {
+    if (!this.map) return;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const s = Math.min(vw / this.cv.width, vh / this.cv.height);
+    const scale = s >= 2 ? Math.floor(s) : s;
+    this.cv.style.width = Math.floor(this.cv.width * scale) + 'px';
+    this.cv.style.height = Math.floor(this.cv.height * scale) + 'px';
+    this.scale = scale;
+  }
+
+  bindInput() {
+    window.addEventListener('resize', () => this.fit());
+    window.addEventListener('keydown', e => {
+      const k = { ArrowUp: 'u', ArrowDown: 'd', ArrowLeft: 'l', ArrowRight: 'r', w: 'u', s: 'd', a: 'l', d: 'r', W: 'u', S: 'd', A: 'l', D: 'r' }[e.key];
+      if (k && !this.frozen) { this.keys.add(k); this.player.path = []; this.marker = null; e.preventDefault(); }
+    });
+    window.addEventListener('keyup', e => {
+      const k = { ArrowUp: 'u', ArrowDown: 'd', ArrowLeft: 'l', ArrowRight: 'r', w: 'u', s: 'd', a: 'l', d: 'r', W: 'u', S: 'd', A: 'l', D: 'r' }[e.key];
+      if (k) this.keys.delete(k);
+    });
+    this.cv.addEventListener('pointerdown', e => {
+      if (this.frozen || !this.map) return;
+      const r = this.cv.getBoundingClientRect();
+      const tx = Math.floor((e.clientX - r.left) / r.width * this.W);
+      const ty = Math.floor((e.clientY - r.top) / r.height * this.H);
+      this.goTo(tx, ty);
+    });
+  }
+
+  // 누른 곳으로 걸어가기. 건물이나 사람을 누르면 그 앞까지 갑니다.
+  goTo(tx, ty) {
+    let target = [tx, ty];
+    const b = (this.map.buildings || []).find(b => tx >= b.x && tx < b.x + b.w && ty >= b.y && ty < b.y + b.h);
+    if (b) target = [b.doorX, b.doorY];
+    const n = (this.map.npcs || []).find(n => Math.abs(n.x - tx) <= 0 && Math.abs(n.y - ty) <= 1);
+    if (n) target = this.nearestFree(n.x, n.y);
+    if (this.blocked[target[1]]?.[target[0]] !== false) target = this.nearestFree(tx, ty);
+    if (!target) return;
+    const path = this.bfs([this.player.x, this.player.y], target);
+    if (path) { this.player.path = path; this.marker = { x: target[0], y: target[1], t: 0 }; }
+  }
+
+  nearestFree(x, y) {
+    let best = null, bd = 1e9;
+    for (let yy = 0; yy < this.H; yy++) for (let xx = 0; xx < this.W; xx++) {
+      if (this.blocked[yy][xx]) continue;
+      const d = Math.abs(xx - x) + Math.abs(yy - y);
+      if (d < bd) { bd = d; best = [xx, yy]; }
+    }
+    return best;
+  }
+
+  bfs(from, to) {
+    const key = (x, y) => y * this.W + x;
+    const prev = new Map([[key(...from), null]]);
+    const q = [from];
+    while (q.length) {
+      const [x, y] = q.shift();
+      if (x === to[0] && y === to[1]) {
+        const path = []; let k = key(x, y);
+        while (k !== key(...from)) { path.unshift([k % this.W, Math.floor(k / this.W)]); k = prev.get(k); }
+        return path;
+      }
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= this.W || ny >= this.H || this.blocked[ny][nx]) continue;
+        const nk = key(nx, ny);
+        if (prev.has(nk)) continue;
+        prev.set(nk, key(x, y)); q.push([nx, ny]);
+      }
+    }
+    return null;
+  }
+
+  isMoving() { return this.player.rx !== this.player.x || this.player.ry !== this.player.y; }
+
+  loop(now) {
+    const dt = Math.min(0.05, (now - this.last) / 1000);
+    this.last = now;
+    if (this.map) { this.update(dt); this.draw(dt); }
+    requestAnimationFrame(t => this.loop(t));
+  }
+
+  update(dt) {
+    const p = this.player;
+    const sp = this.speed * (this.slow ? 0.5 : 1);
+    if (!this.isMoving() && !this.frozen) {
+      let next = null;
+      if (p.path.length) next = p.path.shift();
+      else if (this.keys.size) {
+        const k = [...this.keys].pop();
+        const [dx, dy] = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] }[k];
+        const nx = p.x + dx, ny = p.y + dy;
+        if (this.blocked[ny]?.[nx] === false) next = [nx, ny];
+      }
+      if (next) { p.x = next[0]; p.y = next[1]; p.flip = next[0] < p.rx; this.stepped = (this.stepped || 0) + 1; }
+    }
+    if (this.isMoving()) {
+      const step = sp * dt;
+      const dx = p.x - p.rx, dy = p.y - p.ry;
+      p.rx += Math.sign(dx) * Math.min(Math.abs(dx), step);
+      p.ry += Math.sign(dy) * Math.min(Math.abs(dy), step);
+      p.t += dt;
+      if (p.t > 0.14) { p.t = 0; p.frame ^= 1; if (p.frame) sfx('step'); }
+      if (!this.isMoving()) {
+        if (!p.path.length) this.marker = null;
+        this.onArrive?.(p.x, p.y, p.path.length === 0 && !this.keys.size);
+        this.onStep?.();
+      }
+    } else p.frame = 0;
+  }
+
+  draw(dt) {
+    const ctx = this.ctx;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(this.bg, 0, 0);
+    if (this.marker) {
+      this.marker.t += dt;
+      const a = 0.5 + 0.5 * Math.sin(this.marker.t * 8);
+      ctx.fillStyle = `rgba(244,200,70,${0.35 + a * 0.4})`;
+      ctx.fillRect(this.marker.x * T + 2, this.marker.y * T + 2, T - 4, T - 4);
+    }
+    if (this.goal) {
+      const g = this.goal, bob = Math.round(Math.sin(performance.now() / 180) * 2);
+      ctx.fillStyle = PAL.k; ctx.fillRect(g.x * T + 4, g.y * T - 14 + bob, 8, 9); ctx.fillRect(g.x * T + 6, g.y * T - 5 + bob, 4, 2);
+      ctx.fillStyle = PAL.y; ctx.fillRect(g.x * T + 5, g.y * T - 13 + bob, 6, 7); ctx.fillRect(g.x * T + 7, g.y * T - 6 + bob, 2, 1);
+    }
+    const actors = (this.map.npcs || []).map((n, i) => ({ y: n.y, draw: () => this.drawPerson(this.npcSprites[i][0], n.x, n.y, false) }));
+    const p = this.player;
+    actors.push({ y: p.ry, draw: () => this.drawPerson(this.playerSprite[p.frame], p.rx, p.ry, p.flip) });
+    actors.sort((a, b) => a.y - b.y).forEach(a => a.draw());
+  }
+
+  drawPerson(img, x, y, flip) {
+    const ctx = this.ctx;
+    const px = Math.round(x * T), py = Math.round(y * T + T - img.height);
+    ctx.fillStyle = 'rgba(34,32,58,0.22)';
+    ctx.fillRect(px + 4, Math.round(y * T) + T - 2, 8, 2);
+    if (flip) {
+      ctx.save(); ctx.translate(px + img.width, py); ctx.scale(-1, 1); ctx.drawImage(img, 0, 0); ctx.restore();
+    } else ctx.drawImage(img, px, py);
+  }
+}
+
+// ---------- 지도 ----------
+export function townMap(state, unlocked) {
+  const W = 35, H = 19;
+  const rows = [];
+  for (let y = 0; y < H; y++) {
+    let r = '';
+    for (let x = 0; x < W; x++) {
+      let ch = 'g';
+      if (y === 0 || y === H - 1 || x === 0 || x === W - 1) ch = 't';
+      if (y === 8 || y === 11) ch = 's';
+      if (y === 9) ch = x % 3 === 0 ? '-' : 'r';
+      if (y === 10) ch = 'r';
+      if (x === 15 || x === 18) ch = (y >= 1 && y <= H - 2) ? 's' : ch;
+      if (x === 16 || x === 17) {
+        if (y >= 1 && y <= H - 2) ch = (y === 9 || y === 10) ? 'r' : (x === 16 && y % 3 === 0 ? '|' : 'r');
+      }
+      if ((x === 14 || x === 19) && (y === 9 || y === 10)) ch = 'z';
+      if ((y === 7 || y === 12) && (x === 16 || x === 17)) ch = 'Z';
+      r += ch;
+    }
+    rows.push(r);
+  }
+  // 건물 앞 길
+  const B = (id, label, x, y, w, h, top, colors) => {
+    const doorX = x + Math.floor(w / 2);
+    const doorY = top ? y + h - 1 : y;
+    return { id, label, x, y, w, h, doorX, doorY, locked: !unlocked.includes(id), ...colors };
+  };
+  const C = {
+    home: { wall: '#fce8c8', roof: '#dc4646', roofShade: '#962a2c' },
+    school: { wall: '#f4e6c8', roof: '#4278d2', roofShade: '#284e96' },
+    snackbar: { wall: '#fff2dc', roof: '#ee8032', roofShade: '#b4501e' },
+    convenience: { wall: '#eef6f8', roof: '#6eb45a', roofShade: '#3c7840' },
+    hairshop: { wall: '#fbeaf0', roof: '#f6a0b4', roofShade: '#c86482' },
+    market: { wall: '#f8ecd4', roof: '#c48e28', roofShade: '#8a5e18' },
+    bank: { wall: '#eef2f8', roof: '#284e96', roofShade: '#1a3466' },
+    mart: { wall: '#f6f6f2', roof: '#dc4646', roofShade: '#962a2c' },
+    edu_office: { wall: '#eef0f4', roof: '#8c64c8', roofShade: '#5a3e8c' },
+    moe: { wall: '#eef0f4', roof: '#3c7840', roofShade: '#264c28' },
+  };
+  const buildings = [
+    B('home', '우리 집', 2, 2, 5, 6, true, C.home),
+    B('school', '학교', 8, 1, 6, 7, true, C.school),
+    B('snackbar', '분식점', 20, 2, 4, 6, true, C.snackbar),
+    B('convenience', '편의점', 25, 2, 4, 6, true, C.convenience),
+    B('hairshop', '미용실', 30, 2, 4, 6, true, C.hairshop),
+    B('market', '전통시장', 1, 12, 7, 6, false, C.market),
+    B('bank', '은행', 9, 12, 5, 6, false, C.bank),
+    B('mart', '대형마트', 20, 12, 5, 6, false, C.mart),
+    B('edu_office', '교육지원청', 25, 12, 4, 6, false, C.edu_office),
+    B('moe', '교육부', 30, 12, 4, 6, false, C.moe),
+  ];
+  return { id: 'town', name: '우리 동네', tiles: rows, buildings, npcs: [], spawn: { x: 4, y: 8 } };
+}
+
+export function homeMap() {
+  return {
+    id: 'home', name: '우리 집',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xWWWWWWWWWWWWx',
+      'xfffffffffBBfx',
+      'xffTTffffffffx',
+      'xffTTfffmmmffx',
+      'xfffffffmmmffx',
+      'xffffffffffffx',
+      'xffffffDfffffx',
+      'xxxxxxxxxxxxxx',
+    ],
+    npcs: [{ id: 'mom', sprite: 'mom', x: 9, y: 3 }],
+    spawn: { x: 11, y: 4 },
+    door: { x: 7, y: 7 },
+  };
+}
+
+export function shopMap() {
+  return {
+    id: 'snackbar_in', name: '분식점',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xWWSSWWWWSSWWx',
+      'xqqqqqqqqqqqqx',
+      'xcccccccccccqx',
+      'xqqqqqqqqqqqqx',
+      'xqqTTqqqqTTqqx',
+      'xqqqqqqqqqqqqx',
+      'xxxxxxDxxxxxxx',
+    ],
+    npcs: [{ id: 'owner', sprite: 'owner', x: 6, y: 2 }],
+    counter: { x: 6, y: 4 },
+    spawn: { x: 6, y: 6 },
+    door: { x: 6, y: 7 },
+  };
+}
+
+export function bankMap() {
+  return {
+    id: 'bank_in', name: '은행',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xWWWWWWWWWWWWx',
+      'xqqqqqqqqqAqqx',
+      'xcccccccccqqqx',
+      'xqqqqqqqqqqqqx',
+      'xqqqqqqqqqqqqx',
+      'xqqqqqqqqqqqqx',
+      'xxxxxxDxxxxxxx',
+    ],
+    npcs: [{ id: 'teller', sprite: 'teller', x: 5, y: 2 }],
+    counter: { x: 5, y: 4 }, atm: { x: 10, y: 3 },
+    spawn: { x: 6, y: 6 },
+    door: { x: 6, y: 7 },
+  };
+}

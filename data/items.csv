@@ -1,0 +1,106 @@
+id,stage,name,price,payment,heal,min_level,category,sprite
+home_wallet,home,지갑,,,,하,챙길 물건,
+home_checkcard,home,체크카드,,,,중,챙길 물건,
+home_mealcard,home,급식카드,,,,중,챙길 물건,
+home_dreamcard,home,꿈이든 카드,,,,하,챙길 물건,
+home_phone,home,휴대폰,,,,하,챙길 물건,
+home_key,home,열쇠,,,,하,챙길 물건,
+home_bag,home,장바구니,,,,하,챙길 물건,
+home_umbrella,home,우산,,,,하,챙길 물건,
+home_mask,home,마스크,,,,하,챙길 물건,
+home_bottle,home,물병,,,,하,챙길 물건,
+home_toothbrush,home,칫솔,,,,하,생활용품,toothbrush
+home_toothpaste,home,치약,,,,하,생활용품,
+home_towel,home,수건,,,,하,생활용품,
+home_socks,home,양말,,,,하,생활용품,
+home_shoebag,home,실내화 주머니,,,,하,생활용품,
+class_pencil,classroom,연필,1,토큰,,하,학용품,pencil
+class_eraser,classroom,지우개,1,토큰,,하,학용품,
+class_notebook,classroom,공책,2,토큰,,하,학용품,
+class_ruler,classroom,자,1,토큰,,하,학용품,
+class_scissors,classroom,가위,2,토큰,,중,학용품,
+class_glue,classroom,풀,1,토큰,,하,학용품,
+class_colorpencil,classroom,색연필,3,토큰,,중,학용품,
+class_crayon,classroom,크레파스,3,토큰,,중,학용품,
+class_pencilcase,classroom,필통,3,토큰,,중,학용품,
+class_sketchbook,classroom,스케치북,2,토큰,,중,학용품,
+class_slippers,classroom,실내화,3,토큰,,상,학용품,
+gym_basketball,gym,농구공,,대여카드,,하,체육 도구,basketball
+gym_volleyball,gym,배구공,,대여카드,,하,체육 도구,
+gym_dodgeball,gym,피구공,,대여카드,,하,체육 도구,
+gym_racket,gym,배드민턴 라켓,,대여카드,,중,체육 도구,
+gym_shuttlecock,gym,셔틀콕,,대여카드,,중,체육 도구,
+gym_hulahoop,gym,훌라후프,,대여카드,,하,체육 도구,
+gym_cone,gym,콘,,대여카드,,중,체육 도구,
+gym_whistle,gym,호루라기,,대여카드,,상,체육 도구,
+gym_jumprope,gym,줄넘기,,대여카드,,하,체육 도구,
+gym_uniform,gym,체육복,,대여카드,,중,체육 도구,
+gym_towel,gym,수건,,대여카드,,하,체육 도구,
+field_water,field,생수,500,현금|급식,10,하,먹거리,
+field_ionic,field,이온음료,1000,현금|급식,15,하,먹거리,
+field_icecream,field,아이스크림,1000,현금|급식,10,하,먹거리,
+field_cottoncandy,field,솜사탕,2000,현금|급식,10,중,먹거리,
+field_hotdog,field,핫도그,2500,현금|급식,25,중,먹거리,
+field_popcorn,field,팝콘,2000,현금|급식,15,중,먹거리,
+field_cap,field,모자,3000,현금,,중,응원 용품,
+field_headband,field,응원 머리띠,2000,현금,,중,응원 용품,
+field_jumprope,field,줄넘기,2000,현금,,중,응원 용품,jumprope
+snack_tteokbokki,snackbar,떡볶이,4000,현금|체크|급식,35,중,분식,tteokbokki
+snack_cuptteok,snackbar,컵떡볶이,2500,현금|체크|급식,25,중,분식,cuptteok
+snack_kimbap,snackbar,김밥,3500,현금|체크|급식,35,중,분식,kimbap
+snack_tunakimbap,snackbar,참치김밥,4500,현금|체크|급식,40,상,분식,kimbap_tuna
+snack_sundae,snackbar,순대,4000,현금|체크|급식,35,중,분식,sundae
+snack_eomuk,snackbar,어묵 1개,1000,현금|체크|급식,10,하,분식,eomuk
+snack_twigim,snackbar,튀김 1개,1000,현금|체크|급식,10,하,분식,twigim
+snack_ramen,snackbar,라면,4500,현금|체크|급식,40,상,분식,ramen
+snack_coolpis,snackbar,쿨피스,1500,현금|체크|급식,10,중,음료,coolpis
+snack_tteokkochi,snackbar,떡꼬치,1000,현금|체크|급식,15,하,분식,tteokkochi
+snack_slush,snackbar,슬러시,1000,현금|체크|급식,10,하,음료,slush
+cvs_onigiri,convenience,삼각김밥,1500,현금|체크|급식,20,중,식품,onigiri
+cvs_cupramen,convenience,컵라면,1500,현금|체크|급식,25,중,식품,
+cvs_milk,convenience,우유,1800,현금|체크|급식,15,중,음료,
+cvs_bananamilk,convenience,바나나우유,1700,현금|체크|급식,15,중,음료,
+cvs_water,convenience,생수,1000,현금|체크|급식,10,하,음료,
+cvs_snack,convenience,과자,1500,현금|체크|급식,10,중,간식,
+cvs_chocolate,convenience,초콜릿,1500,현금|체크|급식,10,중,간식,
+cvs_icecream,convenience,아이스크림,1200,현금|체크|급식,10,중,간식,
+cvs_sandwich,convenience,샌드위치,3200,현금|체크|급식,30,상,식품,
+cvs_dosirak,convenience,도시락,5000,현금|체크|급식,50,상,식품,
+cvs_wetwipe,convenience,물티슈,1500,현금|체크,,중,생활용품,
+market_greenonion,market,대파 한 단,3000,현금,,중,채소,greenonion
+market_apple,market,사과 3개,5000,현금|급식,20,중,과일,
+market_tofu,market,두부,2000,현금,,중,식품,
+market_beansprout,market,콩나물,1500,현금,,중,채소,
+market_mackerel,market,고등어 1마리,5000,현금,,상,생선,
+market_tteok,market,떡 한 팩,3000,현금|급식,20,중,식품,
+market_hotteok,market,호떡,1500,현금|급식,15,하,간식,
+market_banchan,market,반찬 한 통,5000,현금|급식,30,상,반찬,
+market_socks,market,양말 3켤레,5000,현금,,상,잡화,
+hair_cut,hairshop,학생 커트,12000,현금|체크,,상,서비스,
+hair_bangs,hairshop,앞머리 정리,5000,현금|체크,,중,서비스,
+hair_wash,hairshop,머리 감기,3000,현금|체크,,중,서비스,
+hair_shampoo,hairshop,샴푸,8000,현금|체크,,상,판매,shampoo
+hair_gel,hairshop,헤어젤,6000,현금|체크,,상,판매,
+hair_tie,hairshop,머리끈,2000,현금|체크,,중,판매,
+hair_pin,hairshop,머리핀,1500,현금|체크,,중,판매,
+hair_comb,hairshop,빗,3000,현금|체크,,중,판매,
+mart_eggs,mart,계란 한 판,7500,현금|체크,,상,식품,eggs
+mart_milk,mart,우유 2.3L,5500,현금|체크|급식,25,상,식품,
+mart_ramen5,mart,라면 5개입,4500,현금|체크,,상,식품,
+mart_rice,mart,쌀 10kg,32000,현금|체크,,상,식품,
+mart_tissue,mart,휴지 30롤,18000,현금|체크,,상,생활용품,
+mart_detergent,mart,세제,9000,현금|체크,,상,생활용품,
+mart_applebag,mart,사과 한 봉지,9900,현금|체크|급식,30,상,과일,
+mart_bigsnack,mart,과자 대용량,5000,현금|체크|급식,25,상,간식,
+mart_shopbag,mart,장바구니,1000,현금|체크,,하,생활용품,
+office_ticket,edu_office,민원 번호표,,,,하,민원,ticket
+office_form,edu_office,신청서,,,,중,민원,
+office_pen,edu_office,볼펜,,,,하,민원,
+office_envelope,edu_office,서류봉투,,,,중,민원,
+office_vending,edu_office,자판기 음료,1200,현금|체크|급식,10,중,음료,
+moe_badge,moe,방문 출입증,,,,하,출입,badge
+moe_guide,moe,견학 안내지,,,,하,출입,
+moe_souvenir_pen,moe,기념 볼펜,2000,현금|체크,,중,기념품,
+moe_souvenir_note,moe,기념 노트,3000,현금|체크,,중,기념품,
+moe_souvenir_badge,moe,기념 배지,4000,현금|체크,,중,기념품,
+moe_cafe,moe,카페 음료,2500,현금|체크|급식,15,중,음료,
