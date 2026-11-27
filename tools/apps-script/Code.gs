@@ -7,12 +7,13 @@ const SECRET = '여기에-비밀번호';
 
 // 아래는 고치지 않아도 돼요.
 const SHEET = '기록';
+const notSet = () => SECRET.indexOf('여기에') === 0; // 6번째 줄을 아직 안 바꿨는지 확인
 const HEAD = ['학년-반-번호', '학생', '마지막 저장', '난이도', '끝낸 곳', '기록 (고치지 마세요)'];
 
 function doPost(e) {
   let req;
   try { req = JSON.parse((e && e.postData && e.postData.contents) || '{}'); } catch (err) { return out({ ok: false, error: 'bad-json' }); }
-  if (SECRET === '여기에-비밀번호') return out({ ok: false, error: 'secret-not-set' });
+  if (notSet()) return out({ ok: false, error: 'secret-not-set' });
   if (req.key !== SECRET) return out({ ok: false, error: 'key' });
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
@@ -63,7 +64,7 @@ function doPost(e) {
 
 // 브라우저에서 주소를 열어 보면 연결됐는지 알려 줘요
 function doGet() {
-  return out({ ok: true, app: 'dagyeo', ready: SECRET !== '여기에-비밀번호' });
+  return out({ ok: true, app: 'dagyeo', ready: !notSet() });
 }
 
 function sheet_() {
