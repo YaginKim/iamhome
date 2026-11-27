@@ -1,9 +1,9 @@
 // 대사 녹음하기 (선생님): 대사를 하나씩 보여 주고, 연결된 마이크로 녹음해요.
 // 녹음은 먼저 이 기기에 저장되고, 「사이트에 올리기」를 하면 모든 기기에서 들려요.
-import { el, notify } from './ui.js?v=202611271826';
-import { keys, getClip, putClip, delClip, recMime } from './recordings.js?v=202611271826';
-import { ghToken, setGhToken, checkToken, pending, publish, exportClips, markDeleted, unmarkDeleted, isDeleted, ghErrText } from './publish.js?v=202611271826';
-import { stop as stopVoice, sayTTS, siteFile, setSiteFiles } from './voice.js?v=202611271826';
+import { el, notify } from './ui.js?v=202611271828';
+import { keys, getClip, putClip, delClip, recMime } from './recordings.js?v=202611271828';
+import { ghToken, setGhToken, checkToken, pending, publish, exportClips, markDeleted, unmarkDeleted, isDeleted, ghErrText } from './publish.js?v=202611271828';
+import { stop as stopVoice, sayTTS, siteFile, setSiteFiles } from './voice.js?v=202611271828';
 
 const MAX_SEC = 20;
 // 녹음이 있는지: 이 기기에서 녹음했거나, 사이트에 올라가 있으면 (다른 기기에서 녹음해서 올린 것도)
@@ -97,7 +97,7 @@ export async function openStudio({ sheet, back }) {
     steps.append(s1,
       el('li', null, 'Token name: 다녀오겠습니다 녹음 / Expiration: 1년 (최대로)'),
       el('li', null, 'Repository access: Only select repositories → iamhome'),
-      el('li', null, 'Permissions → Repository permissions → Contents: Read and write'),
+      el('li', null, 'Permissions → 「+ Add permissions」 → Contents 체크 → 옆 권한을 Read and write로'),
       el('li', null, '맨 아래 Generate token → 나온 열쇠(github_pat_로 시작)를 복사해서 아래에 붙여 넣어요.'));
     const f = el('div', 'field'); const lb = el('label', null, 'GitHub 열쇠'); const inp = el('input'); inp.type = 'password'; inp.id = 'gh-token'; lb.htmlFor = 'gh-token'; inp.autocomplete = 'off';
     f.append(lb, inp);

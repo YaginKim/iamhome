@@ -16,7 +16,7 @@
 1. https://github.com/settings/personal-access-tokens/new 를 열어요 (YaginKim 계정).
 2. Token name: `다녀오겠습니다 녹음`, Expiration: 가장 길게
 3. Repository access: **Only select repositories → iamhome**
-4. Permissions → Repository permissions → **Contents: Read and write**
+4. Permissions → **「+ Add permissions」** → **Contents** 체크 → 옆 권한을 **Read and write**로 (Metadata: Read-only는 저절로 붙어요)
 5. **Generate token** → `github_pat_`로 시작하는 열쇠를 복사해서 게임의 「GitHub 열쇠 넣기」에 붙여 넣어요.
 
 열쇠가 어려우면 **녹음 파일 내보내기**로 받은 파일을 Claude에게 주세요. 대신 올려 드려요.
