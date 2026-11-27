@@ -81,8 +81,3 @@ export function readLinkHash() {
   return true;
 }
 
-// ----- 녹음한 대사 (선생님 구글 드라이브) -----
-export const cloudVoiceList = async () => (await call('voiceList', {}, { ms: 15000 })).list;
-export const cloudVoicePut = (key, mime, data) => call('voicePut', { voice: key, mime, data }, { ms: 30000 });
-export const cloudVoiceGet = key => call('voiceGet', { voice: key }, { ms: 20000 });
-export const cloudVoiceDelete = key => call('voiceDelete', { voice: key });

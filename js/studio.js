@@ -1,9 +1,9 @@
 // 대사 녹음하기 (선생님): 대사를 하나씩 보여 주고, 연결된 마이크로 녹음해요.
-// 녹음은 이 기기에 저장되고, 구글 시트가 연결돼 있으면 선생님 구글 드라이브에도 올라가 다른 기기에서도 들려요.
-import { el, notify } from './ui.js?v=202611271755';
-import { keys, getClip, putClip, delClip, allClips, recMime, blobToB64, b64ToBlob } from './recordings.js?v=202611271755';
-import { syncOn, cloudVoiceList, cloudVoicePut, cloudVoiceGet, cloudVoiceDelete, errText } from './sync.js?v=202611271755';
-import { stop as stopVoice, sayTTS } from './voice.js?v=202611271755';
+// 녹음은 먼저 이 기기에 저장되고, 「사이트에 올리기」를 하면 모든 기기에서 들려요.
+import { el, notify } from './ui.js?v=202611271812';
+import { keys, getClip, putClip, delClip, recMime } from './recordings.js?v=202611271812';
+import { ghToken, setGhToken, checkToken, pending, publish, exportClips, markDeleted, unmarkDeleted, ghErrText } from './publish.js?v=202611271812';
+import { stop as stopVoice, sayTTS } from './voice.js?v=202611271812';
 
 const MAX_SEC = 20;
 const MIC_KEY = 'dagyeo-mic-v1';
@@ -12,37 +12,6 @@ let lines = null;
 async function loadLines() {
   lines ||= await fetch('data/voice-lines.json', { cache: 'no-cache' }).then(r => r.json());
   return lines;
-}
-
-// 올리기: 이 기기에서 녹음한 것을 드라이브로
-async function upload(key) {
-  const c = await getClip(key);
-  if (!c) return;
-  const r = await cloudVoicePut(key, c.mime || c.blob.type, await blobToB64(c.blob));
-  await putClip(key, c.blob, r.updated || Date.now(), true);
-}
-
-// 맞추기: 드라이브와 이 기기의 녹음을 서로 맞춰요 (게임을 켤 때 뒤에서 조용히)
-let pulling = null;
-export function pullVoices() {
-  if (!syncOn()) return Promise.resolve();
-  pulling ||= (async () => {
-    try {
-      const remote = new Map((await cloudVoiceList()).map(v => [v.key, v.updated]));
-      const local = await allClips();
-      for (const c of local) {
-        if (!c.synced) await upload(c.key).catch(() => {});
-        else if (!remote.has(c.key)) await delClip(c.key); // 다른 기기에서 지움
-      }
-      const have = new Map(local.map(c => [c.key, c.updated || 0]));
-      for (const [key, updated] of remote) {
-        if (have.has(key) && have.get(key) >= updated) continue;
-        const r = await cloudVoiceGet(key).catch(() => null);
-        if (r) await putClip(key, b64ToBlob(r.data, r.mime), r.updated || updated, true);
-      }
-    } catch { /* 인터넷이 안 되면 다음에 */ } finally { pulling = null; }
-  })();
-  return pulling;
 }
 
 export async function openStudio({ sheet, back }) {
@@ -97,11 +66,71 @@ export async function openStudio({ sheet, back }) {
   const row2 = el('div', 'row'); const backBtn = el('button', 'btn big', '나가기');
   row2.append(backBtn, prevBtn, nextBtn);
   const warnNote = el('p', 'note', '');
-  sh.append(top, progress, card, choice, row1, row2, warnNote);
+  // ----- 사이트에 올리기 -----
+  const pub = el('div', 'studio-pub');
+  const pubTitle = el('h3', null, '사이트에 올리기');
+  const pubInfo = el('p', 'note');
+  const pubBtn = el('button', 'btn primary big', '사이트에 올리기');
+  const expBtn = el('button', 'btn big', '녹음 파일 내보내기');
+  const keyBtn = el('button', 'btn', 'GitHub 열쇠 넣기');
+  const pubRow = el('div', 'row'); pubRow.style.justifyContent = 'flex-start'; pubRow.append(pubBtn, expBtn, keyBtn);
+  const keyBox = el('div', 'studio-key'); keyBox.hidden = true;
+  pub.append(pubTitle, pubInfo, pubRow, keyBox);
+  sh.append(top, progress, card, choice, row1, row2, warnNote, pub);
+
+  async function refreshPub() {
+    const p = await pending();
+    const n = p.changed.length, d = p.deleted.length;
+    pubInfo.textContent = (n || d)
+      ? `${[n && `이 기기에만 있는 녹음 ${n}개`, d && `사이트에서 지울 녹음 ${d}개`].filter(Boolean).join(', ')}. 「사이트에 올리기」를 누르면 1~2분 뒤 모든 기기에 반영돼요.`
+      : '모든 녹음이 사이트에 올라가 있어요. 새로 녹음하거나 바꾸면 다시 올려 주세요.';
+    pubBtn.disabled = !(n || d);
+    keyBtn.textContent = ghToken() ? 'GitHub 열쇠 바꾸기' : 'GitHub 열쇠 넣기';
+  }
+  function showKeyBox() {
+    keyBox.hidden = false; keyBox.innerHTML = '';
+    const steps = el('ol', 'studio-steps');
+    const s1 = el('li'); const a = el('a', null, 'GitHub 열쇠 만들기 페이지'); a.href = 'https://github.com/settings/personal-access-tokens/new'; a.target = '_blank'; a.rel = 'noopener';
+    s1.append(a, document.createTextNode('를 열어요 (YaginKim 계정으로 로그인).'));
+    steps.append(s1,
+      el('li', null, 'Token name: 다녀오겠습니다 녹음 / Expiration: 1년 (최대로)'),
+      el('li', null, 'Repository access: Only select repositories → iamhome'),
+      el('li', null, 'Permissions → Repository permissions → Contents: Read and write'),
+      el('li', null, '맨 아래 Generate token → 나온 열쇠(github_pat_로 시작)를 복사해서 아래에 붙여 넣어요.'));
+    const f = el('div', 'field'); const lb = el('label', null, 'GitHub 열쇠'); const inp = el('input'); inp.type = 'password'; inp.id = 'gh-token'; lb.htmlFor = 'gh-token'; inp.autocomplete = 'off';
+    f.append(lb, inp);
+    const msg = el('p', 'note', '열쇠는 이 기기의 브라우저에만 저장돼요. 학생 기기에는 넣지 마세요.');
+    const ok = el('button', 'btn primary', '열쇠 저장');
+    const cancel = el('button', 'btn', '닫기');
+    const r = el('div', 'row'); r.style.justifyContent = 'flex-start'; r.append(ok, cancel);
+    ok.onclick = async () => {
+      const t = inp.value.trim(); if (!t) return;
+      ok.disabled = true; msg.textContent = '확인하는 중…';
+      try { await checkToken(t); setGhToken(t); keyBox.hidden = true; refreshPub(); notify('GitHub 열쇠를 저장했어요.'); }
+      catch (e) { msg.textContent = ghErrText(e.message); ok.disabled = false; }
+    };
+    cancel.onclick = () => { keyBox.hidden = true; };
+    keyBox.append(steps, f, msg, r);
+    setTimeout(() => inp.focus(), 50);
+  }
+  keyBtn.onclick = showKeyBox;
+  pubBtn.onclick = async () => {
+    if (!ghToken()) return showKeyBox();
+    pubBtn.disabled = true;
+    try {
+      const r = await publish((i, n) => { pubInfo.textContent = `올리는 중… ${i} / ${n}`; });
+      pubInfo.textContent = `${r.added}개를 올렸어요${r.removed ? `, ${r.removed}개를 지웠어요` : ''}. 1~2분 뒤 모든 기기에서 들려요.`;
+      notify('녹음을 사이트에 올렸어요.');
+    } catch (e) {
+      pubInfo.textContent = ghErrText(e.message);
+      if (e.message === 'token' || e.message === 'perm') showKeyBox();
+    }
+    pubBtn.disabled = false;
+    setTimeout(refreshPub, 4000);
+  };
+  expBtn.onclick = async () => { const n = await exportClips(); notify(`녹음 ${n}개를 파일 하나로 내보냈어요.`); };
 
   if (mime === null || !navigator.mediaDevices?.getUserMedia) warnNote.textContent = '이 브라우저는 녹음을 지원하지 않아요. 크롬이나 사파리 최신 버전에서 해 주세요.';
-  else if (!syncOn()) warnNote.textContent = '구글 시트가 연결돼 있지 않아서 녹음은 이 기기에서만 들려요. 다른 기기에서도 들리게 하려면 「기기 사이 저장」을 먼저 연결해 주세요.';
-  else warnNote.textContent = '녹음은 이 기기와 선생님 구글 드라이브(「다녀오겠습니다 녹음」 폴더)에 저장돼요.';
 
   const list = () => all.filter(l => (cat === '전체' || l.cat === cat) && (who === '전체' || l.who === who) && (!onlyTodo || !keys.has(l.key)));
   function fillWhos() {
@@ -225,14 +254,11 @@ export async function openStudio({ sheet, back }) {
   }
   async function save(key, blob) {
     await putClip(key, blob, Date.now(), false);
+    unmarkDeleted(key);
     fillCats(); fillWhos(); draw();
     playClip(key);
-    const l = { key };
-    if (syncOn()) {
-      state.textContent = '녹음했어요. 드라이브에 올리는 중…';
-      upload(l.key).then(() => { if (list()[idx]?.key === l.key) state.textContent = '녹음했어요. 드라이브에도 올렸어요.'; })
-        .catch(e => { state.textContent = `이 기기에는 저장했어요. 드라이브에는 못 올렸어요 (${errText(e.message)}). 다음에 게임을 켤 때 다시 올려요.`; });
-    } else state.textContent = '녹음했어요.';
+    state.textContent = '녹음했어요. 이 기기에서는 바로 들려요.';
+    refreshPub();
   }
   function stopRec() {
     clearTimeout(timer);
@@ -261,8 +287,8 @@ export async function openStudio({ sheet, back }) {
     const l = list()[idx];
     if (!confirm('이 대사의 녹음을 지울까요? 기계 음성으로 돌아가요.')) return;
     await delClip(l.key);
-    if (syncOn()) cloudVoiceDelete(l.key).catch(() => notify('드라이브의 녹음은 지우지 못했어요.', 'no'));
-    fillCats(); fillWhos(); draw();
+    markDeleted(l.key);
+    fillCats(); fillWhos(); draw(); refreshPub();
   };
   const go = async d => {
     if (rec) { stopRec(); await new Promise(r => setTimeout(r, 300)); }
@@ -282,5 +308,5 @@ export async function openStudio({ sheet, back }) {
   document.addEventListener('keydown', onKey);
   backBtn.onclick = () => { stopRec(); closeMic(); draft = null; player?.pause(); document.removeEventListener('keydown', onKey); back(); };
 
-  fillCats(); fillWhos(); await fillMics(); draw();
+  fillCats(); fillWhos(); await fillMics(); draw(); refreshPub();
 }

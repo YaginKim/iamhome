@@ -17,7 +17,6 @@ function doPost(e) {
   if (req.action === 'hello') return out({ ok: true, name: SpreadsheetApp.getActiveSpreadsheet().getName(), ready: !notSet(), version: 2 });
   if (notSet()) return out({ ok: false, error: 'secret-not-set' });
   if (req.key !== SECRET) return out({ ok: false, error: 'key' });
-  if (String(req.action).indexOf('voice') === 0) return voice_(req);
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
@@ -68,46 +67,6 @@ function doPost(e) {
 // 브라우저에서 주소를 열어 보면 연결됐는지 알려 줘요
 function doGet() {
   return out({ ok: true, app: 'dagyeo', ready: !notSet() });
-}
-
-// ----- 게임 안에서 녹음한 대사 (선생님 구글 드라이브의 「다녀오겠습니다 녹음」 폴더) -----
-const VOICE_FOLDER = '다녀오겠습니다 녹음';
-function voiceFolder_() {
-  const it = DriveApp.getFoldersByName(VOICE_FOLDER);
-  return it.hasNext() ? it.next() : DriveApp.createFolder(VOICE_FOLDER);
-}
-function voice_(req) {
-  const folder = voiceFolder_();
-  const okKey = k => /^v[0-9a-f]{8}$/.test(String(k));
-  const filesOf = k => { const out = []; const it = folder.getFilesByName(k); while (it.hasNext()) out.push(it.next()); return out; };
-  switch (req.action) {
-    case 'voiceList': {
-      const list = []; const it = folder.getFiles();
-      while (it.hasNext()) { const f = it.next(); if (okKey(f.getName()) && !f.isTrashed()) list.push({ key: f.getName(), updated: f.getLastUpdated().getTime() }); }
-      return out({ ok: true, list: list });
-    }
-    case 'voicePut': {
-      if (!okKey(req.voice) || !req.data) return out({ ok: false, error: 'bad-voice' });
-      const lock = LockService.getScriptLock(); lock.waitLock(15000);
-      try {
-        filesOf(req.voice).forEach(f => f.setTrashed(true));
-        const blob = Utilities.newBlob(Utilities.base64Decode(req.data), req.mime || 'audio/mp4', req.voice);
-        const f = folder.createFile(blob);
-        return out({ ok: true, updated: f.getLastUpdated().getTime() });
-      } finally { lock.releaseLock(); }
-    }
-    case 'voiceGet': {
-      const f = okKey(req.voice) && filesOf(req.voice)[0];
-      if (!f) return out({ ok: false, error: 'no-voice' });
-      const b = f.getBlob();
-      return out({ ok: true, mime: b.getContentType(), data: Utilities.base64Encode(b.getBytes()), updated: f.getLastUpdated().getTime() });
-    }
-    case 'voiceDelete': {
-      if (okKey(req.voice)) filesOf(req.voice).forEach(f => f.setTrashed(true));
-      return out({ ok: true });
-    }
-  }
-  return out({ ok: false, error: 'action' });
 }
 
 function sheet_() {

@@ -1,5 +1,5 @@
 // 선생님이 게임 안에서 녹음한 대사: 이 기기의 브라우저(IndexedDB)에 저장해요.
-// 구글 시트가 연결돼 있으면 선생님 구글 드라이브에도 올려서 다른 기기에서도 들려요 (sync.js).
+// 「사이트에 올리기」를 하면 사이트의 voice 폴더로 올라가서 모든 기기에서 들려요 (publish.js).
 const DB = 'dagyeo-voice', STORE = 'clips';
 let dbp = null;
 export const keys = new Map(); // key → updated (빨리 찾으려고 목록만 들고 있어요)
@@ -30,8 +30,8 @@ export async function initRecordings() {
   } catch { /* 저장 공간을 못 쓰는 브라우저: 녹음 없이 진행 */ }
 }
 export async function getClip(key) { try { return await tx('readonly', s => s.get(key)); } catch { return null; } }
-export async function putClip(key, blob, updated = Date.now(), synced = false) {
-  await tx('readwrite', s => s.put({ key, blob, mime: blob.type, updated, synced }));
+export async function putClip(key, blob, updated = Date.now(), synced = false, publishedAt = 0) {
+  await tx('readwrite', s => s.put({ key, blob, mime: blob.type, updated, synced, publishedAt }));
   keys.set(key, updated);
 }
 export async function allClips() { try { return (await tx('readonly', s => s.getAll())) || []; } catch { return []; } }

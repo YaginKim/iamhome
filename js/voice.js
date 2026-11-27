@@ -1,18 +1,19 @@
-import { keys as myClips, getClip, initRecordings } from './recordings.js?v=202611271755';
-import { duckBgm } from './bgm.js?v=202611271755';
+import { keys as myClips, getClip, initRecordings } from './recordings.js?v=202611271812';
+import { duckBgm } from './bgm.js?v=202611271812';
 
 // 음성: voice/manifest.json에 적힌 녹음 파일이 있으면 그 파일을, 없으면 브라우저 TTS를 씁니다.
 // 녹음 파일 이름은 대사 글자로 정해져요 (voiceKey). 대본: docs/대사-녹음-대본.xlsx, 방법: voice/README.md
 // 예전 방식(voice/대사ID.mp3)도 그대로 됩니다.
-let recorded = new Set();
+let recorded = new Map(); // 사이트에 올라간 녹음: 대사 이름 → 파일
 let current = null;
 let enabled = true;
 
 export async function initVoice() {
   try {
-    const list = await fetch('voice/manifest.json').then(r => r.json());
-    recorded = new Set(list);
-  } catch { recorded = new Set(); }
+    const list = await fetch('voice/manifest.json', { cache: 'no-cache' }).then(r => r.json());
+    // 예전 형식 ["대사ID"] (mp3) 과 새 형식 {"v1a2b3c4d": "v1a2b3c4d.m4a?v=…"} 둘 다 읽어요
+    recorded = new Map(Array.isArray(list) ? list.map(id => [id, `${id}.mp3`]) : Object.entries(list));
+  } catch { recorded = new Map(); }
   await initRecordings();
   if ('speechSynthesis' in window) speechSynthesis.getVoices();
 }
@@ -58,8 +59,8 @@ export function say(text, id) {
     });
     return;
   }
-  const file = id && recorded.has(id) ? id : recorded.has(key) ? key : null;
-  if (file) { playUrl(`voice/${file}.mp3`, text); return; }
+  const file = (id && recorded.get(id)) || recorded.get(key);
+  if (file) { playUrl(`voice/${file}`, text); return; }
   speakTTS(text);
 }
 

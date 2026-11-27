@@ -695,3 +695,9 @@ body[data-map="poster"] .btn.primary:hover { background: #e85a5a; }
   box-shadow: 0 -4px 0 var(--ink), 0 4px 0 var(--ink), -4px 0 0 var(--ink), 4px 0 0 var(--ink); }
 .sync-check .ok { color: #2f7a3a; }
 .sync-check .no { color: var(--tomato-deep); }
+.studio-pub { margin-top: 26px; padding-top: 18px; border-top: 4px dashed var(--line); }
+.studio-pub h3 { margin: 0 0 4px; font-family: var(--font-ui); }
+.studio-key { background: var(--card); padding: 14px 18px 16px; margin: 12px var(--px) 0;
+  box-shadow: 0 -4px 0 var(--ink), 0 4px 0 var(--ink), -4px 0 0 var(--ink), 4px 0 0 var(--ink); }
+.studio-steps { margin: 0 0 12px; padding-left: 1.4em; display: grid; gap: 4px; font-size: var(--step--1); }
+.studio-steps a { color: var(--tomato-deep); font-weight: bold; }
