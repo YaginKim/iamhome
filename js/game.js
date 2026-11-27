@@ -1,12 +1,12 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
-import { loadData, itemsFor, won, LEVELS } from './data.js?v=202611270340';
-import { playBgm, getVolume, setVolume } from './bgm.js?v=202611270340';
-import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611270340';
-import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, loadBuildingManifest } from './engine.js?v=202611270340';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611270340';
-import { pay, tokenPay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611270340';
-import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611270340';
-import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611270340';
+import { loadData, itemsFor, won, LEVELS } from './data.js?v=202611270411';
+import { playBgm, getVolume, setVolume } from './bgm.js?v=202611270411';
+import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611270411';
+import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, loadBuildingManifest } from './engine.js?v=202611270411';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611270411';
+import { pay, tokenPay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611270411';
+import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611270411';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611270411';
 
 const $ = s => document.querySelector(s);
 let D, S, world;

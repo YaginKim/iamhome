@@ -1,6 +1,6 @@
 // 위에서 내려다보는 지도: 타일 그리기, 이동(키보드·터치), 길찾기, 문·사람과 만나기
-import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611270340';
-import { sfx } from './voice.js?v=202611270340';
+import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611270411';
+import { sfx } from './voice.js?v=202611270411';
 
 export const T = 16;
 const BLOCK = new Set(['t', 'W', 'c', 'T', 'B', 'x', 'S', 'k', 'A', 'U', 'H']);
@@ -159,6 +159,27 @@ async function loadBuildingArt(buildings) {
   }));
 }
 
+// 방 그림: assets/rooms/manifest.json 에 적힌 방은 칸 그림 대신 한 장짜리 그림을 씁니다
+let roomList = null;
+const roomCache = new Map();
+async function loadRoomArt(id) {
+  if (!id) return null;
+  if (!roomList) {
+    try { roomList = await fetch('assets/rooms/manifest.json').then(r => r.json()); } catch { roomList = {}; }
+  }
+  const file = roomList[id];
+  if (!file) return null;
+  if (roomCache.has(id)) return roomCache.get(id);
+  const img = await new Promise(res => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => res(null);
+    im.src = `assets/rooms/${file}`;
+  });
+  roomCache.set(id, img);
+  return img;
+}
+
 export class World {
   constructor(canvas) {
     this.cv = canvas;
@@ -179,6 +200,7 @@ export class World {
   async load(map, spawn) {
     await document.fonts.load('16px Sam3KR').catch(() => {});
     await loadBuildingArt(map.buildings || []);
+    const roomArt = await loadRoomArt(map.id);
     this.map = map;
     this.grid = map.tiles.map(r => [...r]);
     const W = map.tiles[0].length, H = map.tiles.length;
@@ -194,7 +216,8 @@ export class World {
     this.bg = document.createElement('canvas');
     this.bg.width = W * T; this.bg.height = H * T;
     const bctx = this.bg.getContext('2d');
-    this.grid.forEach((row, y) => row.forEach((ch, x) => drawTile(bctx, ch, x, y)));
+    if (roomArt && roomArt.width === W * T && roomArt.height === H * T) bctx.drawImage(roomArt, 0, 0);
+    else this.grid.forEach((row, y) => row.forEach((ch, x) => drawTile(bctx, ch, x, y)));
     for (const b of map.buildings || []) drawBuilding(bctx, b, true);
     this.npcSprites = (map.npcs || []).map(n => PEOPLE[n.sprite]());
     const p = spawn || map.spawn;
