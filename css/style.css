@@ -625,3 +625,39 @@ body[data-map="poster"] .btn.primary:hover { background: #e85a5a; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
 }
+
+/* 학년·반·번호 고르기 */
+.title-continue { display: inline-grid; justify-items: center; line-height: 1.15; }
+.title-continue small { font-family: var(--font-body); font-size: var(--step--1); opacity: 0.9; }
+.who { display: flex; justify-content: center; gap: clamp(12px, 4cqw, 48px); margin: 8px 0 26px; }
+.who-col { display: grid; justify-items: center; gap: 6px; }
+.who-step { width: 84px; min-height: 64px; font-size: var(--step-2); padding: 0 0 6px; }
+.who-num { display: flex; align-items: baseline; gap: 6px; padding: 6px 0; }
+.who-val { font-family: var(--font-num); font-size: clamp(44px, 7cqw, 72px); min-width: 1.6em; text-align: right; line-height: 1; }
+.who-num span { font-family: var(--font-ui); font-size: var(--step-1); }
+.slot-facts { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0 0 22px; font-size: var(--step-0); }
+.slot-facts span { color: var(--ink-soft); margin-right: 8px; }
+.slot-facts b { font-weight: normal; }
+/* 선생님 화면 */
+.teacher-menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; margin-bottom: 26px; }
+.stage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 16px 0 26px; }
+.stage-btn { display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left; min-height: 64px; padding: 8px 14px 11px; }
+.stage-btn i { font-style: normal; font-family: var(--font-num); color: var(--ink-soft); min-width: 1.4em; }
+.stage-grid.small .stage-btn { min-height: 52px; font-size: var(--step--1); }
+.student-list { display: grid; gap: 10px; margin-bottom: 24px; }
+.student-row { display: grid; justify-items: start; text-align: left; gap: 6px; padding: 12px 18px 15px; }
+.student-row b { font-family: var(--font-ui); font-size: var(--step-1); }
+.student-row .slot-facts { margin: 0; font-size: var(--step--1); }
+.pin-field input { max-width: 12em; font-family: var(--font-num); font-size: var(--step-2); letter-spacing: 0.3em; }
+@container game (max-height: 500px) {
+  .who { flex-direction: column; align-items: center; gap: 6px; margin-bottom: 14px; }
+  .who-col { display: flex; align-items: center; gap: 10px; }
+  .who-col .who-step:last-child { order: -1; }
+  .who-col .who-step:first-child { order: 1; }
+  .screen-sheet { margin: 10px auto; padding-top: 16px; padding-bottom: 16px; }
+  .screen-sheet p.lead { margin-bottom: 10px; }
+  .who-step { min-height: 46px !important; }
+  .who-step { min-height: 52px; width: 64px; }
+  .who-num { min-width: 5.5em; justify-content: center; padding: 0; }
+  .who-val { font-size: 36px; }
+}

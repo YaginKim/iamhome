@@ -1,12 +1,12 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
-import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271132';
-import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271132';
-import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271132';
-import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271132';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271132';
-import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271132';
-import { newState, load, save, wipe, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271132';
-import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271132';
+import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271156';
+import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271156';
+import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271156';
+import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271156';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271156';
+import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271156';
+import { newState, load, save, wipe, lastSlot, setLastSlot, listSlots, slotId, slotLabel, teacherPin, setTeacherPin, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271156';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271156';
 
 const $ = s => document.querySelector(s);
 // 받침에 따라 조사 고르기: josa('우유', '은', '는') → '우유는'
@@ -204,26 +204,103 @@ function titleScreen() {
   logo.append(trial);
   t.append(logo, el('p', 'tagline', line('title.copy')));
   const row = el('div', 'row');
-  const saved = load();
+  const last = lastSlot();
+  const saved = last !== null && last !== 'teacher' ? load(last) : null;
   if (saved) {
-    const c = el('button', 'btn primary big', '이어서 하기');
-    c.onclick = () => { clearInterval(walkTimer); S = saved; sc.hidden = true; resume(); };
+    const c = el('button', 'btn primary big title-continue');
+    c.append(el('span', null, '이어서 하기'), el('small', null, slotLabel(last)));
+    c.onclick = () => playSlot(last);
     row.append(c);
   }
-  const n = el('button', 'btn big' + (saved ? '' : ' primary'), saved ? '처음부터' : '시작하기');
-  n.onclick = () => setupScreen();
-  const st = el('button', 'btn big', '선생님 설정');
-  st.onclick = () => settingsScreen();
+  const n = el('button', 'btn big' + (saved ? '' : ' primary'), saved ? '다른 학생' : '시작하기');
+  n.onclick = () => whoScreen();
+  const st = el('button', 'btn big', '선생님');
+  st.onclick = () => teacherGate(teacherMenu);
   row.append(n, st);
   t.append(row);
   sc.append(t);
 }
 
-function setupScreen() {
-  const sc = $('#screen'); sc.innerHTML = '';
+function sheet(title, lead) {
+  const sc = $('#screen'); sc.innerHTML = ''; sc.hidden = false; sc.scrollTop = 0;
   poster(sc);
   const sh = el('div', 'screen-sheet');
-  sh.append(el('h2', null, '누가 다녀올까요?'), el('p', 'lead', '난이도와 꿈이든 카드에 적을 이름, 주소를 정해요. 선생님이 함께 정해 주세요.'));
+  sh.append(el('h2', null, title));
+  if (lead) sh.append(el('p', 'lead', lead));
+  sc.append(sh);
+  return sh;
+}
+
+// 저장된 학생 칸으로 게임 시작
+function playSlot(id) {
+  const s = load(id);
+  if (!s) return setupScreen(id);
+  S = s; setLastSlot(id);
+  clearInterval(walkTimer); $('#screen').hidden = true;
+  resume();
+}
+
+// 학년·반·번호 고르기 (이 기기에 학생마다 따로 저장해요)
+const WHO_KEY = 'dagyeo-who-v1';
+function whoScreen() {
+  let pick = { g: 1, c: 1, n: 1 };
+  try { Object.assign(pick, JSON.parse(localStorage.getItem(WHO_KEY)) || {}); } catch { /* */ }
+  const sh = sheet('나는 누구일까요?', '학년, 반, 번호를 골라요. 다음에도 똑같이 고르면 이어서 할 수 있어요.');
+  const box = el('div', 'who');
+  const parts = [['g', '학년', 6], ['c', '반', 20], ['n', '번', 40]];
+  for (const [k, unit, max] of parts) {
+    const col = el('div', 'who-col');
+    const val = el('output', 'who-val');
+    const show = () => { val.textContent = pick[k]; };
+    const minus = el('button', 'btn who-step', '−'); minus.setAttribute('aria-label', `${unit} 하나 줄이기`);
+    const plus = el('button', 'btn who-step', '+'); plus.setAttribute('aria-label', `${unit} 하나 늘리기`);
+    minus.onclick = () => { pick[k] = pick[k] <= 1 ? max : pick[k] - 1; show(); say(`${pick[k]}${unit}`); };
+    plus.onclick = () => { pick[k] = pick[k] >= max ? 1 : pick[k] + 1; show(); say(`${pick[k]}${unit}`); };
+    show();
+    const num = el('div', 'who-num'); num.append(val, el('span', null, unit));
+    col.append(plus, num, minus);
+    box.append(col);
+  }
+  sh.append(box);
+  const row = el('div', 'row');
+  const back = el('button', 'btn big', '뒤로'); back.onclick = titleScreen;
+  const go = el('button', 'btn primary big', '다음');
+  go.onclick = () => {
+    try { localStorage.setItem(WHO_KEY, JSON.stringify(pick)); } catch { /* */ }
+    const id = slotId(pick.g, pick.c, pick.n);
+    const s = load(id);
+    if (!s) return setupScreen(id);
+    // 이미 기록이 있으면: 이어서 하기 또는 처음부터
+    const sh2 = sheet(`${slotLabel(id)}`, '이 기기에 저장된 기록이 있어요.');
+    sh2.append(slotSummary(s));
+    const r2 = el('div', 'row');
+    const b2 = el('button', 'btn big', '뒤로'); b2.onclick = whoScreen;
+    const again = el('button', 'btn big', '처음부터 다시');
+    again.onclick = () => teacherGate(() => setupScreen(id), '처음부터 다시 하려면 선생님 비밀번호가 필요해요.');
+    const cont = el('button', 'btn primary big', '이어서 하기'); cont.onclick = () => playSlot(id);
+    r2.append(b2, again, cont);
+    sh2.append(r2);
+    say(`${slotLabel(id)}. 이어서 할까요?`);
+  };
+  row.append(back, go);
+  sh.append(row);
+}
+
+function slotSummary(s) {
+  const n = STAGES.filter(d => s.cleared.includes(d.id)).length;
+  const next = STAGES.find(d => !s.cleared.includes(d.id));
+  const d = s.updated ? new Date(s.updated) : null;
+  const f = el('div', 'slot-facts');
+  const fl = (k, v) => { const p = el('div'); p.append(el('span', null, k), el('b', null, v)); f.append(p); };
+  fl('난이도', s.level);
+  fl('끝낸 곳', `${s.tutorialDone ? '집 + ' : ''}${n} / ${STAGES.length}`);
+  fl('다음', !s.tutorialDone ? '집 (튜토리얼)' : next ? next.name : '모두 끝!');
+  if (d) fl('마지막', `${d.getMonth() + 1}월 ${d.getDate()}일`);
+  return f;
+}
+
+function setupScreen(slot) {
+  const sh = sheet('누가 다녀올까요?', `${slotLabel(slot)}. 난이도와 꿈이든 카드에 적을 이름, 주소를 정해요. 선생님이 함께 정해 주세요.`);
   const lv = el('div', 'levels');
   const desc = {
     하: '그림을 보고 똑같은 돈 맞추기. 천 원 이하. 보기 2개.',
@@ -245,10 +322,11 @@ function setupScreen() {
   sh.append(f1, f2, el('p', 'note', '처음에는 가상 이름과 주소가 들어 있어요. 실제 정보를 넣어도 이 기기에만 저장되고, 밖으로 보내지 않아요.'));
   const row = el('div', 'row');
   const back = el('button', 'btn big', '뒤로');
-  back.onclick = titleScreen;
+  back.onclick = whoScreen;
   const go = el('button', 'btn primary big', '집에서 시작하기');
   go.onclick = () => {
     S = newState(D.config, pick, { name: i1.value.trim() || DEFAULT_STUDENT.name, address: i2.value.trim() || DEFAULT_STUDENT.address });
+    S.slot = slot; setLastSlot(slot);
     persist();
     clearInterval(walkTimer);
     $('#screen').hidden = true;
@@ -256,57 +334,167 @@ function setupScreen() {
   };
   row.append(back, go);
   sh.append(row);
-  sc.append(sh);
 }
 
-function settingsScreen() {
-  const sc = $('#screen'); sc.innerHTML = ''; sc.hidden = false;
-  poster(sc);
-  const cur = load();
-  const sh = el('div', 'screen-sheet');
-  sh.append(el('h2', null, '선생님 설정'), el('p', 'lead', '이 기기에만 적용돼요.'));
+// ---------- 선생님 ----------
+// 비밀번호는 이 기기에만 저장해요. 처음 들어올 때 정합니다.
+let teacherOK = false;
+function teacherGate(next, why) {
+  if (teacherOK) return next();
+  const pin = teacherPin();
+  const sh = sheet(pin ? '선생님 비밀번호' : '선생님 비밀번호 정하기',
+    why || (pin ? '숫자 4자리를 넣어 주세요.' : '이 기기에서 쓸 숫자 4자리를 정해 주세요. 학생에게는 알려 주지 마세요.'));
+  const f = el('div', 'field pin-field');
+  const lb = el('label', null, '비밀번호 (숫자 4자리)');
+  const i = el('input'); i.id = 'pin'; lb.htmlFor = 'pin';
+  i.type = 'password'; i.inputMode = 'numeric'; i.maxLength = 4; i.autocomplete = 'off'; i.pattern = '[0-9]*';
+  f.append(lb, i); sh.append(f);
+  const msg = el('p', 'note', pin ? '' : '잊어버리면 이 기기의 브라우저 사이트 데이터를 지워야 해요. 학생 기록도 함께 지워져요.');
+  sh.append(msg);
+  const row = el('div', 'row');
+  const back = el('button', 'btn big', '뒤로'); back.onclick = titleScreen;
+  const ok = el('button', 'btn primary big', pin ? '들어가기' : '정하기');
+  const submit = () => {
+    const v = i.value.trim();
+    if (!/^\d{4}$/.test(v)) { msg.textContent = '숫자 4자리를 넣어 주세요.'; i.focus(); return; }
+    if (pin && v !== pin) { msg.textContent = '비밀번호가 달라요.'; i.value = ''; i.focus(); return; }
+    if (!pin) setTeacherPin(v);
+    teacherOK = true;
+    next();
+  };
+  ok.onclick = submit;
+  i.onkeydown = e => { if (e.key === 'Enter') submit(); };
+  row.append(back, ok);
+  sh.append(row);
+  setTimeout(() => i.focus(), 50);
+}
+
+function teacherMenu() {
+  const sh = sheet('선생님', '스테이지를 골라 해 보거나, 학생 기록과 설정을 바꿀 수 있어요.');
+  const grid = el('div', 'teacher-menu');
+  const item = (title, sub, fn) => {
+    const b = el('button', 'btn level'); b.append(el('b', null, title), el('span', null, sub)); b.onclick = fn; grid.append(b);
+  };
+  item('스테이지 골라서 하기', '원하는 곳부터 바로 해 봐요. 학생 기록과 따로 저장되고, 하루 횟수 제한이 없어요.', stagePickScreen);
+  item('학생 기록', `이 기기에 저장된 학생 ${listSlots().length}명. 난이도, 진행 위치, 음성 설정을 바꿔요.`, studentsScreen);
+  item('비밀번호 바꾸기', '이 기기의 선생님 비밀번호를 새로 정해요.', () => { setTeacherPin(''); teacherOK = false; teacherGate(teacherMenu); });
+  sh.append(grid);
+  const row = el('div', 'row');
+  const out = el('button', 'btn big', '나가기'); out.onclick = () => { teacherOK = false; titleScreen(); };
+  row.append(out);
+  sh.append(row);
+}
+
+const ALL_STOPS = () => [{ id: 'home', name: '집 (튜토리얼)' }, ...STAGES];
+// 고른 곳 바로 앞까지 끝낸 것으로 만들어요
+function jumpTo(s, stageId) {
+  if (stageId === 'home') { s.tutorialDone = false; s.cleared = []; return; }
+  const idx = STAGES.findIndex(d => d.id === stageId);
+  s.tutorialDone = true;
+  s.cleared = ['home', ...STAGES.slice(0, idx).map(d => d.id)];
+}
+
+function stagePickScreen() {
+  let level = '중';
+  const sh = sheet('스테이지 골라서 하기', '난이도를 고른 다음, 시작할 곳을 눌러요. 선생님 연습 기록은 학생 기록과 따로 저장돼요.');
+  const lvRow = el('div', 'row'); lvRow.style.justifyContent = 'flex-start';
+  const lbtn = LEVELS.map(l => {
+    const b = el('button', 'btn' + (l === level ? ' primary' : ''), `난이도 ${l}`);
+    b.onclick = () => { level = l; lbtn.forEach((x, i) => x.classList.toggle('primary', LEVELS[i] === l)); };
+    lvRow.append(b); return b;
+  });
+  sh.append(lvRow);
+  const grid = el('div', 'stage-grid');
+  ALL_STOPS().forEach((d, i) => {
+    const b = el('button', 'btn stage-btn');
+    b.append(el('i', null, String(i)), el('span', null, d.name));
+    b.onclick = () => {
+      S = newState(D.config, level, {});
+      S.slot = 'teacher'; S.teacher = true;
+      jumpTo(S, d.id);
+      persist();
+      clearInterval(walkTimer); $('#screen').hidden = true;
+      if (d.id === 'home') startTutorial(); else resume();
+    };
+    grid.append(b);
+  });
+  sh.append(grid);
+  const row = el('div', 'row');
+  const back = el('button', 'btn big', '뒤로'); back.onclick = teacherMenu;
+  row.append(back);
+  sh.append(row);
+}
+
+function studentsScreen() {
+  const ids = listSlots();
+  const sh = sheet('학생 기록', ids.length ? '학생을 누르면 설정을 바꿀 수 있어요. 이 기기에 저장된 기록만 보여요.' : '아직 이 기기에 저장된 학생이 없어요.');
+  const list = el('div', 'student-list');
+  for (const id of ids) {
+    const s = load(id); if (!s) continue;
+    const b = el('button', 'btn student-row');
+    b.append(el('b', null, slotLabel(id)), slotSummary(s));
+    b.onclick = () => settingsScreen(id);
+    list.append(b);
+  }
+  sh.append(list);
+  const row = el('div', 'row');
+  const back = el('button', 'btn big', '뒤로'); back.onclick = teacherMenu;
+  row.append(back);
+  sh.append(row);
+}
+
+function settingsScreen(id) {
+  const cur = load(id);
+  if (!cur) return studentsScreen();
+  const sh = sheet(`${slotLabel(id)} 설정`, '이 학생에게만 적용돼요.');
+  const redraw = () => { const y = $('#screen').scrollTop; settingsScreen(id); $('#screen').scrollTop = y; };
   const tog = (label, on, fn) => {
     const l = el('label', 'toggle'); const i = el('input'); i.type = 'checkbox'; i.checked = on;
     i.onchange = () => fn(i.checked); l.append(i, el('span', null, label)); sh.append(l);
   };
-  if (cur) {
-    tog('음성으로 읽어 주기', cur.settings.voice, v => { cur.settings.voice = v; save(cur); });
-    tog('체력 사용하기', cur.settings.stamina, v => { cur.settings.stamina = v; save(cur); });
-    const f = el('div', 'field'); const lb = el('label', null, '난이도'); const sel = el('div', 'row');
-    sel.style.justifyContent = 'flex-start';
-    for (const l of LEVELS) {
-      const b = el('button', 'btn' + (cur.level === l ? ' primary' : ''), l);
-      b.onclick = () => { cur.level = l; cur.hasMealCard = l !== '하'; save(cur); settingsScreen(); };
-      sel.append(b);
-    }
-    f.append(lb, sel); sh.append(f);
-    // 영역별 난이도 (경계선 학생용): 비워 두면 위의 난이도를 따라가요
-    sh.append(el('h3', null, '영역별 난이도'), el('p', 'note', '학생에 맞게 영역마다 따로 정할 수 있어요. "기본"은 위의 난이도를 따라가요.'));
-    cur.areas ||= {};
-    for (const [key, label] of Object.entries(AREAS)) {
-      const r = el('div', 'area-row'); r.append(el('span', null, label));
-      for (const l of ['기본', ...LEVELS]) {
-        const on = (cur.areas[key] || '기본') === l;
-        const b = el('button', 'btn' + (on ? ' primary' : ''), l);
-        b.onclick = () => { if (l === '기본') delete cur.areas[key]; else cur.areas[key] = l; save(cur); settingsScreen(); };
-        r.append(b);
-      }
-      sh.append(r);
-    }
-    sh.append(el('p', 'note', `오늘 끝낸 스테이지: ${cur.day.date === today() ? cur.day.count : 0}개 / 하루 ${D.config.session.maxStagesPerDay}개`));
-  } else sh.append(el('p', 'note', '아직 저장된 진행이 없어요.'));
-  const row = el('div', 'row');
-  const back = el('button', 'btn big', '뒤로'); back.onclick = titleScreen;
-  row.append(back);
-  if (cur) {
-    const r = el('button', 'btn big', '오늘 횟수 초기화');
-    r.onclick = () => { cur.day = { date: today(), count: 0 }; save(cur); settingsScreen(); };
-    const w = el('button', 'btn big', '진행 모두 지우기');
-    w.onclick = () => { if (confirm('이 기기의 진행 기록을 모두 지울까요?')) { wipe(); titleScreen(); } };
-    row.append(r, w);
+  tog('음성으로 읽어 주기', cur.settings.voice, v => { cur.settings.voice = v; save(cur); });
+  tog('체력 사용하기', cur.settings.stamina, v => { cur.settings.stamina = v; save(cur); });
+  const f = el('div', 'field'); const lb = el('label', null, '난이도'); const sel = el('div', 'row');
+  sel.style.justifyContent = 'flex-start';
+  for (const l of LEVELS) {
+    const b = el('button', 'btn' + (cur.level === l ? ' primary' : ''), l);
+    b.onclick = () => { cur.level = l; cur.hasMealCard = l !== '하'; save(cur); redraw(); };
+    sel.append(b);
   }
+  f.append(lb, sel); sh.append(f);
+  // 영역별 난이도 (경계선 학생용): 비워 두면 위의 난이도를 따라가요
+  sh.append(el('h3', null, '영역별 난이도'), el('p', 'note', '학생에 맞게 영역마다 따로 정할 수 있어요. "기본"은 위의 난이도를 따라가요.'));
+  cur.areas ||= {};
+  for (const [key, label] of Object.entries(AREAS)) {
+    const r = el('div', 'area-row'); r.append(el('span', null, label));
+    for (const l of ['기본', ...LEVELS]) {
+      const on = (cur.areas[key] || '기본') === l;
+      const b = el('button', 'btn' + (on ? ' primary' : ''), l);
+      b.onclick = () => { if (l === '기본') delete cur.areas[key]; else cur.areas[key] = l; save(cur); redraw(); };
+      r.append(b);
+    }
+    sh.append(r);
+  }
+  // 진행 위치: 고른 곳부터 다시 시작 (그 뒤에 끝낸 곳은 안 끝낸 것으로 돌아가요. 별과 스티커는 그대로)
+  sh.append(el('h3', null, '진행 위치'), el('p', 'note', '다음에 할 곳을 바꿔요. 별, 스티커, 돈은 그대로 남아요.'));
+  const next = !cur.tutorialDone ? 'home' : (STAGES.find(d => !cur.cleared.includes(d.id))?.id || null);
+  const grid = el('div', 'stage-grid small');
+  ALL_STOPS().forEach((d, i) => {
+    const b = el('button', 'btn stage-btn' + (d.id === next ? ' primary' : ''));
+    b.append(el('i', null, String(i)), el('span', null, d.name));
+    b.onclick = () => { if (d.id === next) return; jumpTo(cur, d.id); save(cur); notify(`다음은 ${d.name}부터 해요.`); redraw(); };
+    grid.append(b);
+  });
+  sh.append(grid);
+  sh.append(el('p', 'note', `오늘 끝낸 스테이지: ${cur.day.date === today() ? cur.day.count : 0}개 / 하루 ${D.config.session.maxStagesPerDay}개`));
+  const row = el('div', 'row');
+  const back = el('button', 'btn big', '뒤로'); back.onclick = studentsScreen;
+  const r = el('button', 'btn big', '오늘 횟수 초기화');
+  r.onclick = () => { cur.day = { date: today(), count: 0 }; save(cur); redraw(); };
+  const w = el('button', 'btn big', '이 학생 기록 지우기');
+  w.onclick = () => { if (confirm(`${slotLabel(id)}의 기록을 모두 지울까요?`)) { wipe(id); studentsScreen(); } };
+  row.append(back, r, w);
   sh.append(row);
-  sc.append(sh);
 }
 
 function resume() {
@@ -691,6 +879,7 @@ const isSchool = def => def?.building === 'school';
 const verbOf = def => (def.mode === 'rental' ? '빌려 올 것' : '사 올 것');
 
 function dayLimitReached() {
+  if (S.teacher) return false; // 선생님 연습은 하루 제한 없음
   if (S.day.date !== today()) S.day = { date: today(), count: 0 };
   return S.day.count >= D.config.session.maxStagesPerDay;
 }
