@@ -1,5 +1,5 @@
-import { keys as myClips, getClip, initRecordings } from './recordings.js?v=202611271736';
-import { duckBgm } from './bgm.js?v=202611271736';
+import { keys as myClips, getClip, initRecordings } from './recordings.js?v=202611271755';
+import { duckBgm } from './bgm.js?v=202611271755';
 
 // 음성: voice/manifest.json에 적힌 녹음 파일이 있으면 그 파일을, 없으면 브라우저 TTS를 씁니다.
 // 녹음 파일 이름은 대사 글자로 정해져요 (voiceKey). 대본: docs/대사-녹음-대본.xlsx, 방법: voice/README.md

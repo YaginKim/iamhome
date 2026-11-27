@@ -1,14 +1,14 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
-import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271736';
-import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271736';
-import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271736';
-import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271736';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271736';
-import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271736';
-import { openStudio, pullVoices } from './studio.js?v=202611271736';
-import { syncOn, syncCfg, setSyncCfg, cloudSave, cloudLoad, cloudList, cloudDelete, cloudPing, errText, linkFor, readLinkHash, status as syncStatus } from './sync.js?v=202611271736';
-import { newState, load, save, wipe, lastSlot, setLastSlot, listSlots, slotId, slotLabel, teacherPin, setTeacherPin, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271736';
-import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271736';
+import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271755';
+import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271755';
+import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271755';
+import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271755';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271755';
+import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271755';
+import { openStudio, pullVoices } from './studio.js?v=202611271755';
+import { cloudHello, syncOn, syncCfg, setSyncCfg, cloudSave, cloudLoad, cloudList, cloudDelete, cloudPing, errText, linkFor, readLinkHash, status as syncStatus } from './sync.js?v=202611271755';
+import { newState, load, save, wipe, lastSlot, setLastSlot, listSlots, slotId, slotLabel, teacherPin, setTeacherPin, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271755';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271755';
 
 const $ = s => document.querySelector(s);
 // 받침에 따라 조사 고르기: josa('우유', '은', '는') → '우유는'
@@ -496,7 +496,25 @@ function syncScreen() {
   const u = mk('sync-url', '웹 앱 주소 (https://script.google.com/macros/s/…/exec)', c.url);
   const k = mk('sync-key', '시트 비밀번호 (스크립트의 SECRET과 같게)', c.key, 'password');
   const msg = el('p', 'note', syncOn() ? '연결돼 있어요.' : '설정 방법은 사이트 저장소의 docs/구글시트-저장.md 에 있어요.');
-  sh.append(msg);
+  const check = el('ul', 'sync-check'); check.hidden = true;
+  sh.append(check, msg);
+  // 이 주소가 어느 시트인지, 스크립트가 새 버전인지, 비밀번호가 맞는지 한눈에
+  async function diagnose(cfg) {
+    check.hidden = false; check.innerHTML = '';
+    const li = (ok, t) => { const x = el('li', ok ? 'ok' : 'no', (ok ? '✓ ' : '✗ ') + t); check.append(x); return ok; };
+    let hello;
+    try { hello = await cloudHello(cfg); } catch (e) {
+      if (e.message === 'key' || e.message === 'action' || e.message === 'secret-not-set') li(false, '이 주소의 스크립트는 예전 버전이에요. 새 코드로 바꾸고 「새 버전」으로 배포해 주세요. (녹음 공유가 안 돼요)');
+      else li(false, '이 주소로 연결이 안 돼요. 웹 앱 주소를 확인해 주세요.');
+      return false;
+    }
+    li(true, `연결된 시트: 「${hello.name}」`);
+    if (!hello.ready) return li(false, '이 시트 스크립트의 6번째 줄 비밀번호를 아직 바꾸지 않았어요.');
+    try { const r = await cloudPing(cfg); li(true, `비밀번호 맞음 · 학생 기록 ${r.count}명`); }
+    catch (e) { return li(false, e.message === 'key' ? `비밀번호가 「${hello.name}」 시트 스크립트의 6번째 줄과 달라요.` : errText(e.message)); }
+    return li(true, '녹음 공유 준비됨 (새 버전 스크립트)');
+  }
+  if (c.url && c.key) diagnose(c);
   const row = el('div', 'row');
   const back = el('button', 'btn big', '뒤로'); back.onclick = teacherMenu;
   const test = el('button', 'btn primary big', '연결하기');
@@ -505,6 +523,7 @@ function syncScreen() {
     if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(cfg.url)) { msg.textContent = '주소는 https://script.google.com/ 으로 시작해야 해요.'; return; }
     if (!cfg.key) { msg.textContent = '시트 비밀번호를 넣어 주세요.'; return; }
     test.disabled = true; msg.textContent = '확인하는 중…';
+    if (!(await diagnose(cfg))) { msg.textContent = '위의 ✗ 표시를 확인해 주세요.'; test.disabled = false; return; }
     try {
       const r = await cloudPing(cfg);
       setSyncCfg(cfg);

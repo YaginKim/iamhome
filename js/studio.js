@@ -1,9 +1,9 @@
 // 대사 녹음하기 (선생님): 대사를 하나씩 보여 주고, 연결된 마이크로 녹음해요.
 // 녹음은 이 기기에 저장되고, 구글 시트가 연결돼 있으면 선생님 구글 드라이브에도 올라가 다른 기기에서도 들려요.
-import { el, notify } from './ui.js?v=202611271736';
-import { keys, getClip, putClip, delClip, allClips, recMime, blobToB64, b64ToBlob } from './recordings.js?v=202611271736';
-import { syncOn, cloudVoiceList, cloudVoicePut, cloudVoiceGet, cloudVoiceDelete, errText } from './sync.js?v=202611271736';
-import { stop as stopVoice, sayTTS } from './voice.js?v=202611271736';
+import { el, notify } from './ui.js?v=202611271755';
+import { keys, getClip, putClip, delClip, allClips, recMime, blobToB64, b64ToBlob } from './recordings.js?v=202611271755';
+import { syncOn, cloudVoiceList, cloudVoicePut, cloudVoiceGet, cloudVoiceDelete, errText } from './sync.js?v=202611271755';
+import { stop as stopVoice, sayTTS } from './voice.js?v=202611271755';
 
 const MAX_SEC = 20;
 const MIC_KEY = 'dagyeo-mic-v1';

@@ -38,6 +38,7 @@ const strip = s => { const { student, slot, teacher, ...rest } = s; return rest;
 const shareable = id => syncOn() && /^\d+-\d+-\d+$/.test(id || '');
 
 export const cloudPing = c => call('ping', {}, { c });
+export const cloudHello = c => call('hello', {}, { c });
 export async function cloudLoad(id) { return shareable(id) ? (await call('load', { id }, { ms: 7000 })).data : null; }
 export async function cloudList() { return syncOn() ? (await call('list')).list : []; }
 export async function cloudDelete(id) { if (shareable(id)) await call('delete', { id }); }

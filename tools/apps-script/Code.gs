@@ -13,6 +13,8 @@ const HEAD = ['학년-반-번호', '학생', '마지막 저장', '난이도', '�
 function doPost(e) {
   let req;
   try { req = JSON.parse((e && e.postData && e.postData.contents) || '{}'); } catch (err) { return out({ ok: false, error: 'bad-json' }); }
+  // 비밀번호 없이도 「어느 시트인지」만은 알려 줘요 (게임 화면에서 연결 확인용)
+  if (req.action === 'hello') return out({ ok: true, name: SpreadsheetApp.getActiveSpreadsheet().getName(), ready: !notSet(), version: 2 });
   if (notSet()) return out({ ok: false, error: 'secret-not-set' });
   if (req.key !== SECRET) return out({ ok: false, error: 'key' });
   if (String(req.action).indexOf('voice') === 0) return voice_(req);
