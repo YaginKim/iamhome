@@ -152,6 +152,7 @@ export const PEOPLE = {
   clerk: () => person('clerk', 'T', 'h', 'y', 'Y', 'B', 'r'),
   helper: () => person('helper', 'k', 'H', 'n', 'N', 'N', 'w'),
   parent: () => person('parent', 'H', 'h', 'o', 'O', 'B', 'w'),
+  cashier: () => person('cashier', 'T', 'h', 'c', 'b', 'k', 'w'),
   friend: () => person('friend', 'Y', 'T', 'q', 'P', 'B', 'w'),
 };
 

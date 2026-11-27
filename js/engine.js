@@ -1,6 +1,6 @@
 // 위에서 내려다보는 지도: 타일 그리기, 이동(키보드·터치), 길찾기, 문·사람과 만나기
-import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611270527';
-import { sfx } from './voice.js?v=202611270527';
+import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611270825';
+import { sfx } from './voice.js?v=202611270825';
 
 export const T = 16;
 const BLOCK = new Set(['t', 'W', 'c', 'T', 'B', 'x', 'S', 'k', 'A', 'U', 'H']);
@@ -617,5 +617,25 @@ export function fieldMap() {
     counter: { x: 11, y: 4 },
     spawn: { x: 8, y: 8 },
     door: { x: 8, y: 9 },
+  };
+}
+
+export function convenienceMap() {
+  return {
+    id: 'convenience', name: '편의점',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xHHHHHWWWHHHHx',
+      'xqqqqqqqqqqqqx',
+      'xqHHqqHHqqqqqx',
+      'xqqqqqqqqqqqqx',
+      'xqHHqqHHqcccqx',
+      'xqqqqqqqqqqqqx',
+      'xxxxxxDxxxxxxx',
+    ],
+    npcs: [{ id: 'cashier', sprite: 'cashier', x: 10, y: 4, counter: true }],
+    counter: { x: 10, y: 6 },
+    spawn: { x: 6, y: 6 },
+    door: { x: 6, y: 7 },
   };
 }

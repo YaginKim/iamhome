@@ -1,8 +1,8 @@
 // 화면 위에 얹는 UI: 상단 정보(HUD), 대화창, 선택지, 경고 팝업, 알림
-import { iconCanvas, toImg, PEOPLE, cardCanvas, tokenCanvas } from './sprites.js?v=202611270527';
-import { say, sfx } from './voice.js?v=202611270527';
-import { cashTotal } from './state.js?v=202611270527';
-import { won } from './data.js?v=202611270527';
+import { iconCanvas, toImg, PEOPLE, cardCanvas, tokenCanvas } from './sprites.js?v=202611270825';
+import { say, sfx } from './voice.js?v=202611270825';
+import { cashTotal } from './state.js?v=202611270825';
+import { won } from './data.js?v=202611270825';
 
 const $ = s => document.querySelector(s);
 export const el = (tag, cls, text) => {
@@ -115,7 +115,7 @@ function portrait(who) {
   return toImg(PORTRAITS[who], 4, '');
 }
 
-const NAMES = { mom: '엄마', owner: '분식점 사장님', teller: '은행 직원', player: '나', teacher: '선생님', clerk: '반장', helper: '체육 도우미', parent: '운동회 부스 도우미', friend: '짝꿍' };
+const NAMES = { mom: '엄마', owner: '분식점 사장님', teller: '은행 직원', player: '나', teacher: '선생님', clerk: '반장', helper: '체육 도우미', parent: '운동회 부스 도우미', friend: '짝꿍', cashier: '편의점 점원' };
 
 function openDialog(who, text, voiceId) {
   const d = $('#dialog');

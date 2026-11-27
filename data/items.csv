@@ -60,10 +60,10 @@ cvs_onigiri,convenience,삼각김밥,1500,현금|체크|급식,20,중,식품,oni
 cvs_cupramen,convenience,컵라면,1500,현금|체크|급식,25,중,식품,
 cvs_milk,convenience,우유,1800,현금|체크|급식,15,중,음료,
 cvs_bananamilk,convenience,바나나우유,1700,현금|체크|급식,15,중,음료,
-cvs_water,convenience,생수,1000,현금|체크|급식,10,하,음료,
+cvs_water,convenience,생수,1000,현금|체크|급식,10,하,음료,water
 cvs_snack,convenience,과자,1500,현금|체크|급식,10,중,간식,
 cvs_chocolate,convenience,초콜릿,1500,현금|체크|급식,10,중,간식,
-cvs_icecream,convenience,아이스크림,1200,현금|체크|급식,10,중,간식,
+cvs_icecream,convenience,아이스크림,1200,현금|체크|급식,10,중,간식,icecream
 cvs_sandwich,convenience,샌드위치,3200,현금|체크|급식,30,상,식품,
 cvs_dosirak,convenience,도시락,5000,현금|체크|급식,50,상,식품,
 cvs_wetwipe,convenience,물티슈,1500,현금|체크,,중,생활용품,

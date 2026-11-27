@@ -1,14 +1,22 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
-import { loadData, itemsFor, won, LEVELS } from './data.js?v=202611270527';
-import { playBgm, getVolume, setVolume } from './bgm.js?v=202611270527';
-import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611270527';
-import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, loadBuildingManifest } from './engine.js?v=202611270527';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611270527';
-import { pay, tokenPay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611270527';
-import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611270527';
-import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611270527';
+import { loadData, itemsFor, won, LEVELS } from './data.js?v=202611270825';
+import { playBgm, getVolume, setVolume } from './bgm.js?v=202611270825';
+import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611270825';
+import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, loadBuildingManifest } from './engine.js?v=202611270825';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611270825';
+import { pay, tokenPay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611270825';
+import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611270825';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611270825';
 
 const $ = s => document.querySelector(s);
+// 받침에 따라 조사 고르기: josa('우유', '은', '는') → '우유는'
+function josa(word, withB, noB) {
+  const w = String(word).replace(/[^가-힣0-9]+$/, '');
+  const c = w.charCodeAt(w.length - 1);
+  const has = c >= 0xAC00 && c <= 0xD7A3 ? (c - 0xAC00) % 28 !== 0 : /[013678]$/.test(w);
+  return word + (has ? withB : noB);
+}
+const listOf = items => items.map(i => i.name).join(', ');
 let D, S, world;
 const run = { stage: null }; // 이번 판의 진행 (저장하지 않는 값)
 
@@ -365,7 +373,7 @@ async function onArrive(x, y, settled) {
       world.player.path = [];
       busy = true;
       await fade(() => world.load(townMap(S, unlocked()), { x, y: y + 1 }));
-      notify(`${b.label}은 아직 열리지 않았어요.`, 'no');
+      notify(`${josa(b.label, '은', '는')} 아직 열리지 않았어요.`, 'no');
       busy = false;
       return;
     }
@@ -601,7 +609,10 @@ const STAGES = [
     itemStage: 'field', counterName: '운동회 먹거리 부스', greet: ['안녕하세요!', ['야, 이거 줘.', '안녕히 계세요.', '(아무 말 없이 서 있기)']], bye: ['감사합니다. 안녕히 계세요!', ['안녕히 가세요.', '(그냥 가기)', '안녕하세요!']] },
   { id: 'snackbar', name: '분식점', building: 'snackbar', map: shopMap, giver: 'mom', seller: 'owner', mode: 'cash',
     itemStage: 'snackbar', counterName: '분식점', greet: ['안녕하세요!', ['야, 떡볶이 줘.', '안녕히 계세요.', '(아무 말 없이 서 있기)']], bye: ['감사합니다. 안녕히 계세요!', ['안녕히 가세요.', '(그냥 나가기)', '안녕하세요!']] },
+  { id: 'convenience', name: '편의점', building: 'convenience', map: convenienceMap, giver: 'mom', seller: 'cashier', mode: 'cash', promo: true, bag: true,
+    itemStage: 'convenience', counterName: '편의점', greet: ['안녕하세요!', ['야, 이거 계산해.', '안녕히 계세요.', '(아무 말 없이 서 있기)']], bye: ['감사합니다. 안녕히 계세요!', ['안녕히 가세요.', '(그냥 나가기)', '안녕하세요!']] },
 ];
+const NAME_OF_CASHIER = '점원';
 const stageById = id => STAGES.find(d => d.id === id);
 function currentDef() { return STAGES.find(d => !S.cleared.includes(d.id)) || null; }
 function missionsFor() { return D.config.session.missionsPerStage[S.level]; }
@@ -682,6 +693,7 @@ async function giveErrand() {
   const items = pickErrand(def);
   const total = items.reduce((t, i) => t + i.price, 0);
   st.errand = { items, total, payBy: k === 1 ? 'card' : 'cash' };
+  if (def.promo && S.level !== '하') st.errand.promo = items[0].id; // 첫 품목을 1+1 행사로
   await talk('mom', k === 0 ? `${def.name}에 심부름 다녀와 줄래? 여기 메모야.` : '하나 더 부탁해도 될까? 새 메모야.');
   await showMemo(true);
   if (st.errand.payBy === 'card') {
@@ -696,7 +708,7 @@ async function giveErrand() {
   }
   st.phase = 'toShop';
   persist();
-  goal(def.building, `${def.name}에서 ${S.level === '상' ? '메모에 적힌 것' : items.map(i => i.name).join(', ')}을 사 와요.`);
+  goal(def.building, `${def.name}에서 ${S.level === '상' ? '메모에 적힌 것을' : josa(listOf(items), '을', '를')} 사 와요.`);
   memoButton(true);
 }
 
@@ -741,7 +753,7 @@ async function giveSchoolMission() {
   }
   st.phase = 'toCounter';
   persist();
-  goal('counter', `${def.counterName}에서 ${S.level === '상' ? '메모에 적힌 것' : items.map(i => i.name).join(', ')}을 ${def.mode === 'rental' ? '빌려' : '사'} 와요.`);
+  goal('counter', `${def.counterName}에서 ${S.level === '상' ? '메모에 적힌 것을' : josa(listOf(items), '을', '를')} ${def.mode === 'rental' ? '빌려' : '사'} 와요.`);
   memoButton(true);
 }
 
@@ -762,7 +774,8 @@ function showMemo(fromGiver) {
     for (const it of e.items) {
       const li = el('li');
       const price = def.mode === 'cash' ? ` (${won(it.price)})` : def.mode === 'token' ? ` (토큰 ${it.price}개)` : '';
-      li.append(itemImg(it, 3), el('span', null, it.name + (S.level === '하' ? price : '')));
+      const promo = e.promo === it.id ? ' 2개 (1+1 행사: 1개 값)' : '';
+      li.append(itemImg(it, 3), el('span', null, it.name + promo + (S.level === '하' ? price : '')));
       ul.append(li);
     }
     card.append(ul);
@@ -803,7 +816,7 @@ async function counterBye(def) {
   await greetLoop(null, '다 끝났어요. 떠날 때는 뭐라고 할까요?', right, wrongs);
   await maybeIdCheck();
 }
-const NAME_OF = { owner: '사장님', clerk: '반장', helper: '체육 도우미 선생님', parent: '부스 도우미', teacher: '선생님' };
+const NAME_OF = { cashier: NAME_OF_CASHIER, owner: '사장님', clerk: '반장', helper: '체육 도우미 선생님', parent: '부스 도우미', teacher: '선생님' };
 
 function afterCounter(def) {
   const st = run.stage;
@@ -834,6 +847,11 @@ async function counterBuy(def) {
   }
   await orderItems(def);
   await maybeIdCheck();
+  if (e.promo) {
+    const pi = e.items.find(i => i.id === e.promo);
+    await talk(def.seller, `${josa(pi.name, '은', '는')} 1+1 행사라서 하나 값으로 2개를 드려요!`);
+    log('promo', { name: pi.name });
+  }
   if (def.mode === 'token') {
     await tokenPay({ state: S, config: D.config, total: e.total, who: def.seller, mistake: k => mistake(k), ownerLine: `모두 토큰 ${e.total}개야.` });
     log('paid', { total: e.total, items: e.items.map(i => i.name), token: true });
@@ -877,6 +895,11 @@ async function counterBuy(def) {
       }
     }
   }
+  if (def.bag) {
+    await greetLoop(def.seller, '봉투 필요하세요?', '괜찮아요. 장바구니 있어요.', ['(대답 안 하기)', '봉투 내놔요.', '몰라요.']);
+    log('bag', {});
+    await maybeIdCheck();
+  }
   await talk(def.seller, def.mode === 'token' ? '자, 여기 있어!' : 'shop.owner.thanks');
   await counterBye(def);
   st.bought.push(...e.items.map(i => i.id));
@@ -910,7 +933,7 @@ async function rentalBorrow(def) {
   await orderItems(def);
   await maybeIdCheck();
   log('borrowed', { items: e.items.map(i => i.name) });
-  notify(`${e.items.map(i => i.name).join(', ')}을 빌렸어요.`, 'coin');
+  notify(`${josa(listOf(e.items), '을', '를')} 빌렸어요.`, 'coin');
   await talk(def.seller, '다 쓰면 꼭 반납하러 와!');
   await counterBye(def);
   for (const it of e.items) if (!S.stickers.includes(it.id)) S.stickers.push(it.id);
@@ -1079,8 +1102,8 @@ function buildReview(def) {
   const paid = st.log.filter(l => l.type === 'paid');
   const one = paid[0];
   const it = one && D.items.find(i => i.name === one.items[0]);
-  if (it && def.mode === 'cash') qs.push({ q: `${it.name}은 얼마였나요?`, a: won(it.price), options: numberChoices(it.price, n, [500, 1000]).map(won) });
-  if (it && def.mode === 'token') qs.push({ q: `${it.name}은 학급 토큰 몇 개였나요?`, a: `${it.price}개`, options: numberChoices(it.price, n, [1, 2]).map(v => `${v}개`) });
+  if (it && def.mode === 'cash') qs.push({ q: `${josa(it.name, '은', '는')} 얼마였나요?`, a: won(it.price), options: numberChoices(it.price, n, [500, 1000]).map(won) });
+  if (it && def.mode === 'token') qs.push({ q: `${josa(it.name, '은', '는')} 학급 토큰 몇 개였나요?`, a: `${it.price}개`, options: numberChoices(it.price, n, [1, 2]).map(v => `${v}개`) });
   const ch = paid.find(p => p.change > 0);
   if (ch && S.level !== '하') qs.push({ q: '거스름돈을 얼마 받았나요?', a: won(ch.change), options: numberChoices(ch.change, 3, [100, 500]).map(won) });
   if (def.mode === 'rental') {
@@ -1092,6 +1115,8 @@ function buildReview(def) {
     qs.push({ q: '체육 도구를 빌릴 때 보여 준 카드는?', a: '대여카드', options: shuffle(['대여카드', '꿈이든 카드', '체크카드']).slice(0, 3) });
     qs.push({ q: '빌린 물건은 다 쓰면 어떻게 하나요?', a: '빌린 곳에 반납해요', options: shuffle(['빌린 곳에 반납해요', '집에 가져가요']) });
   }
+  if (st.log.some(l => l.type === 'promo')) qs.push({ q: '1+1 행사는 무엇인가요?', a: '하나 값에 두 개를 줘요', options: shuffle(['하나 값에 두 개를 줘요', '두 개 값에 하나를 줘요']) });
+  if (st.log.some(l => l.type === 'bag')) qs.push({ q: '봉투가 필요하냐고 물으면 뭐라고 했나요?', a: '괜찮아요. 장바구니 있어요.', options: shuffle(['괜찮아요. 장바구니 있어요.', '(대답 안 하기)']) });
   if (def.mode === 'token') qs.push({ q: '친구에게 물건을 빌렸을 때 뭐라고 말하나요?', a: '고마워! 다 쓰고 돌려줄게.', options: shuffle(['고마워! 다 쓰고 돌려줄게.', '이거 내 거야.']) });
   qs.push({ q: '돈으로 쓸 수 없는 카드는 무엇인가요?', a: '꿈이든 카드', options: shuffle(['꿈이든 카드', '체크카드']) });
   if (def.mode === 'cash') {
@@ -1219,7 +1244,7 @@ async function comeHome() {
 function endingScreen() {
   const sc = $('#screen'); sc.hidden = false; sc.innerHTML = '';
   const e = el('div', 'ending');
-  e.append(el('h1', 'logo', '다녀왔습니다'), el('p', null, '체험판은 여기까지예요. 다음에는 편의점, 전통시장, 미용실이 열려요.'));
+  e.append(el('h1', 'logo', '다녀왔습니다'), el('p', null, '체험판은 여기까지예요. 다음에는 전통시장, 미용실, 대형마트가 열려요.'));
   const ok = el('button', 'btn primary big', '처음 화면으로');
   ok.onclick = () => titleScreen();
   e.append(ok);
