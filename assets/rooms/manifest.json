@@ -3,5 +3,6 @@
   "bank_in": "bank.png",
   "classroom": "classroom.png",
   "gym": "gym.png",
-  "snackbar_in": "snackbar.png"
+  "snackbar_in": "snackbar.png",
+  "field": "field.png"
 }

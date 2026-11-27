@@ -1149,6 +1149,198 @@ def snackbar():
     return cv
 
 
+
+# ======================================================================
+# 운동장 256x176 (16x11칸)
+#   0, 10줄과 0, 15칸 = 나무(막힘)   위쪽 줄은 학교 건물로 그림
+#   1 taaaaaaaaUUUUUat  U = 운동회 부스 천막
+#   3 taaaaaaaaacccaat  c = 부스 탁자   도우미 (11,2), 선생님 (4,3)
+#   5~7 g = 잔디 (3~11칸)              9 D = 나가는 곳 (8,9)
+# ======================================================================
+def field():
+    import math, random
+    rnd = random.Random(7)
+    cv = Canvas(256, 176, '#3c7840')
+    # ---------- 흙 운동장 ----------
+    A1, A2, A3 = '#e6cf98', '#dcc288', '#f0dcaa'
+    cv.rect(16, 16, 224, 144, A1)
+    for _ in range(420):
+        x, y = rnd.randrange(16, 240), rnd.randrange(16, 160)
+        cv.p(x, y, A2 if rnd.random() < 0.7 else A3)
+    for _ in range(40):
+        x, y = rnd.randrange(16, 238), rnd.randrange(16, 158)
+        cv.rect(x, y, 2, 1, '#c8ae74')
+
+    # 트랙 선 (잔디 둘레 둥근 사각형 2줄)
+    def oval(x0, y0, x1, y1, r, c):
+        for x in range(x0 + r, x1 - r + 1):
+            cv.p(x, y0, c); cv.p(x, y1, c)
+        for y in range(y0 + r, y1 - r + 1):
+            cv.p(x0, y, c); cv.p(x1, y, c)
+        for a in range(0, 91, 2):
+            t = math.radians(a)
+            dx, dy = round(r * math.cos(t)), round(r * math.sin(t))
+            cv.p(x1 - r + dx, y1 - r + dy, c); cv.p(x0 + r - dx, y1 - r + dy, c)
+            cv.p(x1 - r + dx, y0 + r - dy, c); cv.p(x0 + r - dx, y0 + r - dy, c)
+    oval(36, 70, 203, 137, 14, '#fbf6e8')
+    oval(28, 62, 211, 145, 20, '#fbf6e8')
+    # 출발선
+    cv.rect(120, 138, 1, 7, '#fbf6e8'); cv.rect(122, 138, 1, 7, '#fbf6e8')
+
+    # ---------- 인조 잔디 (3~11칸, 5~7줄) ----------
+    gx0, gy0, gx1, gy1 = 48, 80, 192, 128
+    for x in range(gx0, gx1):
+        c = '#6eb45a' if ((x - gx0) // 16) % 2 == 0 else '#5ea24e'
+        cv.rect(x, gy0, 1, gy1 - gy0, c)
+    for _ in range(120):
+        x, y = rnd.randrange(gx0, gx1), rnd.randrange(gy0, gy1)
+        cv.p(x, y, '#82c46a' if rnd.random() < 0.5 else '#4e9244')
+    W = '#f8f6f0'
+    cv.hline(gx0 + 2, gy0 + 2, gx1 - gx0 - 4, W); cv.hline(gx0 + 2, gy1 - 3, gx1 - gx0 - 4, W)
+    cv.vline(gx0 + 2, gy0 + 2, gy1 - gy0 - 4, W); cv.vline(gx1 - 3, gy0 + 2, gy1 - gy0 - 4, W)
+    cv.vline(120, gy0 + 2, gy1 - gy0 - 4, W)
+    for a in range(0, 360, 3):
+        t = math.radians(a)
+        cv.p(round(120 + 11 * math.cos(t)), round(104 + 10 * math.sin(t)), W)
+    cv.rect(119, 103, 3, 2, W)
+    for gx, d in ((gx0 + 2, 1), (gx1 - 3, -1)):        # 골대 앞 구역 + 작은 골대
+        bx = gx if d == 1 else gx - 14
+        cv.hline(bx, 94, 15, W); cv.hline(bx, 114, 15, W); cv.vline(gx + d * 14, 94, 21, W)
+        nx = gx - 4 if d == 1 else gx + 1
+        cv.rect(nx, 98, 4, 13, K); cv.rect(nx + (1 if d == 1 else 0), 99, 3, 11, W)
+        cv.dither(nx + (1 if d == 1 else 0), 99, 3, 11, '#ccd0d8')
+    # 잔디 위 공
+    cv.sprite(150, 116, ['.kkk.', 'kwkwk', 'kkwkk', 'kwkwk', '.kkk.'], {'k': K, 'w': W})
+
+    # ---------- 위쪽: 학교 건물 ----------
+    cv.rect(0, 0, 256, 16, '#b8604a')                    # 벽돌
+    for y in range(1, 14, 3):
+        cv.hline(0, y, 256, '#a4523e')
+    for y in range(0, 14, 3):
+        for x in range((y % 2) * 4, 256, 8):
+            cv.vline(x, y + 1, 2, '#a4523e')
+    cv.rect(0, 0, 256, 3, '#f4c846'); cv.hline(0, 3, 256, '#c48e28')   # 노란 띠
+    for x in range(6, 256, 14):                          # 창문
+        if 104 <= x <= 146:
+            continue
+        cv.box(x, 5, 9, 7, '#bfe4f4'); cv.vline(x + 4, 6, 5, W); cv.p(x + 1, 6, '#ffffff')
+    # 가운데 현관 + 구령대 지붕 + 시계
+    cv.rect(106, 3, 44, 13, '#d8d4cc')
+    cv.rect(104, 4, 48, 3, '#4a4e60'); cv.hline(104, 4, 48, '#6a6e82')
+    cv.rect(116, 8, 24, 8, '#96d2f0'); cv.vline(127, 8, 8, '#d8d4cc'); cv.vline(128, 8, 8, '#d8d4cc')
+    cv.box(108, 8, 6, 8, '#8c92a0'); cv.box(142, 8, 6, 8, '#8c92a0')
+    cv.sprite(125, 0, ['.kkkk.', 'kwwkwk', 'kwwkwk', 'kwwwwk', '.kkkk.'], {'k': K, 'w': W})
+    cv.hline(0, 15, 256, '#6c3c24')
+    # 국기 게양대
+    cv.vline(22, 0, 16, '#ccd0d8'); cv.vline(23, 0, 16, '#8c92a0')
+    cv.sprite(24, 1, ['wwwwwww', 'wkwrwkw', 'wwrbwww', 'wkwbwkw', 'wwwwwww'], {'w': W, 'k': K, 'r': '#dc4646', 'b': '#4278d2'})
+    # 학교 앞 화단 그림자
+    cv.blend(16, 16, 224, 2, K, 0.18)
+
+    # ---------- 둘레 나무 ----------
+    def tree(x, y, v):
+        cv.blend(x + 2, y + 13, 13, 3, K, 0.25)
+        cv.sprite(x, y, [
+            '.....kkkkk......',
+            '...kk33332kk....',
+            '..k3332222221k..',
+            '.k33322222221k..',
+            '.k3322222222211k',
+            'k33222222222211k',
+            'k32222222222111k',
+            'k32222222221111k',
+            '.k2222222211111k',
+            '.k122222211111k.',
+            '..k11111111kkk..',
+            '...kkkkttkk.....',
+            '.......tt.......',
+            '......kttk......',
+        ] if v == 0 else [
+            '......kkkk......',
+            '....kk3332kk....',
+            '...k33322221k...',
+            '..k3332222221k..',
+            '..k3322222211k..',
+            '.k332222222211k.',
+            '.k322222222111k.',
+            '.k222222221111k.',
+            '..k1222221111k..',
+            '...kk111111kk...',
+            '.....kkttkk.....',
+            '.......tt.......',
+            '......ktttk.....',
+            '................',
+        ], {'k': K, '1': '#2c5a30', '2': '#3c7840', '3': '#6eb45a', 't': '#6c3c24'})
+    cv.rect(0, 16, 16, 160, '#4e9244'); cv.rect(240, 16, 16, 160, '#4e9244'); cv.rect(16, 160, 224, 16, '#4e9244')
+    # 울타리
+    for x in range(0, 256, 4):
+        cv.vline(x, 158, 3, '#f8f6f0')
+    cv.hline(0, 159, 256, '#ccd0d8')
+    for y in range(16, 176, 16):
+        tree(0, y + 1, (y // 16) % 2)
+        tree(240, y + 1, (y // 16 + 1) % 2)
+    for x in range(16, 240, 16):
+        if x == 128:
+            continue
+        tree(x, 161, (x // 16) % 2)
+    # 교문 (8,10)
+    cv.rect(128, 158, 16, 18, A1)
+    cv.blend(128, 158, 16, 18, '#c8ae74', 0.4)
+    for x in (124, 144):
+        cv.box(x, 156, 5, 20, '#d8d4cc'); cv.rect(x, 155, 5, 2, '#8c92a0')
+
+    # ---------- 만국기 (줄에 매단 작은 깃발) ----------
+    flags = ['#dc4646', '#4278d2', '#f4c846', '#6eb45a', '#8c64c8', '#ee8032', '#f8f6f0']
+    def bunting(xa, ya, xb, yb, sag, k0):
+        pts = []
+        n = xb - xa
+        for i in range(n + 1):
+            t = i / n
+            y = round(ya + (yb - ya) * t + sag * 4 * t * (1 - t))
+            pts.append((xa + i, y))
+            cv.p(xa + i, y, '#6c6a7e')
+        for k, (x, y) in enumerate(pts[4:-4:7]):
+            c = flags[(k + k0) % len(flags)]
+            cv.rect(x - 2, y + 1, 5, 2, c); cv.rect(x - 1, y + 3, 3, 1, c); cv.p(x, y + 4, c)
+            cv.p(x - 2, y + 1, K) if c == '#f8f6f0' else None
+    bunting(14, 18, 140, 22, 10, 0)
+    bunting(14, 40, 140, 22, 8, 3)
+
+    # ---------- 운동회 부스 천막 U (9~13, 1) ----------
+    ux0, ux1 = 144, 224
+    cv.blend(ux0, 32, ux1 - ux0, 4, K, 0.15)
+    cv.rect(ux0, 16, ux1 - ux0, 13, K)
+    stripes = ['#f8f6f0', '#f4c846', '#f8f6f0', '#ee8032', '#f8f6f0', '#dc4646']
+    for k, x in enumerate(range(ux0 + 1, ux1 - 1, 8)):
+        cv.rect(x, 17, 8, 10, stripes[k % len(stripes)])
+        cv.vline(x, 17, 10, '#d8d2c4' if stripes[k % len(stripes)] == '#f8f6f0' else '#c86a2a')
+    cv.hline(ux0 + 1, 17, ux1 - ux0 - 2, '#ffffff')
+    for k, x in enumerate(range(ux0 + 1, ux1 - 1, 8)):     # 물결 끝단
+        c = stripes[k % len(stripes)]
+        cv.rect(x + 1, 27, 6, 2, c); cv.hline(x + 2, 29, 4, c); cv.hline(x + 2, 30, 4, K)
+        cv.p(x, 27, K); cv.p(x + 7, 27, K)
+    cv.rect(ux0, 27, 1, 3, '#8c92a0'); cv.rect(ux1 - 1, 27, 1, 3, '#8c92a0')
+    cv.box(176, 18, 16, 7, W); cv.rect(178, 20, 12, 1, '#dc4646'); cv.rect(179, 22, 10, 1, '#4278d2')   # 부스 이름표
+
+    # ---------- 부스 탁자 c (10~12, 3) ----------
+    x0, y0, w = 160, 48, 48
+    cv.blend(x0, y0 + 15, w, 2, K, 0.22)
+    cv.rect(x0, y0 + 1, w, 14, K)
+    cv.rect(x0 + 1, y0 + 2, w - 2, 5, W); cv.hline(x0 + 1, y0 + 2, w - 2, '#ffffff')
+    cv.rect(x0 + 1, y0 + 7, w - 2, 7, '#4278d2'); cv.hline(x0 + 1, y0 + 7, w - 2, '#6a9ae0')
+    for k, fx in enumerate(range(x0 + 3, x0 + w - 4, 7)):
+        c = flags[k % 6]
+        cv.rect(fx, y0 + 9, 4, 1, c); cv.rect(fx + 1, y0 + 10, 2, 1, c)
+    # 물병, 메달, 응원봉, 바구니
+    for k in range(3):
+        cv.box(x0 + 3 + k * 4, y0 - 4, 4, 8, '#bfe4f4'); cv.rect(x0 + 4 + k * 4, y0 - 5, 2, 1, '#4278d2')
+    cv.sprite(x0 + 17, y0, ['r.b', '.r.', 'kyk', 'yYy', 'kyk'], {'r': '#dc4646', 'b': '#4278d2', 'k': K, 'y': '#f4c846', 'Y': '#c48e28'})
+    cv.sprite(x0 + 23, y0, ['b.r', '.b.', 'kgk', 'gGg', 'kgk'], {'r': '#dc4646', 'b': '#4278d2', 'k': K, 'g': '#ccd0d8', 'G': '#8c92a0'})
+    cv.rect(x0 + 30, y0 - 3, 2, 7, '#dc4646'); cv.rect(x0 + 33, y0 - 4, 2, 8, '#4278d2'); cv.rect(x0 + 36, y0 - 3, 2, 7, '#f4c846')
+    cv.box(x0 + 39, y0 - 2, 7, 6, '#c48e58'); cv.p(x0 + 41, y0 - 3, '#ee8032'); cv.p(x0 + 43, y0 - 3, W)
+    return cv
+
+
 if __name__ == '__main__':
     OUT.mkdir(parents=True, exist_ok=True)
     b = bank(); b.save(OUT / 'bank.png')
@@ -1156,4 +1348,5 @@ if __name__ == '__main__':
     g = gym(); g.save(OUT / 'gym.png')
     h = home(); h.save(OUT / 'home.png')
     sb = snackbar(); sb.save(OUT / 'snackbar.png')
-    print('saved', *[OUT / n for n in ('bank.png', 'classroom.png', 'gym.png', 'home.png', 'snackbar.png')])
+    fd = field(); fd.save(OUT / 'field.png')
+    print('saved', *[OUT / n for n in ('bank.png', 'classroom.png', 'gym.png', 'home.png', 'snackbar.png', 'field.png')])

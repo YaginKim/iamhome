@@ -1,4 +1,4 @@
-import { duckBgm } from './bgm.js?v=202611270509';
+import { duckBgm } from './bgm.js?v=202611270527';
 
 // 음성: voice/manifest.json에 적힌 녹음 파일이 있으면 그 파일을, 없으면 브라우저 TTS를 씁니다.
 // 녹음으로 바꾸는 법: voice/대사ID.mp3 파일을 넣고 manifest.json 목록에 대사 ID를 추가하세요.
