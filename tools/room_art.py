@@ -2214,6 +2214,212 @@ def moe():
     return cv
 
 
+
+def seg_digit(cv, x, y, d, on, off=None):
+    """7세그먼트 숫자 (5x9)"""
+    segs = {'0': 'abcdef', '1': 'bc', '2': 'abged', '3': 'abgcd', '4': 'fgbc', '5': 'afgcd',
+            '6': 'afgedc', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg'}[d]
+    parts = {'a': (1, 0, 3, 1), 'b': (4, 1, 1, 3), 'c': (4, 5, 1, 3), 'd': (1, 8, 3, 1),
+             'e': (0, 5, 1, 3), 'f': (0, 1, 1, 3), 'g': (1, 4, 3, 1)}
+    for k, (dx, dy, w, h) in parts.items():
+        if k in segs:
+            cv.rect(x + dx, y + dy, w, h, on)
+        elif off:
+            cv.rect(x + dx, y + dy, w, h, off)
+
+
+# ======================================================================
+# [초안] 교육지원청 민원실 224x144 (14x9칸) — 칸 지도는 아직 게임에 없음, 글자 표지판 없음
+#   1 벽: 번호 전광판, 블라인드 창, 창구 번호판 ①②③, 게시판, 자판기(10,1), 정수기(11), 엘리베이터(12,1)
+#   2 직원 (5,2)      3 번호표 기계(1,3), 창구 3곳(3~7: ① 3~4.5 / ② 4.5~6.5 / ③ 6.5~7)
+#   4 손님 자리 (5,4)  5 대기 의자(2~3)(8~9), 화분(12)   7 문 (6,7)
+# ======================================================================
+def edu_office():
+    cv = Canvas(224, 144)
+    PURPLE, PURPLE2, PURPLE3 = '#8c64c8', '#6a48a0', '#b494e0'
+    # ---------- 바닥 ----------
+    F1, F2, FG = '#eef0f2', '#e4e6ea', '#cdd0d6'
+    for ty in range(2, 8):
+        for tx in range(1, 13):
+            x0, y0 = tx * T, ty * T
+            cv.rect(x0, y0, T, T, F1 if (tx + ty) % 2 == 0 else F2)
+            cv.hline(x0, y0, T, FG); cv.vline(x0, y0, T, FG)
+            cv.p(x0 + 2, y0 + 2, '#ffffff'); cv.p(x0 + 3, y0 + 2, '#ffffff')
+    # 창구 안쪽(직원 자리) 바닥: 회색 카펫
+    cv.rect(32, 32, 112, 16, '#b8bcc8')
+    for x in range(32, 144, 4):
+        cv.p(x, 35, '#a8acb8'); cv.p(x + 2, 40, '#a8acb8'); cv.p(x, 45, '#a8acb8')
+    cv.vline(32, 32, 16, FG)
+    # 창구 앞 노란 대기선
+    for x in range(48, 128, 5):
+        cv.rect(x, 74, 3, 1, '#e8b830')
+
+    # ---------- 뒷벽 ----------
+    cv.rect(16, 0, 192, 32, '#f4f4f0')
+    cv.rect(16, 0, 192, 1, K)
+    cv.rect(16, 1, 192, 3, PURPLE); cv.hline(16, 1, 192, PURPLE3); cv.hline(16, 3, 192, PURPLE2)
+    cv.rect(16, 27, 192, 3, '#d8d8d0'); cv.hline(16, 27, 192, '#e8e8e2')
+    cv.hline(16, 31, 192, K)
+
+    # 번호 전광판 (대기 번호 017)
+    cv.box(20, 7, 30, 14, '#2a2a36')
+    cv.rect(21, 8, 28, 12, '#1a1a24')
+    for q, d in enumerate('017'):
+        seg_digit(cv, 25 + q * 7, 10, d, '#f05a46', '#3a2228')
+    cv.p(47, 9, '#6eb45a')
+
+    # 블라인드 창 (창구 뒤)
+    for wx0, wx1 in ((54, 86), (90, 122), (126, 142)):
+        cv.rect(wx0, 5, wx1 - wx0, 21, '#8a8a80')
+        cv.rect(wx0 + 1, 6, wx1 - wx0 - 2, 19, '#9cc8a0')                 # 바깥 나무 빛
+        for j in range(6, 19, 2):
+            cv.hline(wx0 + 1, j, wx1 - wx0 - 2, '#e8dcc0')
+            cv.hline(wx0 + 1, j + 1, wx1 - wx0 - 2, '#d4c6a4')
+        cv.hline(wx0 + 1, 19, wx1 - wx0 - 2, '#a87444')
+
+    # 창구 번호판 ①②③ (매달림)
+    for n, cx in enumerate((60, 88, 116), 1):
+        cv.vline(cx - 5, 4, 3, '#8c92a0'); cv.vline(cx + 5, 4, 3, '#8c92a0')
+        cv.box(cx - 9, 6, 19, 11, '#4a3a30')
+        cv.sprite(cx - 8, 8, ['..www..', '.wwwww.', 'wwwwwww', 'wwwwwww', 'wwwwwww', '.wwwww.', '..www..'], {'w': '#f8f6f0'})
+        text(cv, cx - 6, 9, str(n), '#4a3a30')
+        cv.hline(cx, 9, 8, '#f4c846'); cv.hline(cx, 12, 6, '#d8c8b0')
+
+    # 게시판 (9칸)
+    cv.box(145, 8, 13, 16, '#c48e58')
+    cv.rect(147, 10, 5, 6, '#f8f6f0'); cv.rect(152, 12, 4, 5, '#f6a0b4'); cv.rect(147, 17, 4, 5, '#bfe4f4')
+    cv.p(149, 10, '#dc4646'); cv.p(154, 12, '#4278d2')
+
+    # 자판기 (10,1)
+    vx = 161
+    cv.blend(vx, 31, 15, 2, K, 0.25)
+    cv.rect(vx, 4, 14, 28, K)
+    cv.rect(vx + 1, 5, 12, 26, '#dc4646'); cv.vline(vx + 1, 5, 26, '#f07878')
+    cv.rect(vx + 2, 7, 8, 14, '#bfe4f4')
+    for row, by in enumerate((8, 13, 18)):
+        for b in range(3):
+            c = ['#f4c846', '#6eb45a', '#4278d2', '#f8f6f0', '#ee8032'][(b + row) % 5]
+            cv.rect(vx + 3 + b * 2 + (row % 2), by, 1, 3, c)
+        cv.hline(vx + 2, by + 3, 8, '#8cbcd4')
+    cv.rect(vx + 11, 8, 1, 6, '#f4c846'); cv.rect(vx + 11, 15, 1, 2, '#2a2a36')
+    cv.rect(vx + 3, 24, 7, 3, '#2a2a36'); cv.hline(vx + 3, 24, 7, '#4a4a58')
+    # 정수기 (11칸 벽)
+    cv.box(179, 10, 10, 21, '#f8f6f0')
+    cv.rect(180, 4, 8, 7, '#96d2f0'); cv.rect(181, 3, 6, 1, '#4278d2'); cv.vline(181, 5, 5, '#d8f0fa')
+    cv.rect(181, 15, 2, 2, '#4278d2'); cv.rect(185, 15, 2, 2, '#dc4646')
+    cv.rect(181, 20, 6, 2, '#ccd0d8')
+    cv.box(185, 24, 3, 4, '#f8f6f0')                                       # 종이컵
+    # 엘리베이터 (12,1)
+    ex = 192
+    cv.rect(ex, 2, 16, 30, '#9aa2b4')
+    cv.rect(ex, 2, 16, 1, K)
+    cv.rect(ex + 2, 4, 12, 3, '#2a2a36'); cv.rect(ex + 6, 5, 4, 1, '#f4c846')   # 층 표시
+    cv.rect(ex + 1, 8, 14, 23, '#ccd0d8')
+    cv.vline(ex + 7, 8, 23, '#8c92a0'); cv.vline(ex + 8, 8, 23, '#e8ecf2')
+    cv.vline(ex + 2, 9, 21, '#e8ecf2'); cv.vline(ex + 10, 9, 21, '#e8ecf2')
+    cv.rect(ex + 14, 16, 2, 5, '#4a4e60'); cv.p(ex + 14, 17, '#f4c846'); cv.p(ex + 14, 19, '#f4c846')
+    cv.hline(ex, 31, 16, K)
+
+    # ---------- 창구 계산대 (3~7, 3): 3곳으로 나눔 ----------
+    x0, x1, y0 = 48, 128, 48
+    cv.blend(x0, y0 + 15, x1 - x0, 2, K, 0.2)
+    cv.rect(x0, y0, x1 - x0, 15, K)
+    cv.rect(x0, y0 + 1, x1 - x0, 4, '#f8f6f0'); cv.hline(x0, y0 + 1, x1 - x0, '#ffffff')
+    cv.hline(x0, y0 + 5, x1 - x0, '#c8c8c0')
+    cv.rect(x0, y0 + 6, x1 - x0, 6, '#d8a868')                             # 나무 살 앞판
+    for x in range(x0 + 1, x1, 3):
+        cv.vline(x, y0 + 6, 6, '#b8864c')
+    cv.rect(x0, y0 + 12, x1 - x0, 2, PURPLE); cv.hline(x0, y0 + 12, x1 - x0, PURPLE3)
+    cv.vline(x0, y0, 15, K); cv.vline(x1 - 1, y0, 15, K)
+    # 창구 사이 유리 칸막이 + 앞판 기둥
+    for px in (72, 104):
+        cv.rect(px - 1, y0 + 6, 3, 8, '#8a5a3a')
+        cv.rect(px - 1, 34, 3, 16, '#bfe4f4')
+        cv.vline(px - 1, 34, 16, '#7cb8d8'); cv.vline(px + 1, 34, 16, '#7cb8d8'); cv.hline(px - 1, 34, 3, '#7cb8d8')
+        cv.p(px, 36, '#ffffff'); cv.p(px, 37, '#ffffff')
+    # 각 창구: 모니터 뒷면, 서류, 번호 스티커, 펜꽂이
+    for n, (cx, mon) in enumerate(((60, 52), (88, 76), (116, 118)), 1):
+        cv.box(mon, 38, 9, 9, '#4a4e60'); cv.hline(mon + 1, 39, 7, '#6a6e82'); cv.rect(mon + 4, 47, 1, 2, K)
+        cv.box(cx - 2, y0 + 7, 5, 4, '#f8f6f0'); cv.p(cx, y0 + 8, PURPLE2)
+    cv.rect(94, y0 + 1, 6, 3, '#f8f6f0'); cv.hline(95, y0 + 2, 4, '#8c92a0')   # 서류
+    cv.box(56, y0 - 1, 3, 4, '#4278d2'); cv.vline(57, y0 - 3, 2, '#f4c846')     # 펜꽂이
+    cv.box(110, y0, 6, 3, '#e8e0d0')                                            # 도장 받침
+    cv.rect(66, y0 + 1, 4, 3, '#f4c846')                                        # 메모지
+    # 직원 뒤 복사기 (세 번째 창 앞)
+    cv.box(127, 17, 16, 14, '#e8ecf2'); cv.rect(129, 19, 12, 3, '#9aa2b4'); cv.rect(130, 24, 6, 1, '#4a4e60')
+    cv.rect(137, 24, 3, 2, '#6eb45a'); cv.rect(129, 27, 12, 2, '#f8f6f0')
+
+    # ---------- 번호표 기계 (1,3) ----------
+    kx, ky = 18, 36
+    cv.blend(kx, ky + 26, 13, 2, K, 0.25)
+    cv.box(kx, ky, 12, 27, '#f8f6f0')
+    cv.rect(kx + 1, ky + 1, 10, 4, PURPLE); cv.hline(kx + 1, ky + 1, 10, PURPLE3)
+    cv.box(kx + 2, ky + 6, 8, 6, '#2a2a36'); cv.rect(kx + 3, ky + 7, 6, 4, '#96d2f0')
+    cv.rect(kx + 4, ky + 8, 4, 1, '#4278d2')
+    cv.rect(kx + 4, ky + 14, 4, 3, '#dc4646'); cv.hline(kx + 4, ky + 14, 4, '#f07878')   # 누르는 버튼
+    cv.rect(kx + 3, ky + 19, 6, 1, K); cv.rect(kx + 4, ky + 20, 4, 3, '#f8f6f0')        # 나온 번호표
+    cv.rect(kx + 1, ky + 24, 10, 2, '#ccd0d8')
+
+    # ---------- 대기 의자 (2~3, 5) (8~9, 5) ----------
+    def seats(x):
+        y = 82
+        cv.blend(x, y + 12, 30, 2, K, 0.2)
+        cv.rect(x + 1, y + 10, 28, 2, '#8c92a0')
+        for q in range(3):
+            sx = x + q * 10
+            cv.rect(sx, y, 9, 11, K)
+            cv.rect(sx + 1, y + 1, 7, 4, '#2c5aa8'); cv.hline(sx + 1, y + 1, 7, '#4278d2')   # 등받이
+            cv.rect(sx + 1, y + 5, 7, 5, '#4278d2'); cv.hline(sx + 1, y + 5, 7, '#6a9ae0')   # 앉는 곳
+        cv.rect(x + 3, y + 12, 1, 2, '#6c6a7e'); cv.rect(x + 26, y + 12, 1, 2, '#6c6a7e')
+    seats(33); seats(129)
+    cv.rect(52, 87, 5, 3, '#f8f6f0'); cv.hline(53, 88, 3, '#dc4646')               # 의자 위 번호표
+
+    # ---------- 화분 (12, 5) ----------
+    cv.blend(193, 84, 14, 3, K, 0.25)
+    cv.sprite(192, 70, [
+        '...kk..kk.....',
+        '..kGGkkGgk....',
+        '.kGggkGggGk...',
+        'kGggkgkggggk..',
+        'kgGkgggkGggk..',
+        '.kkgGgggkgk...',
+        'kGgkgkgkgkGk..',
+        'kgggkgkgggk...',
+        '.kkgggggkk....',
+        '...kkkkk......',
+    ], {'k': K, 'g': '#3c7840', 'G': '#6eb45a'})
+    cv.sprite(193, 80, [
+        'kkkkkkkkkkk.',
+        'kwwwwwwwwck.',
+        '.kwwwwwwck..',
+        '.kwwwwwwck..',
+        '.kwwwwwcck..',
+        '..kkkkkkk...',
+    ], {'k': K, 'w': '#f8f6f0', 'c': '#d8d8d0'})
+
+    # ---------- 옆벽·앞벽·문 (6,7)→(6,8) ----------
+    CAP, CAP2 = '#efeff2', '#c0c0cc'
+    for x in (12, 208):
+        cv.rect(x, 0, 4, 132, CAP)
+        cv.vline(x + (3 if x == 12 else 0), 0, 132, CAP2)
+    cv.vline(11, 0, 132, K); cv.vline(212, 0, 132, K)
+    cv.rect(12, 128, 200, 4, CAP); cv.hline(12, 128, 200, CAP2); cv.hline(12, 132, 200, K)
+    cv.rect(12, 133, 200, 11, K)
+    cv.blend(16, 124, 192, 4, K, 0.10)
+    dx = 96
+    cv.box(dx + 1, 116, 14, 11, '#6c6a7e')
+    for j in range(118, 126, 2):
+        cv.hline(dx + 2, j, 12, '#8c8aa0')
+    cv.rect(dx - 1, 128, 18, 16, K)
+    cv.rect(dx, 128, 16, 16, '#d8dcd8')
+    cv.rect(dx + 1, 129, 14, 15, '#5a6670')
+    for j in range(131, 143, 2):
+        cv.hline(dx + 2, j, 12, '#6e7a86')
+    cv.rect(dx - 3, 128, 3, 6, '#bfe4f4'); cv.rect(dx + 16, 128, 3, 6, '#bfe4f4')
+    cv.vline(dx - 3, 128, 6, K); cv.vline(dx + 18, 128, 6, K)
+    return cv
+
+
 if __name__ == '__main__':
     OUT.mkdir(parents=True, exist_ok=True)
     b = bank(); b.save(OUT / 'bank.png')
@@ -2228,4 +2434,5 @@ if __name__ == '__main__':
     mt = mart(); mt.save(DRAFT / 'mart.png'); mt.save(DRAFT / 'mart_x4.png', 4)
     hs = hairshop(); hs.save(DRAFT / 'hairshop.png'); hs.save(DRAFT / 'hairshop_x4.png', 4)
     mo = moe(); mo.save(DRAFT / 'moe.png'); mo.save(DRAFT / 'moe_x4.png', 4)
-    print('draft', DRAFT / 'convenience.png', DRAFT / 'mart.png', DRAFT / 'hairshop.png', DRAFT / 'moe.png')
+    eo = edu_office(); eo.save(DRAFT / 'edu_office.png'); eo.save(DRAFT / 'edu_office_x4.png', 4)
+    print('draft', DRAFT / 'convenience.png', DRAFT / 'mart.png', DRAFT / 'hairshop.png', DRAFT / 'moe.png', DRAFT / 'edu_office.png')
