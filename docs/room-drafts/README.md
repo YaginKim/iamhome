@@ -7,6 +7,7 @@
 | `convenience.png` (편의점) | 224×128 | 확인 대기 |
 | `mart.png` (대형마트) | 256×176 | 확인 대기 |
 | `hairshop.png` (미용실) | 224×128 | 확인 대기 |
+| `moe.png` (교육부) | 256×160 | 확인 대기 |
 
 - `*_x4.png`는 보기 편하게 4배로 키운 그림입니다.
 - 다시 만들기: `python3 tools/room_art.py`
@@ -45,3 +46,20 @@
 
 - 배치 그림에서 그대로 둔 곳: 미용사, 계산대, 손님 자리, 미용 의자 2개, 소파, 탁자, 화분, 문
 - 새로 넣은 곳: 샴푸 의자(7~8, 2)
+
+## 교육부 로비 칸 지도 제안 (16×10)
+
+```
+0 xxxxxxxxxxxxxxxx
+1 xWWWWWWWWWWWWWWx   벽: 유리 난간 2층 · 가운데 큰 계단 · 상징 마크 (글자 표지판 없음)
+2 xffffffffffffffx   안내 직원 (2,2)  기념품 직원 (12,2)
+3 xcccfffffffcccfx   안내 데스크 (1~3)  기념품 매대 (11~13)
+4 xffffffffffffffx   손님 자리 (2,4) (12,4)
+5 xfffffGffffffffx   G 검색대 (6,5)  — (7,5)는 걸어서 지나가는 검색 문(카펫 위)
+6 xffffffffffffffx   견학 안내원 (9,6)
+7 xfBBfffffffBBffx   B 벤치 (2~3) (11~12)
+8 xPfffffDffffffPx   P 화분 (1) (14)  D 문 (7,8)
+9 xxxxxxxxxxxxxxxx
+```
+
+- 배치 그림의 위치를 그대로 따름. "안내·기념품·검색대" 글자 표지판은 그리지 않음
