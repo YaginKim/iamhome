@@ -5,6 +5,7 @@
 | 파일 | 지도 id | 크기 |
 |---|---|---|
 | `home.png` | `home` | 224×144 |
+| `snackbar.png` | `snackbar_in` | 224×128 |
 | `bank.png` | `bank_in` | 224×128 |
 | `classroom.png` | `classroom` | 224×144 |
 | `gym.png` | `gym` | 224×144 |

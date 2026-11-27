@@ -932,10 +932,228 @@ def home():
     return cv
 
 
+
+# ======================================================================
+# 분식점 224x128 (14x8칸)
+#   1 xWWSSWWWWSSWWx  S = 메뉴판
+#   3 xcccccccccccqx  c = 계산대(음식 진열)   사장님 (6,2), 손님 자리 (6,4)
+#   5 xqqTTqqqqTTqqx  T = 손님 탁자
+#   7 xxxxxxDxxxxxxx  D = 문
+# ======================================================================
+def snackbar():
+    cv = Canvas(224, 128)
+    # ---------- 바닥: 밝은 회색 타일 ----------
+    G1, G2, GG, GH = '#dedbd2', '#d4d0c6', '#bdb8ac', '#eeebe4'
+    for ty in range(2, 7):
+        for tx in range(1, 13):
+            x0, y0 = tx * T, ty * T
+            cv.rect(x0, y0, T, T, G1 if (tx + ty) % 2 == 0 else G2)
+            cv.hline(x0, y0, T, GG); cv.vline(x0, y0, T, GG)
+            cv.p(x0 + 2, y0 + 2, GH); cv.p(x0 + 3, y0 + 2, GH)
+    # 계산대 안쪽(주방) 바닥은 조금 어둡게
+    cv.blend(16, 32, 176, 16, '#6c6a7e', 0.18)
+    # 문으로 들어오는 빛
+    cv.blend(88, 96, 32, 16, '#fff8e0', 0.18)
+
+    # ---------- 뒷벽: 베이지 벽 + 나무 벽판 ----------
+    cv.rect(16, 0, 192, 32, '#ece4d4')
+    cv.rect(16, 0, 192, 2, K)
+    cv.hline(16, 2, 192, '#d8cebc')
+    cv.rect(16, 19, 192, 1, '#8a5a3a')
+    cv.rect(16, 20, 192, 10, '#c8935a')
+    for x in range(16, 208, 12):
+        cv.vline(x, 20, 10, '#a87444')
+    cv.hline(16, 20, 192, '#dcaa72')
+    cv.rect(16, 30, 192, 1, '#8a5a3a'); cv.hline(16, 31, 192, K)
+
+    # 메뉴판 (노란 판 + 음식 그림 + 빨간 가격 줄)
+    def food(x, y, kind):
+        if kind == 'tteok':   # 떡볶이
+            cv.sprite(x, y, ['.kkkkk.', 'kroworK', 'kowrowk', '.kkkkk.'], {'k': K, 'K': K, 'r': '#dc4646', 'o': '#ee8032', 'w': '#fce8c8'})
+        elif kind == 'gimbap':
+            cv.sprite(x, y, ['.kkkkk.', 'kgwywgk', 'kgwowgk', '.kkkkk.'], {'k': K, 'g': '#2c3a30', 'w': '#f8f6f0', 'y': '#f4c846', 'o': '#6eb45a'})
+        elif kind == 'ramen':
+            cv.sprite(x, y, ['.yyyyy.', 'kyoyoyk', 'kwwwwwk', '.kkkkk.'], {'k': K, 'y': '#f4d878', 'o': '#ee8032', 'w': '#f8f6f0'})
+        elif kind == 'twigim':
+            cv.sprite(x, y, ['..kkk..', '.kyYyk.', 'kyYyYyk', '.kkkkk.'], {'k': K, 'y': '#f4c846', 'Y': '#c48e28'})
+        elif kind == 'sundae':
+            cv.sprite(x, y, ['.kkkkk.', 'kpPpPpk', 'kPpPpPk', '.kkkkk.'], {'k': K, 'p': '#6a4a5a', 'P': '#4a3040'})
+        elif kind == 'eomuk':
+            cv.sprite(x, y, ['...t...', '.kEEEk.', '.kEeEk.', '..ktk..'], {'k': K, 't': '#a0643c', 'E': '#d89a5a', 'e': '#ecbe80'})
+    def menu(x, y, w, h, items, title):
+        cv.box(x, y, w, h, '#f4d23c')
+        cv.hline(x + 1, y + 1, w - 2, '#fbe67a')
+        cv.rect(x + w // 2 - 6, y + 2, 12, 2, title)
+        for k, it in enumerate(items):
+            cx = x + 2 + (k % 3) * 10
+            cy = y + 5 + (k // 3) * 8
+            food(cx + 1, cy, it)
+            cv.hline(cx + 2, cy + 5, 5, '#dc4646')
+        cv.rect(x + 1, y + h - 2, w - 2, 1, '#c8a82c')
+    menu(47, 3, 34, 22, ['tteok', 'gimbap', 'ramen', 'twigim', 'sundae', 'eomuk'], '#dc4646')
+    menu(143, 4, 34, 15, ['ramen', 'tteok', 'gimbap'], '#4278d2')
+    # 메뉴판 아래 작은 안내문 (포장, 물 셀프)
+    cv.box(147, 20, 14, 8, '#f8f6f0'); cv.hline(149, 22, 10, '#dc4646'); cv.hline(149, 24, 8, K)
+    cv.box(84, 5, 12, 10, '#f8f6f0'); cv.hline(86, 7, 8, K); cv.hline(86, 9, 8, '#dc4646'); cv.hline(86, 11, 6, K)
+
+    # 에어컨
+    cv.box(100, 3, 30, 9, '#f8f6f0')
+    cv.hline(101, 4, 28, '#ffffff'); cv.hline(102, 9, 26, '#c8ccd4'); cv.rect(124, 5, 3, 1, '#6eb45a')
+    # 벽걸이 선풍기
+    def fan(x, y):
+        cv.sprite(x, y, [
+            '..kkkkk..',
+            '.kcwcwck.',
+            'kcwkkkwck',
+            'kwckbkcwk',
+            'kcwkkkwck',
+            '.kcwcwck.',
+            '..kkkkk..',
+            '....k....',
+            '...kwk...',
+            '...kwk...',
+            '...kkk...',
+        ], {'k': K, 'c': '#96d2f0', 'w': '#f8f6f0', 'b': '#4278d2'})
+    fan(132, 3)
+    fan(18, 3)
+    # 달력 + 시계
+    cv.box(30, 3, 12, 14, '#f8f6f0')
+    cv.rect(31, 4, 10, 3, '#dc4646')
+    for j in range(8, 16, 2):
+        for i in range(32, 41, 2):
+            cv.p(i, j, '#8c92a0')
+    cv.p(40, 14, '#dc4646')
+    # 그릇 선반 (왼쪽 아래)
+    cv.rect(18, 22, 26, 2, '#9aa2b4'); cv.hline(18, 22, 26, '#ccd0d8')
+    for x in (20, 27, 34):
+        cv.sprite(x, 17, ['kkkkkk', 'kwwwwk', '.kwwk.', '.kkkk.'], {'k': K, 'w': '#f8f6f0'})
+    cv.rect(18, 28, 26, 2, '#9aa2b4'); cv.hline(18, 28, 26, '#ccd0d8')
+    cv.rect(20, 25, 8, 3, '#dc4646'); cv.rect(30, 25, 8, 3, '#f4c846')
+
+    # 스테인리스 냉장고 (11~12칸 벽)
+    fx = 178
+    cv.box(fx, 2, 29, 30, '#c8ccd4')
+    cv.vline(fx + 14, 3, 28, '#8c92a0')
+    cv.vline(fx + 1, 3, 28, '#e8ecf2'); cv.vline(fx + 15, 3, 28, '#e8ecf2')
+    cv.rect(fx + 11, 10, 2, 8, '#4a4e60'); cv.rect(fx + 17, 10, 2, 8, '#4a4e60')
+    cv.rect(fx + 3, 22, 8, 2, '#9aa2b4'); cv.rect(fx + 18, 22, 8, 2, '#9aa2b4')
+    # 물·반찬 셀프 통 (냉장고 옆)
+    cv.box(164, 21, 10, 10, '#e8ecf2'); cv.rect(166, 23, 6, 3, '#96d2f0'); cv.p(169, 28, '#4278d2')
+
+    # ---------- 계산대 (3줄, 1~11칸): 음식 진열대 ----------
+    x0, x1, y0 = 16, 192, 48
+    cv.rect(x0, y0, x1 - x0, 16, K)
+    cv.rect(x0, y0 + 1, x1 - x0, 6, '#c8ccd4')          # 스테인리스 상판
+    cv.hline(x0, y0 + 1, x1 - x0, '#eef0f4')
+    cv.hline(x0, y0 + 6, x1 - x0, '#9aa2b4')
+    cv.rect(x0, y0 + 7, x1 - x0, 7, '#f8f6f0')          # 앞판
+    for k, c in enumerate(['#f4c846', '#6eb45a', '#ee8032', '#f4c846', '#6eb45a', '#ee8032', '#f4c846', '#6eb45a', '#ee8032', '#f4c846', '#6eb45a']):
+        cv.rect(x0 + k * 16 + 1, y0 + 10, 14, 4, c)
+    cv.hline(x0, y0 + 9, x1 - x0, '#dcdcd4')
+    cv.hline(x0, y0 + 15, x1 - x0, K); cv.vline(x1 - 1, y0, 16, K)
+    cv.blend(16, 64, 176, 2, K, 0.18)
+
+    def tray(x, w, fill):
+        cv.rect(x, y0, w, 7, K)
+        cv.rect(x + 1, y0 + 1, w - 2, 5, '#9aa2b4')
+        fill(x + 2, y0 + 2, w - 4)
+    # 튀김
+    def twigim(x, y, w):
+        cv.rect(x, y, w, 3, '#e0a848')
+        for i in range(x, x + w - 2, 4):
+            cv.rect(i, y, 3, 2, '#f4c846'); cv.p(i + 1, y + 2, '#c48e28')
+    tray(18, 24, twigim)
+    # 순대 + 김밥
+    def sundae(x, y, w):
+        cv.rect(x, y, w, 3, '#5a3a4a')
+        for i in range(x, x + w, 3):
+            cv.p(i, y + 1, '#8a6a7a')
+    tray(44, 14, sundae)
+    for k in range(3):
+        cv.sprite(60 + k * 6, y0 - 1, ['.kkk.', 'kgygk', 'kgogk', '.kkk.'], {'k': K, 'g': '#2c3a30', 'y': '#f4c846', 'o': '#ee8032'})
+    # 떡볶이 큰 판 (사장님 앞)
+    def tteok(x, y, w):
+        cv.rect(x, y, w, 3, '#dc4646')
+        for i in range(x, x + w - 3, 3):
+            cv.rect(i + (i // 3) % 2, y + (i // 5) % 2, 2, 1, '#fce8c8')
+        for i in range(x + 1, x + w, 7):
+            cv.p(i, y + 2, '#f4c846')
+    tray(80, 44, tteok)
+    # 소복하게 쌓인 떡볶이
+    for i in range(83, 121, 2):
+        h = 2 if 88 <= i <= 114 else 1
+        cv.rect(i, y0 + 1 - h, 2, h, '#dc4646' if (i // 2) % 3 else '#fce8c8')
+    for i in range(84, 120, 5):
+        cv.p(i, y0 - 1, '#fce8c8')
+    cv.vline(122, y0 - 6, 7, '#a87444'); cv.rect(120, y0 - 7, 5, 2, '#c48e58')   # 주걱
+    # 어묵 국물 (꼬치)
+    def eomuk(x, y, w):
+        cv.rect(x, y, w, 3, '#b8823e')
+        cv.hline(x, y, w, '#d4a05a')
+    tray(128, 26, eomuk)
+    for i in range(131, 152, 4):
+        cv.vline(i, y0 - 6, 8, '#c48e58')
+        cv.rect(i - 1, y0 + 1, 3, 2, '#e8c090')
+    # 밥솥
+    cv.box(162, y0 - 10, 16, 14, '#c8ccd4')
+    cv.rect(163, y0 - 9, 14, 3, '#e8ecf2'); cv.rect(168, y0 - 12, 4, 2, K)
+    cv.rect(166, y0 - 4, 8, 3, '#4a4e60'); cv.p(172, y0 - 3, '#dc4646')
+    # 수저통·컵
+    cv.box(181, y0 - 4, 7, 8, '#8c92a0')
+    for i in (182, 184, 186):
+        cv.vline(i, y0 - 8, 4, '#ccd0d8')
+
+    # ---------- 손님 탁자 T (3~4,5) (9~10,5) ----------
+    def table(tx):
+        x, y = tx * T, 80
+        def chair(cx, cy, back):
+            cv.box(cx, cy, 10, 6, '#c8a070')
+            cv.rect(cx + 1, cy + 1, 8, 4, '#6c3c24'); cv.hline(cx + 1, cy + 1, 8, '#8a5a3a')
+            if back:
+                cv.rect(cx, cy - 4, 10, 4, K); cv.rect(cx + 1, cy - 3, 8, 2, '#d8b080')
+        cv.blend(x + 3, y + 13, 28, 3, K, 0.2)
+        chair(x + 4, y - 3, True); chair(x + 18, y - 3, True)
+        cv.rect(x + 1, y + 1, 30, 11, K)
+        cv.rect(x + 2, y + 2, 28, 7, '#a8dcd0')        # 민트색 상판
+        cv.hline(x + 2, y + 2, 28, '#d0f0e8')
+        cv.rect(x + 2, y + 9, 28, 2, '#78b0a4')
+        cv.rect(x + 14, y + 11, 4, 3, '#8c92a0')
+        # 수저통, 휴지, 물컵
+        cv.box(x + 4, y + 2, 4, 5, '#8c92a0'); cv.vline(x + 5, y, 2, '#ccd0d8'); cv.vline(x + 6, y - 1, 3, '#ccd0d8')
+        cv.box(x + 10, y + 3, 4, 4, '#f8f6f0')
+        cv.box(x + 24, y + 3, 4, 4, '#bfe4f4')
+        chair(x + 4, y + 11, False); chair(x + 18, y + 11, False)
+    table(3)
+    table(9)
+    # 왼쪽 탁자 위 떡볶이 한 접시
+    cv.sprite(64, 82, ['.kkkkk.', 'kwrorwk', '.kkkkk.'], {'k': K, 'w': '#f8f6f0', 'r': '#dc4646', 'o': '#fce8c8'})
+
+    # ---------- 옆벽·앞벽 ----------
+    CAP, CAP2 = '#efe8da', '#c8bca4'
+    for x in (12, 208):
+        cv.rect(x, 0, 4, 116, CAP)
+        cv.vline(x + (3 if x == 12 else 0), 0, 116, CAP2)
+    cv.vline(11, 0, 116, K); cv.vline(212, 0, 116, K)
+    cv.rect(12, 112, 200, 4, CAP); cv.hline(12, 112, 200, CAP2); cv.hline(12, 116, 200, K)
+    cv.rect(12, 117, 200, 11, K)
+    cv.blend(16, 108, 192, 4, K, 0.12)
+    # 출입문 (6,7)
+    dx = 96
+    cv.rect(dx - 1, 112, 18, 16, K)
+    cv.rect(dx, 112, 16, 16, '#d8d2c4')
+    cv.rect(dx + 1, 113, 14, 14, '#7a6a5a')
+    for j in range(115, 126, 2):
+        cv.hline(dx + 2, j, 12, '#8e7e6c')
+    cv.rect(dx - 3, 112, 3, 6, '#ccd0d8'); cv.rect(dx + 16, 112, 3, 6, '#ccd0d8')
+    cv.vline(dx - 3, 112, 6, K); cv.vline(dx + 18, 112, 6, K)
+    return cv
+
+
 if __name__ == '__main__':
     OUT.mkdir(parents=True, exist_ok=True)
     b = bank(); b.save(OUT / 'bank.png')
     c = classroom(); c.save(OUT / 'classroom.png')
     g = gym(); g.save(OUT / 'gym.png')
     h = home(); h.save(OUT / 'home.png')
-    print('saved', *[OUT / n for n in ('bank.png', 'classroom.png', 'gym.png', 'home.png')])
+    sb = snackbar(); sb.save(OUT / 'snackbar.png')
+    print('saved', *[OUT / n for n in ('bank.png', 'classroom.png', 'gym.png', 'home.png', 'snackbar.png')])
