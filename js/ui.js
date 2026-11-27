@@ -1,8 +1,8 @@
 // 화면 위에 얹는 UI: 상단 정보(HUD), 대화창, 선택지, 경고 팝업, 알림
-import { iconCanvas, toImg, PEOPLE, cardCanvas, tokenCanvas } from './sprites.js?v=202611270337';
-import { say, sfx } from './voice.js?v=202611270337';
-import { cashTotal } from './state.js?v=202611270337';
-import { won } from './data.js?v=202611270337';
+import { iconCanvas, toImg, PEOPLE, cardCanvas, tokenCanvas } from './sprites.js?v=202611270340';
+import { say, sfx } from './voice.js?v=202611270340';
+import { cashTotal } from './state.js?v=202611270340';
+import { won } from './data.js?v=202611270340';
 
 const $ = s => document.querySelector(s);
 export const el = (tag, cls, text) => {
@@ -20,6 +20,8 @@ export function line(id, vars = {}) {
 
 // ---------- HUD ----------
 let lastLeft = null;
+let onBook = null;
+export function setBookHandler(f) { onBook = f; }
 // 아이콘 아래에 작은 글자를 붙인 묶음
 function captioned(icons, caption) {
   const box = el('div', 'hud-ico');
@@ -73,6 +75,11 @@ export function renderHud(state, config, place, lives, extra) {
   row('cash', '현금', cashTotal(state.cash), 'cash');
   row('bank', '계좌', state.account, 'account');
   if (state.hasMealCard && config.mealCard.showFromLevel.includes(state.level)) row('meal', '급식카드', state.meal, 'meal');
+  // 스티커 도감 버튼
+  const bk = el('button', 'btn book-btn');
+  bk.setAttribute('aria-label', '스티커 도감 열기');
+  bk.append(captioned([toImg(iconCanvas('star'), 3)], '도감'));
+  bk.onclick = () => onBook?.();
   // 교실에서는 학급 토큰도 보여 줘요
   if (extra?.tokens != null) {
     const r = el('div', 'money-row'); r.dataset.key = 'token';
@@ -80,6 +87,7 @@ export function renderHud(state, config, place, lives, extra) {
     r.append(captioned([toImg(tokenCanvas(), 2)], '토큰'), el('b', 'value', `${extra.tokens}개`));
     right.append(r);
   }
+  right.append(bk);
 }
 
 export function flashHud(key) {

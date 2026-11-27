@@ -1,12 +1,12 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
-import { loadData, itemsFor, won, LEVELS } from './data.js?v=202611270337';
-import { playBgm, getVolume, setVolume } from './bgm.js?v=202611270337';
-import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611270337';
-import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, loadBuildingManifest } from './engine.js?v=202611270337';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, panel, closePanel, fade, flashHud } from './ui.js?v=202611270337';
-import { pay, tokenPay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611270337';
-import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611270337';
-import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611270337';
+import { loadData, itemsFor, won, LEVELS } from './data.js?v=202611270340';
+import { playBgm, getVolume, setVolume } from './bgm.js?v=202611270340';
+import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611270340';
+import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, loadBuildingManifest } from './engine.js?v=202611270340';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611270340';
+import { pay, tokenPay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611270340';
+import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611270340';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611270340';
 
 const $ = s => document.querySelector(s);
 let D, S, world;
@@ -21,6 +21,7 @@ async function boot() {
   world.onArrive = (x, y, settled) => onArrive(x, y, settled);
   world.onStep = () => onStep();
   soundButton();
+  setBookHandler(openBook);
   touchLayout();
   await loadBuildingManifest();
   await world.load(townMap(null, ['home', 'school', 'snackbar', 'convenience', 'hairshop', 'market', 'bank', 'mart', 'edu_office', 'moe']), { x: 17, y: 9 });
@@ -1233,6 +1234,57 @@ function freeRoamGoal() {
   if (dayLimitReached()) { goal(null, '오늘은 여기까지! 내일 또 만나요.'); return; }
   startStage(currentDef());
   goal('home', `집에 가서 엄마를 만나요. 다음은 ${currentDef().name}이에요.`);
+}
+
+// ---------- 스티커 도감 · 도장판 ----------
+// 품목 파일(data/items.csv)을 그대로 읽어서 만들어요. 품목을 추가하면 도감 칸도 저절로 늘어나요.
+const PLACE_NAMES = { classroom: '교실', gym: '체육관', field: '운동장', snackbar: '분식점', convenience: '편의점', market: '전통시장',
+  hairshop: '미용실', mart: '대형마트', edu_office: '교육지원청', moe: '교육부' };
+// 사거나 빌릴 수 있는 것만 (집에서 챙기는 물건, 값 없는 민원 서류 등은 빼요)
+const collectible = it => it.stage !== 'home' && (it.price != null || it.stage === 'gym');
+
+function openBook() {
+  if (!S) return;
+  const m = panel('book');
+  m.append(el('h2', null, '스티커 도감'));
+  // 도장판
+  const stamps = el('div', 'stamps');
+  for (const [id, name] of [['home', '집'], ...STAGES.map(d => [d.id, d.name])]) {
+    const done = S.cleared.includes(id);
+    const c = el('div', 'stamp' + (done ? '' : ' empty'));
+    c.append(toImg(iconCanvas('stamp'), 5, ''), el('b', null, name));
+    if (id !== 'home') {
+      const stars = el('span', 'stamp-stars');
+      for (let i = 0; i < 3; i++) stars.append(toImg(iconCanvas(i < (S.stars[id] || 0) ? 'star' : 'starEmpty'), 2, ''));
+      c.append(stars);
+    }
+    c.setAttribute('aria-label', `${name} ${done ? `완료, 별 ${S.stars[id] || 0}개` : '아직 안 함'}`);
+    stamps.append(c);
+  }
+  m.append(el('h3', null, '동네 도장판'), stamps);
+  // 장소별 스티커
+  const groups = new Map();
+  for (const it of D.items.filter(collectible)) {
+    if (!groups.has(it.stage)) groups.set(it.stage, []);
+    groups.get(it.stage).push(it);
+  }
+  for (const [stage, items] of groups) {
+    const got = items.filter(it => S.stickers.includes(it.id)).length;
+    m.append(el('h3', null, `${PLACE_NAMES[stage] || stage} (${got} / ${items.length})`));
+    const grid = el('div', 'book-grid');
+    for (const it of items) {
+      const has = S.stickers.includes(it.id);
+      const c = el('div', 'sticker-cell' + (has ? '' : ' empty'));
+      c.append(itemImg(it, 3), el('span', null, has ? it.name : '?'));
+      grid.append(c);
+    }
+    m.append(grid);
+  }
+  const ok = el('button', 'btn primary big', '닫기');
+  ok.style.display = 'flex'; ok.style.margin = '16px auto 0';
+  ok.onclick = () => closePanel();
+  m.append(ok);
+  say(`스티커 ${S.stickers.length}개를 모았어요.`);
 }
 
 // 자동 점검용 (게임에는 영향 없음)
