@@ -1,6 +1,6 @@
-"""방 그림(도트) 만들기: 은행, 교실
+"""방 그림(도트) 만들기: 모든 실내·운동장
 사용법: python3 tools/room_art.py
-결과: assets/rooms/bank.png (224x128), assets/rooms/classroom.png (224x144)
+결과: assets/rooms/*.png (크기는 assets/rooms/README.md)
 
 - 1칸 = 16x16픽셀. 걸을 수 있는 곳·막힌 곳은 js/engine.js 의 칸 지도(bankMap, classroomMap)를 따릅니다.
 - 사람은 게임이 따로 그리니 그림에 넣지 않습니다.
@@ -10,7 +10,6 @@ from PIL import Image
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / 'assets' / 'rooms'
-DRAFT = ROOT / 'docs' / 'room-drafts'   # 확인 전 초안 (게임에는 아직 안 씀)
 T = 16
 
 
@@ -1344,7 +1343,7 @@ def field():
 
 
 # ======================================================================
-# [초안] 편의점 224x128 (14x8칸) — 배치 그림 기준, 칸 지도는 아직 게임에 없음
+# 편의점 224x128 (14x8칸)
 #   0~1 벽 진열대(1~5, 9~12칸) + 음료 냉장고(6~8칸)
 #   3,5 진열대 섬 (2~3, 6~7칸)   5 키오스크(1,5), 계산대(9~11,5)
 #   점원 (10,4), 손님 자리 (10,6), 장바구니 (12,6), 문 (6,7)
@@ -1532,7 +1531,7 @@ def hangul_size(s):
 
 
 # ======================================================================
-# [초안] 대형마트 256x176 (16x11칸) — 칸 지도는 아직 게임에 없음 (제안안은 docs/room-drafts/README.md)
+# 대형마트 256x176 (16x11칸)
 #   0~1 벽: 음료 냉장고(1~4) / MART 간판 + 유제품 냉장 진열대(5~9) / 벽 선반(10~14)
 #   3 식품(2~3), 생활용품(6~7), 과일(10~11) 진열대 (글자 표지판 없음)
 #   4~5 세로 진열대 (4칸, 8칸), 채소 매대 (13칸)
@@ -1768,7 +1767,7 @@ def mart():
 
 
 # ======================================================================
-# [초안] 미용실 224x128 (14x8칸) — 칸 지도는 아직 게임에 없음
+# 미용실 224x128 (14x8칸)
 #   1 벽: 삼색 기둥(1), 거울+화장대(2, 5), 샴푸대(7~8), 시계, 제품 선반(11~13)
 #   2 미용 의자(2,2)(5,2), 샴푸 의자(7~8,2)   미용사 (10,2)
 #   3 계산대(9~11)   손님 자리 (10,4)
@@ -1955,7 +1954,7 @@ def hairshop():
 
 
 # ======================================================================
-# [초안] 교육부 로비 256x160 (16x10칸) — 칸 지도는 아직 게임에 없음, 글자 표지판 없음
+# 교육부 로비 256x160 (16x10칸), 글자 표지판 없음
 #   1 벽: 유리 난간 2층, 가운데 큰 계단, 상징 마크
 #   3 안내 데스크(1~3) · 기념품 매대(11~13)   직원 (2,2) (12,2), 손님 자리 (2,4) (12,4)
 #   5 검색대(6,5) + 걸어서 지나가는 검색 문(7,5)   견학 안내원 (9,6)
@@ -2229,7 +2228,7 @@ def seg_digit(cv, x, y, d, on, off=None):
 
 
 # ======================================================================
-# [초안] 교육지원청 민원실 224x144 (14x9칸) — 칸 지도는 아직 게임에 없음, 글자 표지판 없음
+# 교육지원청 민원실 224x144 (14x9칸), 글자 표지판 없음
 #   1 벽: 번호 전광판, 블라인드 창, 창구 번호판 ①②③, 게시판, 자판기(10,1), 정수기(11), 엘리베이터(12,1)
 #   2 직원 (5,2)      3 번호표 기계(1,3), 창구 3곳(3~7: ① 3~4.5 / ② 4.5~6.5 / ③ 6.5~7)
 #   4 손님 자리 (5,4)  5 대기 의자(2~3)(8~9), 화분(12)   7 문 (6,7)
@@ -2422,7 +2421,7 @@ def edu_office():
 
 
 # ======================================================================
-# [초안] 전통시장 (야시장) 256x144 (16x9칸) — 칸 지도는 아직 게임에 없음
+# 전통시장 (야시장) 256x144 (16x9칸)
 #   0 밤하늘(불꽃·관람차) / 둘레 나무   1 천막: 채소 가게(1~5) · 떡집(10~14)
 #   2 채소 사장님 (3,2) · 떡집 사장님 (12,2), 머리 위 줄전구·청사초롱
 #   3 매대 (2~4) (11~13)   4 손님 자리 (3,4) (12,4)   5 상자 (2,5) (13,5)   7 나가는 곳 (7,7)
@@ -2627,11 +2626,7 @@ if __name__ == '__main__':
     sb = snackbar(); sb.save(OUT / 'snackbar.png')
     fd = field(); fd.save(OUT / 'field.png')
     print('saved', *[OUT / n for n in ('bank.png', 'classroom.png', 'gym.png', 'home.png', 'snackbar.png', 'field.png')])
-    DRAFT.mkdir(parents=True, exist_ok=True)
-    cs = convenience(); cs.save(DRAFT / 'convenience.png'); cs.save(DRAFT / 'convenience_x4.png', 4)
-    mt = mart(); mt.save(DRAFT / 'mart.png'); mt.save(DRAFT / 'mart_x4.png', 4)
-    hs = hairshop(); hs.save(DRAFT / 'hairshop.png'); hs.save(DRAFT / 'hairshop_x4.png', 4)
-    mo = moe(); mo.save(DRAFT / 'moe.png'); mo.save(DRAFT / 'moe_x4.png', 4)
-    eo = edu_office(); eo.save(DRAFT / 'edu_office.png'); eo.save(DRAFT / 'edu_office_x4.png', 4)
-    mk = market(); mk.save(DRAFT / 'market.png'); mk.save(DRAFT / 'market_x4.png', 4)
-    print('draft', DRAFT / 'convenience.png', DRAFT / 'mart.png', DRAFT / 'hairshop.png', DRAFT / 'moe.png', DRAFT / 'edu_office.png', DRAFT / 'market.png')
+    for name, fn in (('convenience', convenience), ('mart', mart), ('hairshop', hairshop),
+                     ('moe', moe), ('edu_office', edu_office), ('market', market)):
+        fn().save(OUT / f'{name}.png')
+        print('saved', OUT / f'{name}.png')

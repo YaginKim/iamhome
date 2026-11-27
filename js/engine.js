@@ -1,6 +1,6 @@
 // 위에서 내려다보는 지도: 타일 그리기, 이동(키보드·터치), 길찾기, 문·사람과 만나기
-import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611270527';
-import { sfx } from './voice.js?v=202611270527';
+import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611271129';
+import { sfx } from './voice.js?v=202611271129';
 
 export const T = 16;
 const BLOCK = new Set(['t', 'W', 'c', 'T', 'B', 'x', 'S', 'k', 'A', 'U', 'H']);
@@ -589,6 +589,143 @@ export function gymMap() {
       { id: 'teacher', sprite: 'teacher', x: 10, y: 3 },
     ],
     counter: { x: 3, y: 4 },
+    spawn: { x: 7, y: 6 },
+    door: { x: 7, y: 7 },
+  };
+}
+
+// ---------- 아직 스테이지가 없는 곳 (방 그림·칸 지도만 먼저 준비) ----------
+// k = 막힌 물건(키오스크, 의자, 화분 등), U = 천막. 사람 id는 스테이지를 만들 때 정합니다.
+export function convenienceMap() {
+  return {
+    id: 'convenience_in', name: '편의점',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xWWWWWWWWWWWWx',
+      'xqqqqqqqqqqqqx',
+      'xqTTqqTTqqqqqx',
+      'xqqqqqqqqqqqqx',
+      'xkTTqqTTqcccqx',
+      'xqqqqqqqqqqqkx',
+      'xxxxxxDxxxxxxx',
+    ],
+    npcs: [{ id: 'cs_clerk', sprite: 'teller', x: 10, y: 4, counter: true }],
+    counter: { x: 10, y: 6 }, kiosk: { x: 1, y: 5 },
+    spawn: { x: 6, y: 6 },
+    door: { x: 6, y: 7 },
+  };
+}
+
+export function martMap() {
+  return {
+    id: 'mart_in', name: '대형마트',
+    tiles: [
+      'xxxxxxxxxxxxxxxx',
+      'xWWWWWWWWWWWWWWx',
+      'xqqqqqqqqqqqqqqx',
+      'xqTTqqTTqqTTqqqx',
+      'xqqqTqqqTqqqqTqx',
+      'xqqqTqqqTqqqqTqx',
+      'xqqqqqqqqqqqqqqx',
+      'xqcccqcccqcccqkx',
+      'xqqqqqqqqqqqqqqx',
+      'xqqkqqqDqqqqqqqx',
+      'xxxxxxxxxxxxxxxx',
+    ],
+    npcs: [{ id: 'mart_clerk', sprite: 'helper', x: 11, y: 6, counter: true }],
+    counter: { x: 11, y: 8 }, kiosk: { x: 14, y: 7 }, cart: { x: 3, y: 9 },
+    sections: { food: { x: 2, y: 3 }, living: { x: 6, y: 3 }, fruit: { x: 10, y: 3 } },
+    spawn: { x: 7, y: 8 },
+    door: { x: 7, y: 9 },
+  };
+}
+
+export function hairshopMap() {
+  return {
+    id: 'hairshop_in', name: '미용실',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xWWWWWWWWWWWWx',
+      'xqkqqkqkkqqqqx',
+      'xqqqqqqqqcccqx',
+      'xqqqqqqqqqqqqx',
+      'xqkkkqqqqqqqkx',
+      'xqqqqqqqqqqqqx',
+      'xxxxxxDxxxxxxx',
+    ],
+    npcs: [{ id: 'stylist', sprite: 'parent', x: 10, y: 2, counter: true }],
+    counter: { x: 10, y: 4 },
+    spawn: { x: 6, y: 6 },
+    door: { x: 6, y: 7 },
+  };
+}
+
+export function moeMap() {
+  return {
+    id: 'moe_in', name: '교육부',
+    tiles: [
+      'xxxxxxxxxxxxxxxx',
+      'xWWWWWWWWWWWWWWx',
+      'xqqqqqqqqqqqqqkx',
+      'xcccqqqqqqqccckx',
+      'xqqqqqqqqqqqqqqx',
+      'xqqqqqkqqqqqqqqx',
+      'xqqqqqqqqqqqqqqx',
+      'xqkkqqqqqqqkkqqx',
+      'xkqqqqqDqqqqqqkx',
+      'xxxxxxxxxxxxxxxx',
+    ],
+    npcs: [
+      { id: 'moe_info', sprite: 'teller', x: 2, y: 2, counter: true },
+      { id: 'moe_shop', sprite: 'owner', x: 12, y: 2, counter: true },
+      { id: 'moe_guide', sprite: 'teacher', x: 9, y: 6 },
+    ],
+    counter: { x: 2, y: 4 }, counters: [{ x: 2, y: 4 }, { x: 12, y: 4 }], security: { x: 6, y: 5 },
+    spawn: { x: 7, y: 7 },
+    door: { x: 7, y: 8 },
+  };
+}
+
+export function eduOfficeMap() {
+  return {
+    id: 'edu_office_in', name: '교육지원청',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xWWWWWWWWWkWkx',
+      'xqqqqqqqqqqqqx',
+      'xkqcccccqqqqqx',
+      'xqqqqqqqqqqqqx',
+      'xqkkqqqqkkqqkx',
+      'xqqqqqqqqqqqqx',
+      'xqqqqqDqqqqqqx',
+      'xxxxxxxxxxxxxx',
+    ],
+    npcs: [{ id: 'edu_clerk', sprite: 'teller', x: 5, y: 2, counter: true }],
+    counter: { x: 5, y: 4 }, ticket: { x: 1, y: 3 }, vending: { x: 10, y: 1 }, elevator: { x: 12, y: 1 },
+    spawn: { x: 6, y: 6 },
+    door: { x: 6, y: 7 },
+  };
+}
+
+export function marketMap() {
+  return {
+    id: 'market_in', name: '전통시장',
+    tiles: [
+      'tttttttttttttttt',
+      'tUUUUUqqqqUUUUUt',
+      'tqqqqqqqqqqqqqqt',
+      'tqcccqqqqqqcccqt',
+      'tqqqqqqqqqqqqqqt',
+      'tqkqqqqqqqqqqkqt',
+      'tqqqqqqqqqqqqqqt',
+      'tqqqqqqDqqqqqqqt',
+      'tttttttttttttttt',
+    ],
+    npcs: [
+      { id: 'veg_owner', sprite: 'owner', x: 3, y: 2, counter: true },
+      { id: 'tteok_owner', sprite: 'parent', x: 12, y: 2, counter: true },
+    ],
+    counter: { x: 3, y: 4 }, counters: [{ x: 3, y: 4 }, { x: 12, y: 4 }],
     spawn: { x: 7, y: 6 },
     door: { x: 7, y: 7 },
   };

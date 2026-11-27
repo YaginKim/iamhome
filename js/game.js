@@ -1,12 +1,12 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
-import { loadData, itemsFor, won, LEVELS } from './data.js?v=202611270527';
-import { playBgm, getVolume, setVolume } from './bgm.js?v=202611270527';
-import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611270527';
-import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, loadBuildingManifest } from './engine.js?v=202611270527';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611270527';
-import { pay, tokenPay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611270527';
-import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611270527';
-import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611270527';
+import { loadData, itemsFor, won, LEVELS } from './data.js?v=202611271129';
+import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271129';
+import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271129';
+import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, martMap, hairshopMap, moeMap, eduOfficeMap, marketMap, loadBuildingManifest } from './engine.js?v=202611271129';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271129';
+import { pay, tokenPay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271129';
+import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271129';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271129';
 
 const $ = s => document.querySelector(s);
 let D, S, world;
@@ -24,9 +24,22 @@ async function boot() {
   setBookHandler(openBook);
   touchLayout();
   await loadBuildingManifest();
+  // 방 미리 보기: 주소 끝에 ?room=mart 처럼 붙이면 그 방만 띄워서 걸어 볼 수 있어요 (게임 진행과 무관)
+  const preview = ROOM_PREVIEW[new URLSearchParams(location.search).get('room')];
+  if (preview) {
+    world.onArrive = () => {}; world.onStep = () => {};
+    await world.load(preview());
+    world.frozen = false;
+    return;
+  }
   await world.load(townMap(null, ['home', 'school', 'snackbar', 'convenience', 'hairshop', 'market', 'bank', 'mart', 'edu_office', 'moe']), { x: 17, y: 9 });
   titleScreen();
 }
+
+const ROOM_PREVIEW = {
+  home: homeMap, snackbar: shopMap, bank: bankMap, classroom: classroomMap, gym: gymMap, field: fieldMap,
+  convenience: convenienceMap, mart: martMap, hairshop: hairshopMap, moe: moeMap, edu_office: eduOfficeMap, market: marketMap,
+};
 
 function persist() { save(S); }
 // 휴대폰·패드: 세로로 들고 있으면 게임 화면을 90도 돌려 출력하고, 오른쪽 아래에 방향키를 보여 줘요 (PC는 그대로)
