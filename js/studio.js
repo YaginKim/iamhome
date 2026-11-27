@@ -1,11 +1,13 @@
 // 대사 녹음하기 (선생님): 대사를 하나씩 보여 주고, 연결된 마이크로 녹음해요.
 // 녹음은 먼저 이 기기에 저장되고, 「사이트에 올리기」를 하면 모든 기기에서 들려요.
-import { el, notify } from './ui.js?v=202611271812';
-import { keys, getClip, putClip, delClip, recMime } from './recordings.js?v=202611271812';
-import { ghToken, setGhToken, checkToken, pending, publish, exportClips, markDeleted, unmarkDeleted, ghErrText } from './publish.js?v=202611271812';
-import { stop as stopVoice, sayTTS } from './voice.js?v=202611271812';
+import { el, notify } from './ui.js?v=202611271826';
+import { keys, getClip, putClip, delClip, recMime } from './recordings.js?v=202611271826';
+import { ghToken, setGhToken, checkToken, pending, publish, exportClips, markDeleted, unmarkDeleted, isDeleted, ghErrText } from './publish.js?v=202611271826';
+import { stop as stopVoice, sayTTS, siteFile, setSiteFiles } from './voice.js?v=202611271826';
 
 const MAX_SEC = 20;
+// 녹음이 있는지: 이 기기에서 녹음했거나, 사이트에 올라가 있으면 (다른 기기에서 녹음해서 올린 것도)
+const hasRec = key => keys.has(key) || (!!siteFile(key) && !isDeleted(key));
 const MIC_KEY = 'dagyeo-mic-v1';
 let lines = null;
 
@@ -119,6 +121,7 @@ export async function openStudio({ sheet, back }) {
     pubBtn.disabled = true;
     try {
       const r = await publish((i, n) => { pubInfo.textContent = `올리는 중… ${i} / ${n}`; });
+      if (r.manifest) setSiteFiles(r.manifest);
       pubInfo.textContent = `${r.added}개를 올렸어요${r.removed ? `, ${r.removed}개를 지웠어요` : ''}. 1~2분 뒤 모든 기기에서 들려요.`;
       notify('녹음을 사이트에 올렸어요.');
     } catch (e) {
@@ -132,12 +135,12 @@ export async function openStudio({ sheet, back }) {
 
   if (mime === null || !navigator.mediaDevices?.getUserMedia) warnNote.textContent = '이 브라우저는 녹음을 지원하지 않아요. 크롬이나 사파리 최신 버전에서 해 주세요.';
 
-  const list = () => all.filter(l => (cat === '전체' || l.cat === cat) && (who === '전체' || l.who === who) && (!onlyTodo || !keys.has(l.key)));
+  const list = () => all.filter(l => (cat === '전체' || l.cat === cat) && (who === '전체' || l.who === who) && (!onlyTodo || !hasRec(l.key)));
   function fillWhos() {
     whoSel.innerHTML = '';
     for (const w of ['전체', ...whos]) {
       const n = all.filter(l => w === '전체' || l.who === w);
-      const o = el('option', null, `${w} (${n.filter(l => keys.has(l.key)).length}/${n.length})`);
+      const o = el('option', null, `${w} (${n.filter(l => hasRec(l.key)).length}/${n.length})`);
       o.value = w; o.selected = w === who; whoSel.append(o);
     }
   }
@@ -145,7 +148,7 @@ export async function openStudio({ sheet, back }) {
     catSel.innerHTML = '';
     for (const c of ['전체', ...cats]) {
       const n = all.filter(l => c === '전체' || l.cat === c);
-      const o = el('option', null, `${c.replace(/^\d+\.\s*/, '')} (${n.filter(l => keys.has(l.key)).length}/${n.length})`);
+      const o = el('option', null, `${c.replace(/^\d+\.\s*/, '')} (${n.filter(l => hasRec(l.key)).length}/${n.length})`);
       o.value = c; o.selected = c === cat; catSel.append(o);
     }
   }
@@ -165,7 +168,7 @@ export async function openStudio({ sheet, back }) {
     const L = list();
     if (idx >= L.length) idx = Math.max(0, L.length - 1);
     const l = L[idx];
-    const done = all.filter(x => keys.has(x.key)).length;
+    const done = all.filter(x => hasRec(x.key)).length;
     progress.textContent = `녹음한 대사 ${done} / ${all.length}` + (L.length ? ` · 지금 ${idx + 1} / ${L.length}번째` : '');
     if (!l) {
       meta.textContent = ''; text.textContent = onlyTodo ? '이 분류는 모두 녹음했어요!' : '대사가 없어요.'; state.textContent = '';
@@ -175,7 +178,7 @@ export async function openStudio({ sheet, back }) {
     meta.innerHTML = '';
     meta.append(el('span', 'studio-no', `${l.no}`), el('span', 'studio-who', l.who), el('span', 'studio-cat', l.cat.replace(/^\d+\.\s*/, '')));
     text.textContent = l.text;
-    const has = keys.has(l.key);
+    const has = hasRec(l.key);
     const recording = !!rec;
     const choosing = !!draft && draft.key === l.key;
     choice.hidden = !choosing;
@@ -245,7 +248,7 @@ export async function openStudio({ sheet, back }) {
     const blob = new Blob(chunks, { type: rec.mimeType || mime || 'audio/webm' });
     rec = null;
     if (blob.size < 2000) { state.textContent = '너무 짧아요. 다시 녹음해 주세요.'; draw(); return; }
-    if (keys.has(l.key)) { // 이미 녹음이 있으면 바로 바꾸지 않고 고르게 해요
+    if (hasRec(l.key)) { // 이미 녹음이 있으면 바로 바꾸지 않고 고르게 해요
       draft = { key: l.key, blob };
       draw(); playBlob(blob);
       return;
@@ -266,7 +269,10 @@ export async function openStudio({ sheet, back }) {
     if (rec && rec.state !== 'inactive') rec.stop();
   }
   async function playClip(key) {
-    const c = await getClip(key); if (c) playBlob(c.blob);
+    const c = await getClip(key);
+    if (c) return playBlob(c.blob);
+    const f = siteFile(key); // 이 기기에는 없고 사이트에만 있는 녹음
+    if (f) { stopVoice(); player?.pause(); player = new Audio(`voice/${f}`); player.play().catch(() => {}); }
   }
   function playBlob(blob) {
     stopVoice();
@@ -286,8 +292,9 @@ export async function openStudio({ sheet, back }) {
   delBtn.onclick = async () => {
     const l = list()[idx];
     if (!confirm('이 대사의 녹음을 지울까요? 기계 음성으로 돌아가요.')) return;
-    await delClip(l.key);
-    markDeleted(l.key);
+    const c = await getClip(l.key);
+    if (c) await delClip(l.key);
+    if (siteFile(l.key) || c?.publishedAt) markDeleted(l.key);
     fillCats(); fillWhos(); draw(); refreshPub();
   };
   const go = async d => {

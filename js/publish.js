@@ -1,7 +1,7 @@
 // 녹음을 사이트에 올리기: 선생님 기기에서 녹음한 파일을 GitHub 저장소의 voice 폴더에 바로 올려요.
 // 올리고 1~2분 뒤(사이트 배포가 끝나면) 사이트에 들어오는 모든 기기에서 녹음으로 들려요.
 // GitHub 열쇠(토큰)는 이 기기의 브라우저에만 저장하고, GitHub 말고는 어디에도 보내지 않아요.
-import { allClips, putClip, blobToB64 } from './recordings.js?v=202611271812';
+import { allClips, putClip, blobToB64 } from './recordings.js?v=202611271826';
 
 const REPO = 'YaginKim/iamhome', BRANCH = 'main', API = 'https://api.github.com';
 const TOKEN_KEY = 'dagyeo-gh-v1', DEL_KEY = 'dagyeo-voice-del-v1';
@@ -12,6 +12,7 @@ export function setGhToken(t) { try { if (t) localStorage.setItem(TOKEN_KEY, t.t
 // 지운 녹음은 다음에 올릴 때 사이트에서도 지워요
 const delList = () => { try { return JSON.parse(localStorage.getItem(DEL_KEY)) || []; } catch { return []; } };
 export function markDeleted(key) { const l = delList(); if (!l.includes(key)) l.push(key); try { localStorage.setItem(DEL_KEY, JSON.stringify(l)); } catch { /* */ } }
+export const isDeleted = key => delList().includes(key);
 export function unmarkDeleted(key) { try { localStorage.setItem(DEL_KEY, JSON.stringify(delList().filter(k => k !== key))); } catch { /* */ } }
 
 async function gh(path, opts = {}, token = ghToken()) {
@@ -96,7 +97,7 @@ export async function publish(onProgress = () => {}) {
   }
   for (const c of changed) await putClip(c.key, c.blob, c.updated, true, c.updated);
   try { localStorage.removeItem(DEL_KEY); } catch { /* */ }
-  return { added: changed.length, removed };
+  return { added: changed.length, removed, manifest: sorted };
 }
 
 // 열쇠 없이: 녹음을 파일 하나로 내보내기 (Claude에게 주면 사이트에 넣어 줘요)
