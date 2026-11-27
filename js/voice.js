@@ -1,7 +1,9 @@
-import { duckBgm } from './bgm.js?v=202611271713';
+import { keys as myClips, getClip, initRecordings } from './recordings.js?v=202611271736';
+import { duckBgm } from './bgm.js?v=202611271736';
 
 // 음성: voice/manifest.json에 적힌 녹음 파일이 있으면 그 파일을, 없으면 브라우저 TTS를 씁니다.
-// 녹음으로 바꾸는 법: voice/대사ID.mp3 파일을 넣고 manifest.json 목록에 대사 ID를 추가하세요.
+// 녹음 파일 이름은 대사 글자로 정해져요 (voiceKey). 대본: docs/대사-녹음-대본.xlsx, 방법: voice/README.md
+// 예전 방식(voice/대사ID.mp3)도 그대로 됩니다.
 let recorded = new Set();
 let current = null;
 let enabled = true;
@@ -11,6 +13,7 @@ export async function initVoice() {
     const list = await fetch('voice/manifest.json').then(r => r.json());
     recorded = new Set(list);
   } catch { recorded = new Set(); }
+  await initRecordings();
   if ('speechSynthesis' in window) speechSynthesis.getVoices();
 }
 
@@ -18,22 +21,50 @@ export function setVoiceEnabled(on) { enabled = on; if (!on) stop(); }
 export function voiceEnabled() { return enabled; }
 
 export function stop() {
+  sayToken++;
   if (current) { current.pause(); current = null; }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
 }
 
+// 대사 글자 → 녹음 파일 이름 (tools/voice_script.py 와 같은 계산: 공백 정리 후 FNV-1a 32비트)
+export function voiceKey(text) {
+  const t = String(text).trim().replace(/\s+/g, ' ');
+  let h = 0x811c9dc5;
+  for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return 'v' + h.toString(16).padStart(8, '0');
+}
+
+let sayToken = 0;
+function playUrl(url, text, onEnd) {
+  current = new Audio(url);
+  current.onplay = () => duckBgm(true);
+  current.onended = current.onpause = () => { duckBgm(false); onEnd?.(); };
+  current.play().catch(() => { onEnd?.(); speakTTS(text); });
+}
+
 export function say(text, id) {
   if (!enabled || !text) return;
+  window.__said?.push(text); // 자동 점검용
   stop();
-  if (id && recorded.has(id)) {
-    current = new Audio(`voice/${id}.mp3`);
-    current.onplay = () => duckBgm(true);
-    current.onended = current.onpause = () => duckBgm(false);
-    current.play().catch(() => speakTTS(text));
+  const key = voiceKey(text);
+  // 1) 선생님이 게임에서 녹음한 것 2) voice 폴더의 파일 3) 기계 음성(TTS)
+  if (myClips.has(key)) {
+    const my = ++sayToken;
+    getClip(key).then(c => {
+      if (my !== sayToken) return; // 그 사이에 다른 대사가 시작됨
+      if (!c) return speakTTS(text);
+      const url = URL.createObjectURL(c.blob);
+      playUrl(url, text, () => URL.revokeObjectURL(url));
+    });
     return;
   }
+  const file = id && recorded.has(id) ? id : recorded.has(key) ? key : null;
+  if (file) { playUrl(`voice/${file}.mp3`, text); return; }
   speakTTS(text);
 }
+
+// 녹음 화면에서 기계 음성과 비교해 들을 때
+export function sayTTS(text) { stop(); speakTTS(text); }
 
 function speakTTS(text) {
   if (!('speechSynthesis' in window)) return;

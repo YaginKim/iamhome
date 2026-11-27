@@ -1,13 +1,14 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
-import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271713';
-import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271713';
-import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271713';
-import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271713';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271713';
-import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271713';
-import { syncOn, syncCfg, setSyncCfg, cloudSave, cloudLoad, cloudList, cloudDelete, cloudPing, errText, linkFor, readLinkHash, status as syncStatus } from './sync.js?v=202611271713';
-import { newState, load, save, wipe, lastSlot, setLastSlot, listSlots, slotId, slotLabel, teacherPin, setTeacherPin, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271713';
-import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271713';
+import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271736';
+import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271736';
+import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271736';
+import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271736';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271736';
+import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271736';
+import { openStudio, pullVoices } from './studio.js?v=202611271736';
+import { syncOn, syncCfg, setSyncCfg, cloudSave, cloudLoad, cloudList, cloudDelete, cloudPing, errText, linkFor, readLinkHash, status as syncStatus } from './sync.js?v=202611271736';
+import { newState, load, save, wipe, lastSlot, setLastSlot, listSlots, slotId, slotLabel, teacherPin, setTeacherPin, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271736';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271736';
 
 const $ = s => document.querySelector(s);
 // 받침에 따라 조사 고르기: josa('우유', '은', '는') → '우유는'
@@ -45,6 +46,7 @@ async function boot() {
   await world.load(townMap(null, ['home', 'school', 'snackbar', 'convenience', 'hairshop', 'market', 'bank', 'mart', 'edu_office', 'moe']), { x: 17, y: 9 });
   titleScreen();
   if (linked) notify('구글 시트에 연결했어요. 이제 이 기기에서도 이어서 할 수 있어요.');
+  pullVoices(); // 다른 기기에서 녹음한 대사 받아 오기 (뒤에서 조용히)
 }
 
 const ROOM_PREVIEW = {
@@ -404,6 +406,7 @@ function teacherMenu() {
   };
   item('스테이지 골라서 하기', '원하는 곳부터 바로 해 봐요. 학생 기록과 따로 저장되고, 하루 횟수 제한이 없어요.', stagePickScreen);
   item('학생 기록', `이 기기에 저장된 학생 ${listSlots().length}명. 난이도, 진행 위치, 음성 설정을 바꿔요.`, studentsScreen);
+  item('대사 녹음하기', '대사를 하나씩 녹음해서 기계 음성 대신 선생님 목소리로 바꿔요. 여러 사람이 나눠서 녹음할 수 있어요.', () => openStudio({ sheet, back: teacherMenu }));
   item('기기 사이 저장', syncOn() ? '구글 시트에 연결돼 있어요. 다른 기기에서도 이어서 할 수 있어요.' : '연결 안 됨. 구글 시트에 연결하면 다른 기기에서도 이어서 할 수 있어요.', syncScreen);
   item('비밀번호 바꾸기', '이 기기의 선생님 비밀번호를 새로 정해요.', () => { setTeacherPin(''); teacherOK = false; teacherGate(teacherMenu); });
   sh.append(grid);
@@ -508,6 +511,7 @@ function syncScreen() {
       // 이 기기에만 있던 학생 기록도 올려요
       for (const id of listSlots()) if (id) cloudSave(load(id));
       msg.textContent = `연결됐어요. 시트에 학생 ${r.count}명의 기록이 있어요.`;
+      pullVoices();
       syncScreen();
       notify('구글 시트에 연결했어요.');
     } catch (e) { msg.textContent = errText(e.message); test.disabled = false; }

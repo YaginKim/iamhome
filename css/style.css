@@ -667,3 +667,27 @@ body[data-map="poster"] .btn.primary:hover { background: #e85a5a; }
 .stamina.resting .bar i { animation: rest 1.2s ease-in-out infinite; }
 @keyframes rest { 50% { filter: brightness(1.35); } }
 @media (prefers-reduced-motion: reduce) { .stamina.resting .bar i { animation: none; } }
+
+/* 대사 녹음하기 */
+.studio-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 4px 18px; align-items: end; }
+.studio-top .toggle { margin: 0 0 18px; }
+.studio-select { font: inherit; width: 100%; min-height: 48px; padding: 8px 12px; border: 0; background: var(--card); margin: var(--px); box-sizing: border-box;
+  box-shadow: 0 -4px 0 var(--ink), 0 4px 0 var(--ink), -4px 0 0 var(--ink), 4px 0 0 var(--ink); }
+.studio-progress { margin: 4px 0 12px; }
+.studio-card { background: var(--card); padding: 18px 22px 20px; margin: var(--px) var(--px) 18px; display: grid; gap: 12px;
+  box-shadow: 0 -4px 0 var(--ink), 0 4px 0 var(--ink), -4px 0 0 var(--ink), 4px 0 0 var(--ink); }
+.studio-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; font-size: var(--step--1); color: var(--ink-soft); }
+.studio-no { font-family: var(--font-num); color: var(--ink); }
+.studio-who { font-family: var(--font-ui); color: var(--ink); background: var(--sun); padding: 2px 10px 4px; }
+.studio-line { font-family: var(--font-dialog); font-size: var(--step-2); line-height: 1.45; margin: 0; min-height: 3em; text-wrap: pretty; }
+.studio-meter { height: 14px; background: var(--paper); box-shadow: inset 0 0 0 3px var(--ink); overflow: hidden; }
+.studio-meter i { display: block; height: 100%; width: 0; background: #6cc070; transition: width 60ms linear; }
+.studio-meter.loud i { background: var(--tomato); }
+.studio-state { font-size: var(--step--1); color: var(--ink-soft); min-height: 1.4em; }
+.studio-state.has { color: #2f7a3a; }
+.studio-rec.on { background: var(--tomato); color: #fff; }
+.studio-choice { background: #fff3c4; padding: 14px 16px 16px; margin: 0 var(--px) 14px; text-align: center;
+  box-shadow: 0 -4px 0 var(--ink), 0 4px 0 var(--ink), -4px 0 0 var(--ink), 4px 0 0 var(--ink); }
+.studio-choice-q { margin: 0 0 8px; font-family: var(--font-ui); }
+.screen-sheet .row[hidden], .studio-choice[hidden] { display: none; }
+.studio-top .toggle span { white-space: nowrap; }
