@@ -19,6 +19,10 @@
 4. Permissions → **「+ Add permissions」** → **Contents** 체크 → 옆 권한을 **Read and write**로 (Metadata: Read-only는 저절로 붙어요)
 5. **Generate token** → `github_pat_`로 시작하는 열쇠를 복사해서 게임의 「GitHub 열쇠 넣기」에 붙여 넣어요.
 
+**지금 쓰는 열쇠 관리 페이지:** https://github.com/settings/personal-access-tokens/23789869
+- 만료 날짜와 권한을 볼 수 있어요. 열쇠 글자는 다시 보여 주지 않아요.
+- 열쇠를 잃어버렸거나 기간이 끝났으면 이 페이지의 **Regenerate token**으로 새 열쇠를 받아서 게임의 「GitHub 열쇠 바꾸기」에 넣어요.
+
 열쇠가 어려우면 **녹음 파일 내보내기**로 받은 파일을 Claude에게 주세요. 대신 올려 드려요.
 
 ## 대본

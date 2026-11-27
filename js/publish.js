@@ -1,7 +1,7 @@
 // 녹음을 사이트에 올리기: 선생님 기기에서 녹음한 파일을 GitHub 저장소의 voice 폴더에 바로 올려요.
 // 올리고 1~2분 뒤(사이트 배포가 끝나면) 사이트에 들어오는 모든 기기에서 녹음으로 들려요.
 // GitHub 열쇠(토큰)는 이 기기의 브라우저에만 저장하고, GitHub 말고는 어디에도 보내지 않아요.
-import { allClips, putClip, blobToB64 } from './recordings.js?v=202611271828';
+import { allClips, putClip, blobToB64 } from './recordings.js?v=202611271831';
 
 const REPO = 'YaginKim/iamhome', BRANCH = 'main', API = 'https://api.github.com';
 const TOKEN_KEY = 'dagyeo-gh-v1', DEL_KEY = 'dagyeo-voice-del-v1';

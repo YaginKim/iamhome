@@ -1,9 +1,9 @@
 // 대사 녹음하기 (선생님): 대사를 하나씩 보여 주고, 연결된 마이크로 녹음해요.
 // 녹음은 먼저 이 기기에 저장되고, 「사이트에 올리기」를 하면 모든 기기에서 들려요.
-import { el, notify } from './ui.js?v=202611271828';
-import { keys, getClip, putClip, delClip, recMime } from './recordings.js?v=202611271828';
-import { ghToken, setGhToken, checkToken, pending, publish, exportClips, markDeleted, unmarkDeleted, isDeleted, ghErrText } from './publish.js?v=202611271828';
-import { stop as stopVoice, sayTTS, siteFile, setSiteFiles } from './voice.js?v=202611271828';
+import { el, notify } from './ui.js?v=202611271831';
+import { keys, getClip, putClip, delClip, recMime } from './recordings.js?v=202611271831';
+import { ghToken, setGhToken, checkToken, pending, publish, exportClips, markDeleted, unmarkDeleted, isDeleted, ghErrText } from './publish.js?v=202611271831';
+import { stop as stopVoice, sayTTS, siteFile, setSiteFiles } from './voice.js?v=202611271831';
 
 const MAX_SEC = 20;
 // 녹음이 있는지: 이 기기에서 녹음했거나, 사이트에 올라가 있으면 (다른 기기에서 녹음해서 올린 것도)
@@ -102,6 +102,8 @@ export async function openStudio({ sheet, back }) {
     const f = el('div', 'field'); const lb = el('label', null, 'GitHub 열쇠'); const inp = el('input'); inp.type = 'password'; inp.id = 'gh-token'; lb.htmlFor = 'gh-token'; inp.autocomplete = 'off';
     f.append(lb, inp);
     const msg = el('p', 'note', '열쇠는 이 기기의 브라우저에만 저장돼요. 학생 기기에는 넣지 마세요.');
+    const manage = el('p', 'note'); const ma = el('a', null, '지금 쓰는 열쇠 관리 페이지'); ma.href = 'https://github.com/settings/personal-access-tokens/23789869'; ma.target = '_blank'; ma.rel = 'noopener';
+    manage.append('이미 만든 열쇠가 있으면 ', ma, '에서 만료 날짜를 보거나, 잃어버렸을 때 Regenerate token으로 새 열쇠를 받을 수 있어요.');
     const ok = el('button', 'btn primary', '열쇠 저장');
     const cancel = el('button', 'btn', '닫기');
     const r = el('div', 'row'); r.style.justifyContent = 'flex-start'; r.append(ok, cancel);
@@ -112,7 +114,7 @@ export async function openStudio({ sheet, back }) {
       catch (e) { msg.textContent = ghErrText(e.message); ok.disabled = false; }
     };
     cancel.onclick = () => { keyBox.hidden = true; };
-    keyBox.append(steps, f, msg, r);
+    keyBox.append(manage, steps, f, msg, r);
     setTimeout(() => inp.focus(), 50);
   }
   keyBtn.onclick = showKeyBox;
