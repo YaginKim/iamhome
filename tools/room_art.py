@@ -10,6 +10,7 @@ from PIL import Image
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / 'assets' / 'rooms'
+DRAFT = ROOT / 'docs' / 'room-drafts'   # 확인 전 초안 (게임에는 아직 안 씀)
 T = 16
 
 
@@ -1341,6 +1342,166 @@ def field():
     return cv
 
 
+
+# ======================================================================
+# [초안] 편의점 224x128 (14x8칸) — 배치 그림 기준, 칸 지도는 아직 게임에 없음
+#   0~1 벽 진열대(1~5, 9~12칸) + 음료 냉장고(6~8칸)
+#   3,5 진열대 섬 (2~3, 6~7칸)   5 키오스크(1,5), 계산대(9~11,5)
+#   점원 (10,4), 손님 자리 (10,6), 장바구니 (12,6), 문 (6,7)
+# ======================================================================
+PRODUCTS = ['#dc4646', '#f4c846', '#4278d2', '#6eb45a', '#ee8032', '#f6a0b4', '#8c64c8', '#96d2f0', '#f8f6f0']
+
+
+def products(cv, x, y, w, h, seed):
+    """진열대 한 칸에 물건 줄 세우기"""
+    i = x
+    k = seed
+    while i < x + w:
+        pw = 2 + (k * 7) % 3
+        pw = min(pw, x + w - i)
+        c = PRODUCTS[(k * 5 + seed) % len(PRODUCTS)]
+        ph = h - (k % 2)
+        cv.rect(i, y + h - ph, pw, ph, c)
+        cv.p(i, y + h - ph, '#ffffff' if c != '#f8f6f0' else '#dcdcd4')
+        i += pw + (1 if k % 4 == 0 else 0)
+        k += 1
+
+
+def convenience():
+    cv = Canvas(224, 128)
+    MINT, MINT2 = '#7cc4c8', '#5aa6ac'
+    # ---------- 바닥: 흰 타일 ----------
+    F1, F2, FG = '#f2f2ee', '#e8e8e2', '#d4d4cc'
+    for ty in range(2, 7):
+        for tx in range(1, 13):
+            x0, y0 = tx * T, ty * T
+            cv.rect(x0, y0, T, T, F1 if (tx + ty) % 2 == 0 else F2)
+            cv.hline(x0, y0, T, FG); cv.vline(x0, y0, T, FG)
+            cv.p(x0 + 2, y0 + 2, '#ffffff'); cv.p(x0 + 3, y0 + 2, '#ffffff')
+    # 형광등 반사 (바닥에 비친 길쭉한 빛)
+    for x in (40, 112, 184):
+        for j in range(36, 108, 24):
+            cv.hline(x - 6, j, 12, '#ffffff'); cv.hline(x - 4, j + 1, 8, '#ffffff')
+
+    # ---------- 뒷벽: 흰 벽 + 민트 띠 ----------
+    cv.rect(16, 0, 192, 32, '#f8f8f4')
+    cv.rect(16, 0, 192, 1, K)
+    cv.rect(16, 1, 192, 2, MINT); cv.hline(16, 3, 192, MINT2)
+
+    # 벽 진열대 (1~5칸, 9~12칸)
+    def wall_shelf(x0, x1, seed):
+        cv.rect(x0, 4, x1 - x0, 28, K)
+        cv.rect(x0 + 1, 5, x1 - x0 - 2, 26, '#e6e2d8')
+        for k, sy in enumerate((6, 13, 20)):
+            products(cv, x0 + 2, sy, x1 - x0 - 4, 5, seed + k * 3)
+            cv.rect(x0 + 1, sy + 5, x1 - x0 - 2, 2, '#f8f6f0')        # 선반 + 가격표 줄
+            cv.hline(x0 + 1, sy + 6, x1 - x0 - 2, '#c8c4b8')
+            for px in range(x0 + 4, x1 - 3, 9):
+                cv.p(px, sy + 5, '#f4c846')
+        cv.rect(x0 + 1, 27, x1 - x0 - 2, 4, '#dcd8cc')                 # 아래 받침
+        cv.hline(x0 + 1, 27, x1 - x0 - 2, '#c8c4b8')
+        cv.hline(x0, 31, x1 - x0, K)
+    wall_shelf(16, 96, 1)
+    wall_shelf(144, 208, 4)
+
+    # 음료 냉장고 (6~8칸) + 24 간판
+    cv.rect(96, 1, 48, 31, K)
+    cv.rect(97, 2, 46, 3, '#6eb45a'); cv.hline(97, 2, 46, '#a8e0a0')
+    cv.rect(97, 5, 46, 6, '#f8f6f0')
+    text(cv, 100, 6, '24', '#dc4646')
+    cv.rect(110, 7, 18, 3, '#6eb45a')
+    for k in range(3):
+        dx = 97 + k * 16
+        cv.rect(dx, 11, 15, 20, '#bfe4f4')
+        cv.vline(dx + 15, 11, 20, K)
+        for row, by in enumerate((12, 18, 24)):
+            for b in range(4):
+                c = PRODUCTS[(k * 4 + b + row * 2) % 7]
+                bx = dx + 1 + b * 3 + (row % 2)
+                cv.rect(bx, by + 1, 2, 4, c); cv.p(bx, by, '#ccd0d8')
+            cv.hline(dx, by + 5, 15, '#8cbcd4')
+        cv.vline(dx + 1, 11, 20, '#e8f6fe')
+        cv.rect(dx + 12, 18, 1, 5, '#8c92a0')                           # 손잡이
+    cv.blend(97, 11, 46, 20, '#ffffff', 0.12)
+    cv.hline(96, 31, 48, K)
+
+    # ---------- 진열대 섬 (2~3, 6~7칸 / 3·5줄) ----------
+    def island(tx, ty, seed):
+        x, y, w = tx * T, ty * T, 32
+        cv.blend(x + 2, y + 15, w, 2, K, 0.2)
+        cv.rect(x, y, w, 15, K)
+        cv.rect(x + 1, y + 1, w - 2, 2, '#f8f6f0')                     # 위 덮개
+        products(cv, x + 2, y + 3, w - 4, 4, seed)
+        cv.rect(x + 1, y + 7, w - 2, 1, '#c8c4b8')
+        products(cv, x + 2, y + 8, w - 4, 4, seed + 5)
+        cv.rect(x + 1, y + 12, w - 2, 2, '#dcd8cc')
+        cv.p(x + 5, y + 7, '#f4c846'); cv.p(x + 16, y + 7, '#f4c846'); cv.p(x + 26, y + 7, '#f4c846')
+    island(2, 3, 2); island(6, 3, 7); island(2, 5, 11); island(6, 5, 3)
+
+    # ---------- 키오스크 (1,5) ----------
+    kx, ky = 18, 66
+    cv.blend(kx, ky + 28, 13, 2, K, 0.25)
+    cv.box(kx, ky, 12, 30, '#f8f6f0')
+    cv.box(kx + 1, ky + 2, 10, 12, '#2a2a36')
+    cv.rect(kx + 2, ky + 3, 8, 10, '#4278d2')
+    cv.rect(kx + 3, ky + 4, 6, 2, '#96d2f0'); cv.rect(kx + 3, ky + 7, 2, 2, '#f4c846'); cv.rect(kx + 6, ky + 7, 2, 2, '#f6a0b4'); cv.rect(kx + 3, ky + 10, 5, 1, '#f8f6f0')
+    cv.rect(kx + 3, ky + 16, 6, 1, K); cv.rect(kx + 4, ky + 18, 4, 2, '#8c92a0')   # 카드 넣는 곳
+    cv.rect(kx + 1, ky + 22, 10, 7, MINT); cv.hline(kx + 1, ky + 22, 10, '#a8dcdc')
+
+    # ---------- 계산대 (9~11, 5) ----------
+    x0, y0, w = 144, 80, 48
+    cv.blend(x0, y0 + 15, w, 2, K, 0.22)
+    cv.rect(x0, y0, w, 15, K)
+    cv.rect(x0 + 1, y0 + 1, w - 2, 5, MINT); cv.hline(x0 + 1, y0 + 1, w - 2, '#a8dcdc')
+    cv.hline(x0 + 1, y0 + 5, w - 2, MINT2)
+    cv.rect(x0 + 1, y0 + 6, w - 2, 8, '#f8f6f0'); cv.hline(x0 + 1, y0 + 6, w - 2, '#ffffff')
+    cv.vline(x0 + 16, y0 + 7, 7, '#dcdcd4'); cv.vline(x0 + 32, y0 + 7, 7, '#dcdcd4')
+    cv.rect(x0 + 1, y0 + 12, w - 2, 2, '#6eb45a')
+    # 따뜻한 간식 진열장 (왼쪽)
+    cv.box(x0 + 2, y0 - 8, 13, 11, '#ccd0d8')
+    cv.rect(x0 + 3, y0 - 7, 11, 9, '#fff0c8')
+    cv.hline(x0 + 3, y0 - 3, 11, '#9aa2b4')
+    cv.rect(x0 + 4, y0 - 6, 3, 2, '#e0a848'); cv.rect(x0 + 8, y0 - 6, 4, 2, '#c48e28'); cv.rect(x0 + 4, y0 - 2, 4, 2, '#dc4646'); cv.rect(x0 + 9, y0 - 2, 3, 2, '#e0a848')
+    cv.p(x0 + 4, y0 - 7, '#ffffff')
+    # 계산기(POS) — 점원 앞
+    cv.box(x0 + 21, y0 - 7, 10, 7, '#3a3a48')
+    cv.rect(x0 + 22, y0 - 6, 8, 5, '#96d2f0'); cv.hline(x0 + 23, y0 - 4, 5, '#4278d2')
+    cv.rect(x0 + 24, y0, 4, 2, '#3a3a48')
+    cv.box(x0 + 18, y0 + 1, 4, 3, '#4a4e60')                            # 카드 단말기
+    # 사탕·껌 진열 (오른쪽)
+    cv.box(x0 + 35, y0 - 5, 11, 8, '#f8f6f0')
+    products(cv, x0 + 36, y0 - 4, 9, 2, 6); products(cv, x0 + 36, y0, 9, 2, 2)
+    cv.sprite(x0 + 41, y0 - 11, ['.kkk.', 'kcpck', 'kpcpk', '.kkk.', '.krk.', '.kkk.'], {'k': K, 'c': '#96d2f0', 'p': '#f6a0b4', 'r': '#dc4646'})  # 뽑기
+
+    # ---------- 장바구니 (12,6) ----------
+    bx, by = 194, 98
+    cv.blend(bx, by + 8, 12, 2, K, 0.2)
+    for k in range(3):
+        yy = by + 4 - k * 2
+        cv.rect(bx, yy, 11, 5, K); cv.rect(bx + 1, yy + 1, 9, 3, '#dc4646'); cv.hline(bx + 1, yy + 1, 9, '#f07878')
+    cv.sprite(bx + 1, by - 4, ['.kkkkkkk.', 'k.......k', 'k.......k'], {'k': K})   # 손잡이
+
+    # ---------- 옆벽·앞벽·자동문 ----------
+    CAP, CAP2 = '#eef0ec', '#b8c4c0'
+    for x in (12, 208):
+        cv.rect(x, 0, 4, 116, CAP)
+        cv.vline(x + (3 if x == 12 else 0), 0, 116, CAP2)
+    cv.vline(11, 0, 116, K); cv.vline(212, 0, 116, K)
+    cv.rect(12, 112, 200, 4, CAP); cv.hline(12, 112, 200, CAP2); cv.hline(12, 116, 200, K)
+    cv.rect(12, 117, 200, 11, K)
+    cv.blend(16, 108, 192, 4, K, 0.10)
+    cv.rect(96, 108, 16, 4, MINT)                                       # 입구 안내선
+    dx = 96
+    cv.rect(dx - 1, 112, 18, 16, K)
+    cv.rect(dx, 112, 16, 16, '#d8dcd8')
+    cv.rect(dx + 1, 113, 14, 14, '#5a6670')
+    for j in range(115, 126, 2):
+        cv.hline(dx + 2, j, 12, '#6e7a86')
+    cv.rect(dx - 3, 112, 3, 6, '#bfe4f4'); cv.rect(dx + 16, 112, 3, 6, '#bfe4f4')
+    cv.vline(dx - 3, 112, 6, K); cv.vline(dx + 18, 112, 6, K)
+    return cv
+
+
 if __name__ == '__main__':
     OUT.mkdir(parents=True, exist_ok=True)
     b = bank(); b.save(OUT / 'bank.png')
@@ -1350,3 +1511,6 @@ if __name__ == '__main__':
     sb = snackbar(); sb.save(OUT / 'snackbar.png')
     fd = field(); fd.save(OUT / 'field.png')
     print('saved', *[OUT / n for n in ('bank.png', 'classroom.png', 'gym.png', 'home.png', 'snackbar.png', 'field.png')])
+    DRAFT.mkdir(parents=True, exist_ok=True)
+    cs = convenience(); cs.save(DRAFT / 'convenience.png'); cs.save(DRAFT / 'convenience_x4.png', 4)
+    print('draft', DRAFT / 'convenience.png')
