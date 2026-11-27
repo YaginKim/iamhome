@@ -1,9 +1,9 @@
 // 위에서 내려다보는 지도: 타일 그리기, 이동(키보드·터치), 길찾기, 문·사람과 만나기
-import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611261357';
-import { sfx } from './voice.js?v=202611261357';
+import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611270337';
+import { sfx } from './voice.js?v=202611270337';
 
 export const T = 16;
-const BLOCK = new Set(['t', 'W', 'c', 'T', 'B', 'x', 'S', 'k', 'A']);
+const BLOCK = new Set(['t', 'W', 'c', 'T', 'B', 'x', 'S', 'k', 'A', 'U', 'H']);
 
 function hash(x, y) { return ((x * 73856093) ^ (y * 19349663)) >>> 0; }
 
@@ -60,6 +60,24 @@ function drawTile(ctx, ch, x, y) {
       break;
     case 'D': f('#e8c898', 0, 0, T, T); f('#a0643c', 2, 4, 12, 9); f('#c48e28', 3, 5, 10, 7); break; // 현관 매트
     case 'x': f('#22203a', 0, 0, T, T); break;
+    case 'a': // 운동장 모래
+      f('#e8d39a', 0, 0, T, T);
+      if (hv % 4 === 0) f('#d4bc7e', 3 + (hv % 7), 5 + (hv % 5), 1, 1);
+      if (hv % 9 === 0) f('#f4e6b8', 9, 11, 2, 1);
+      break;
+    case 'L': // 체육관 바닥
+      f('#e0a868', 0, 0, T, T); f('#c88c4c', 0, (y % 2) ? 7 : 15, T, 1);
+      if (x === 7) f('#f8f6f0', 0, 0, 2, T);
+      break;
+    case 'U': // 부스 천막
+      f(PAL.k, 0, 0, T, T);
+      for (let i = 0; i < 4; i++) f(i % 2 ? '#f8f6f0' : '#dc4646', i * 4, 1, 4, 10);
+      f('#962a2c', 0, 11, T, 2); f('#e8d39a', 0, 13, T, 3);
+      break;
+    case 'H': // 체육 도구 선반
+      f('#e0a868', 0, 0, T, T); f(PAL.k, 1, 1, 14, 14); f('#a0643c', 2, 2, 12, 12);
+      f('#ee8032', 3, 3, 4, 4); f('#f8f6f0', 9, 3, 4, 4); f('#dc4646', 3, 9, 4, 4); f('#4278d2', 9, 9, 4, 4);
+      break;
     default: f('#9fd27e', 0, 0, T, T);
   }
 }
@@ -459,7 +477,7 @@ export function shopMap() {
       'xqqqqqqqqqqqqx',
       'xxxxxxDxxxxxxx',
     ],
-    npcs: [{ id: 'owner', sprite: 'owner', x: 6, y: 2 }],
+    npcs: [{ id: 'owner', sprite: 'owner', x: 6, y: 2, counter: true }],
     counter: { x: 6, y: 4 },
     spawn: { x: 6, y: 6 },
     door: { x: 6, y: 7 },
@@ -479,9 +497,85 @@ export function bankMap() {
       'xqqqqqqqqqqqqx',
       'xxxxxxDxxxxxxx',
     ],
-    npcs: [{ id: 'teller', sprite: 'teller', x: 5, y: 2 }],
+    npcs: [{ id: 'teller', sprite: 'teller', x: 5, y: 2, counter: true }],
     counter: { x: 5, y: 4 }, atm: { x: 10, y: 3 },
     spawn: { x: 6, y: 6 },
     door: { x: 6, y: 7 },
+  };
+}
+
+// ---------- 학교 ----------
+export function classroomMap() {
+  return {
+    id: 'classroom', name: '교실',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xWWSSSSSWWWWWx',
+      'xffffffffffffx',
+      'xffffffffcccfx',
+      'xffTTffTTffffx',
+      'xffffffffffffx',
+      'xffTTffTTffffx',
+      'xffffffDfffffx',
+      'xxxxxxxxxxxxxx',
+    ],
+    npcs: [
+      { id: 'teacher', sprite: 'teacher', x: 5, y: 2 },
+      { id: 'clerk', sprite: 'clerk', x: 10, y: 2, counter: true },
+      { id: 'friend', sprite: 'friend', x: 2, y: 5 },
+    ],
+    counter: { x: 10, y: 4 },
+    spawn: { x: 7, y: 6 },
+    door: { x: 7, y: 7 },
+  };
+}
+
+export function gymMap() {
+  return {
+    id: 'gym', name: '체육관',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xWHHWWWWWWWWWx',
+      'xLLLLLLLLLLLLx',
+      'xLcccLLLLLLLLx',
+      'xLLLLLLLLLLLLx',
+      'xLLLLLLLLLLLLx',
+      'xLLLLLLLLLLLLx',
+      'xLLLLLLDLLLLLx',
+      'xxxxxxxxxxxxxx',
+    ],
+    npcs: [
+      { id: 'helper', sprite: 'helper', x: 3, y: 2, counter: true },
+      { id: 'teacher', sprite: 'teacher', x: 10, y: 3 },
+    ],
+    counter: { x: 3, y: 4 },
+    spawn: { x: 7, y: 6 },
+    door: { x: 7, y: 7 },
+  };
+}
+
+export function fieldMap() {
+  return {
+    id: 'field', name: '운동장',
+    tiles: [
+      'tttttttttttttttt',
+      'taaaaaaaaUUUUUat',
+      'taaaaaaaaaaaaaat',
+      'taaaaaaaaacccaat',
+      'taaaaaaaaaaaaaat',
+      'taagggggggggaaat',
+      'taagggggggggaaat',
+      'taagggggggggaaat',
+      'taaaaaaaaaaaaaat',
+      'taaaaaaaDaaaaaat',
+      'tttttttttttttttt',
+    ],
+    npcs: [
+      { id: 'parent', sprite: 'parent', x: 11, y: 2, counter: true },
+      { id: 'teacher', sprite: 'teacher', x: 4, y: 3 },
+    ],
+    counter: { x: 11, y: 4 },
+    spawn: { x: 8, y: 8 },
+    door: { x: 8, y: 9 },
   };
 }

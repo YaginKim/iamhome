@@ -15,35 +15,35 @@ home_towel,home,수건,,,,하,생활용품,
 home_socks,home,양말,,,,하,생활용품,
 home_shoebag,home,실내화 주머니,,,,하,생활용품,
 class_pencil,classroom,연필,1,토큰,,하,학용품,pencil
-class_eraser,classroom,지우개,1,토큰,,하,학용품,
-class_notebook,classroom,공책,2,토큰,,하,학용품,
-class_ruler,classroom,자,1,토큰,,하,학용품,
-class_scissors,classroom,가위,2,토큰,,중,학용품,
-class_glue,classroom,풀,1,토큰,,하,학용품,
-class_colorpencil,classroom,색연필,3,토큰,,중,학용품,
-class_crayon,classroom,크레파스,3,토큰,,중,학용품,
-class_pencilcase,classroom,필통,3,토큰,,중,학용품,
-class_sketchbook,classroom,스케치북,2,토큰,,중,학용품,
-class_slippers,classroom,실내화,3,토큰,,상,학용품,
+class_eraser,classroom,지우개,1,토큰,,하,학용품,eraser
+class_notebook,classroom,공책,2,토큰,,하,학용품,notebook
+class_ruler,classroom,자,1,토큰,,하,학용품,ruler
+class_scissors,classroom,가위,2,토큰,,중,학용품,scissors
+class_glue,classroom,풀,1,토큰,,하,학용품,glue
+class_colorpencil,classroom,색연필,3,토큰,,중,학용품,colorpencil
+class_crayon,classroom,크레파스,3,토큰,,중,학용품,crayon
+class_pencilcase,classroom,필통,3,토큰,,중,학용품,pencilcase
+class_sketchbook,classroom,스케치북,2,토큰,,중,학용품,sketchbook
+class_slippers,classroom,실내화,3,토큰,,상,학용품,slippers
 gym_basketball,gym,농구공,,대여카드,,하,체육 도구,basketball
-gym_volleyball,gym,배구공,,대여카드,,하,체육 도구,
-gym_dodgeball,gym,피구공,,대여카드,,하,체육 도구,
-gym_racket,gym,배드민턴 라켓,,대여카드,,중,체육 도구,
-gym_shuttlecock,gym,셔틀콕,,대여카드,,중,체육 도구,
-gym_hulahoop,gym,훌라후프,,대여카드,,하,체육 도구,
-gym_cone,gym,콘,,대여카드,,중,체육 도구,
-gym_whistle,gym,호루라기,,대여카드,,상,체육 도구,
-gym_jumprope,gym,줄넘기,,대여카드,,하,체육 도구,
-gym_uniform,gym,체육복,,대여카드,,중,체육 도구,
-gym_towel,gym,수건,,대여카드,,하,체육 도구,
-field_water,field,생수,500,현금|급식,10,하,먹거리,
-field_ionic,field,이온음료,1000,현금|급식,15,하,먹거리,
-field_icecream,field,아이스크림,1000,현금|급식,10,하,먹거리,
-field_cottoncandy,field,솜사탕,2000,현금|급식,10,중,먹거리,
-field_hotdog,field,핫도그,2500,현금|급식,25,중,먹거리,
-field_popcorn,field,팝콘,2000,현금|급식,15,중,먹거리,
-field_cap,field,모자,3000,현금,,중,응원 용품,
-field_headband,field,응원 머리띠,2000,현금,,중,응원 용품,
+gym_volleyball,gym,배구공,,대여카드,,하,체육 도구,volleyball
+gym_dodgeball,gym,피구공,,대여카드,,하,체육 도구,dodgeball
+gym_racket,gym,배드민턴 라켓,,대여카드,,중,체육 도구,racket
+gym_shuttlecock,gym,셔틀콕,,대여카드,,중,체육 도구,shuttlecock
+gym_hulahoop,gym,훌라후프,,대여카드,,하,체육 도구,hulahoop
+gym_cone,gym,콘,,대여카드,,중,체육 도구,cone
+gym_whistle,gym,호루라기,,대여카드,,상,체육 도구,whistle
+gym_jumprope,gym,줄넘기,,대여카드,,하,체육 도구,jumprope
+gym_uniform,gym,체육복,,대여카드,,중,체육 도구,uniform
+gym_towel,gym,수건,,대여카드,,하,체육 도구,towel
+field_water,field,생수,500,현금|급식,10,하,먹거리,water
+field_ionic,field,이온음료,1000,현금|급식,15,하,먹거리,ionic
+field_icecream,field,아이스크림,1000,현금|급식,10,하,먹거리,icecream
+field_cottoncandy,field,솜사탕,2000,현금|급식,10,중,먹거리,cottoncandy
+field_hotdog,field,핫도그,2500,현금|급식,25,중,먹거리,hotdog
+field_popcorn,field,팝콘,2000,현금|급식,15,중,먹거리,popcorn
+field_cap,field,모자,3000,현금,,중,응원 용품,cap
+field_headband,field,응원 머리띠,2000,현금,,중,응원 용품,headband
 field_jumprope,field,줄넘기,2000,현금,,중,응원 용품,jumprope
 snack_tteokbokki,snackbar,떡볶이,4000,현금|체크|급식,35,중,분식,tteokbokki
 snack_cuptteok,snackbar,컵떡볶이,2500,현금|체크|급식,25,중,분식,cuptteok

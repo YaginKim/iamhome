@@ -1,9 +1,9 @@
 // 계산대 결제, 거스름돈, 카드 단말기, 은행 입금, 꿈이든 카드 확인, 되돌아보기 화면
-import { moneyCanvas, cardCanvas, toImg, PEOPLE, itemCanvas, MONEY, iconCanvas } from './sprites.js?v=202611261357';
-import { el, panel, closePanel, warn, line, flashHud } from './ui.js?v=202611261357';
-import { say, sfx } from './voice.js?v=202611261357';
-import { cashTotal, breakDown, exactFromWallet, fewestPieces, removePieces, addPieces } from './state.js?v=202611261357';
-import { won } from './data.js?v=202611261357';
+import { moneyCanvas, cardCanvas, toImg, PEOPLE, itemCanvas, MONEY, iconCanvas, tokenCanvas } from './sprites.js?v=202611270337';
+import { el, panel, closePanel, warn, line, flashHud } from './ui.js?v=202611270337';
+import { say, sfx } from './voice.js?v=202611270337';
+import { cashTotal, breakDown, exactFromWallet, fewestPieces, removePieces, addPieces } from './state.js?v=202611270337';
+import { won } from './data.js?v=202611270337';
 
 const MONEY_NAME = { 10: '십 원', 50: '오십 원', 100: '백 원', 500: '오백 원', 1000: '천 원', 5000: '오천 원', 10000: '만 원', 50000: '오만 원' };
 const money = (v, s = 3) => toImg(moneyCanvas(v), s, MONEY_NAME[v]);
@@ -571,16 +571,16 @@ function keypadText(area, prompt, answer) {
 }
 
 // ---------- 되돌아보기 (1인칭) ----------
-export function review(questions, level) {
+export function review(questions, level, who = 'owner', place = '분식점') {
   return new Promise(async res => {
     const m = panel('review');
     const scene = el('div', 'fp-scene');
     const wall = el('div', 'fp-wall');
     const board = el('div', 'fp-board');
-    board.append(el('span', null, '분식점'));
-    const who = el('div', 'fp-owner'); who.append(toImg(PEOPLE.owner()[0], 12, '사장님'));
+    board.append(el('span', null, place));
+    const face = el('div', 'fp-owner'); face.append(toImg(PEOPLE[who]()[0], 12, ''));
     const counter = el('div', 'fp-counter');
-    scene.append(wall, board, who, counter);
+    scene.append(wall, board, face, counter);
     const q = el('div', 'fp-q');
     m.append(scene, q);
     let score = 0;
@@ -616,3 +616,60 @@ export function review(questions, level) {
 
 export function itemImg(item, s = 4) { return toImg(itemCanvas(item.sprite, item), s, item.name); }
 export { money, MONEY_NAME, shuffle, iconCanvas };
+
+// ---------- 학급 토큰으로 내기 (교실) ----------
+// ctx: { state, config, total, who, mistake() }
+export function tokenPay(ctx) {
+  const { state, config, total } = ctx;
+  const L = config.levels[state.level];
+  let tray = 0;
+  return new Promise(resolve => {
+    const m = panel('pay');
+    const top = el('div', 'pay-top');
+    const owner = el('div', 'pay-owner');
+    const talkBox = el('div', 'owner-line');
+    owner.append(toImg(PEOPLE[ctx.who || 'clerk']()[0], 4, ''), talkBox);
+    const head = el('div', 'pay-head');
+    const due = el('div', 'due'); due.append(el('span', null, '내야 할 토큰'), el('b', null, `${total}개`));
+    const paid = el('div', 'paid');
+    head.append(due); if (L.pay.showRunningTotal) head.append(paid);
+    top.append(owner, head);
+    const trayEl = el('div', 'tray');
+    const bottom = el('div', 'pay-bottom');
+    const wallet = el('div', 'wallet');
+    bottom.append(el('h3', null, '내 토큰'), wallet);
+    const done = el('button', 'btn primary big pay-done', '다 냈어요');
+    m.append(top, trayEl, bottom, done);
+    const tok = s2 => toImg(tokenCanvas(), s2, '토큰');
+    function draw() {
+      trayEl.innerHTML = '';
+      for (let i = 0; i < tray; i++) {
+        const b = el('button', 'tray-piece'); b.append(tok(4));
+        b.setAttribute('aria-label', '토큰 돌려받기');
+        b.onclick = () => { tray--; draw(); };
+        trayEl.append(b);
+      }
+      if (L.pay.showSilhouette) for (let i = tray; i < total; i++) { const g = el('span', 'ghost'); g.append(tok(4)); trayEl.append(g); }
+      if (!tray && !L.pay.showSilhouette) trayEl.append(el('span', 'tray-hint', '토큰을 눌러 장터 책상에 올려요'));
+      paid.innerHTML = ''; paid.append(el('span', null, '낸 토큰'), el('b', null, `${tray}개`));
+      wallet.innerHTML = '';
+      const b = el('button', 'money-btn');
+      const left = (state.tokens || 0) - tray;
+      b.append(tok(4), el('span', 'count', String(left)));
+      b.setAttribute('aria-label', `토큰 ${left}개`);
+      b.disabled = left <= 0;
+      b.onclick = () => { tray++; sfx('coin'); say(`${tray}개`); draw(); };
+      wallet.append(b);
+    }
+    done.onclick = () => {
+      if (tray < total) { ownerSays(talkBox, `토큰이 ${total - tray}개 모자라.`); ctx.mistake?.('underpay'); return; }
+      if (tray > total) { ownerSays(talkBox, `토큰이 ${tray - total}개 많아. 다시 세어 볼래?`); ctx.mistake?.('overpay'); return; }
+      state.tokens -= tray;
+      sfx('ok');
+      closePanel();
+      resolve(tray);
+    };
+    draw();
+    ownerSays(talkBox, ctx.ownerLine || `토큰 ${total}개야.`);
+  });
+}

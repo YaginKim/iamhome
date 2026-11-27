@@ -1,8 +1,8 @@
 // 화면 위에 얹는 UI: 상단 정보(HUD), 대화창, 선택지, 경고 팝업, 알림
-import { iconCanvas, toImg, PEOPLE, cardCanvas } from './sprites.js?v=202611261357';
-import { say, sfx } from './voice.js?v=202611261357';
-import { cashTotal } from './state.js?v=202611261357';
-import { won } from './data.js?v=202611261357';
+import { iconCanvas, toImg, PEOPLE, cardCanvas, tokenCanvas } from './sprites.js?v=202611270337';
+import { say, sfx } from './voice.js?v=202611270337';
+import { cashTotal } from './state.js?v=202611270337';
+import { won } from './data.js?v=202611270337';
 
 const $ = s => document.querySelector(s);
 export const el = (tag, cls, text) => {
@@ -29,7 +29,7 @@ function captioned(icons, caption) {
   return box;
 }
 
-export function renderHud(state, config, place, lives) {
+export function renderHud(state, config, place, lives, extra) {
   const left = $('#hud-left');
   left.innerHTML = '';
   if (place) left.append(el('div', 'place', place));
@@ -73,6 +73,13 @@ export function renderHud(state, config, place, lives) {
   row('cash', '현금', cashTotal(state.cash), 'cash');
   row('bank', '계좌', state.account, 'account');
   if (state.hasMealCard && config.mealCard.showFromLevel.includes(state.level)) row('meal', '급식카드', state.meal, 'meal');
+  // 교실에서는 학급 토큰도 보여 줘요
+  if (extra?.tokens != null) {
+    const r = el('div', 'money-row'); r.dataset.key = 'token';
+    r.setAttribute('aria-label', `학급 토큰 ${extra.tokens}개`);
+    r.append(captioned([toImg(tokenCanvas(), 2)], '토큰'), el('b', 'value', `${extra.tokens}개`));
+    right.append(r);
+  }
 }
 
 export function flashHud(key) {
@@ -100,7 +107,7 @@ function portrait(who) {
   return toImg(PORTRAITS[who], 4, '');
 }
 
-const NAMES = { mom: '엄마', owner: '분식점 사장님', teller: '은행 직원', player: '나' };
+const NAMES = { mom: '엄마', owner: '분식점 사장님', teller: '은행 직원', player: '나', teacher: '선생님', clerk: '반장', helper: '체육 도우미', parent: '운동회 부스 도우미', friend: '짝꿍' };
 
 function openDialog(who, text, voiceId) {
   const d = $('#dialog');
