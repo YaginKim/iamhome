@@ -15,7 +15,7 @@
 ```
  0 xxxxxxxxxxxxxxxx
  1 xSSSSSSSSSSSSSSx   벽: 음료 냉장고 · MART 간판과 유제품 진열대 · 벽 선반
- 2 xmmmmmmmmmmmmmmx   구역 표지판은 머리 위에 매달려 있어 걸을 수 있음
+ 2 xmmmmmmmmmmmmmmx
  3 xmGGmmGGmmPPmmmx   G 진열대(식품 2~3, 생활용품 6~7)  P 과일 매대(10~11)
  4 xmmmVmmmVmmmmCmx   V 세로 진열대(4, 8)  C 채소 매대(13)
  5 xmmmVmmmVmmmmCmx
