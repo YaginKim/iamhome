@@ -1,4 +1,6 @@
 {
+  "home":      "home.png",
   "bank_in":   "bank.png",
-  "classroom": "classroom.png"
+  "classroom": "classroom.png",
+  "gym":       "gym.png"
 }

@@ -4,8 +4,10 @@
 
 | 파일 | 지도 id | 크기 |
 |---|---|---|
+| `home.png` | `home` | 224×144 |
 | `bank.png` | `bank_in` | 224×128 |
 | `classroom.png` | `classroom` | 224×144 |
+| `gym.png` | `gym` | 224×144 |
 
 - `manifest.json`에 적힌 방만 그림을 읽고, 나머지 방은 예전처럼 칸 그림으로 그립니다.
 - 다시 만들기: `python3 tools/room_art.py`

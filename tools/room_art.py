@@ -547,8 +547,395 @@ def classroom():
     return cv
 
 
+
+def side_walls(cv, bottom, cap='#f2f0e8', cap2='#c8c4b4', cap3='#dedacc'):
+    """두꺼운 옆벽(바깥 4~15, 208~219)과 앞벽 윗면"""
+    cv.rect(4, 0, 12, bottom + 4, cap); cv.vline(15, 0, bottom + 4, cap2); cv.vline(4, 0, bottom + 4, cap3)
+    cv.rect(208, 0, 12, bottom + 4, cap); cv.vline(208, 0, bottom + 4, cap2); cv.vline(219, 0, bottom + 4, cap3)
+    cv.vline(3, 0, bottom + 4, K); cv.vline(220, 0, bottom + 4, K)
+    cv.blend(16, bottom - 4, 192, 4, K, 0.10)
+    cv.rect(4, bottom, 216, 4, cap); cv.hline(4, bottom, 216, cap2); cv.hline(4, bottom + 4, 216, K)
+    cv.rect(4, bottom + 5, 216, cv.h - bottom - 5, K)
+
+
+def side_window(cv, x, y, h, glass='#bfe4f4', curtain=None):
+    cv.rect(x, y - 1, 9, h + 2, K)
+    cv.rect(x + 1, y, 7, h, glass)
+    cv.hline(x + 1, y + h // 2, 7, '#c8c4b4')
+    cv.p(x + 2, y + 2, '#f8fcff'); cv.p(x + 3, y + 1, '#f8fcff'); cv.p(x + 2, y + h // 2 + 3, '#f8fcff')
+    if curtain:
+        cv.rect(x + 1, y, 7, 3, curtain); cv.rect(x + 1, y + h - 3, 7, 3, curtain)
+
+
+# ======================================================================
+# 체육관 224x144 (14x9칸)
+#   1 xWHHWWWWWWWWWx  H = 체육 도구 선반
+#   3 xLcccLLLLLLLLx  c = 대여 탁자   도우미 (3,2), 선생님 (10,3)
+#   7 xLLLLLLDLLLLLx  D = 문
+# ======================================================================
+def gym():
+    cv = Canvas(224, 144)
+    # ---------- 바닥: 단풍나무 마루 + 경기장 선 ----------
+    M1, M2, M3, ML = '#eabf84', '#e3b67a', '#efc98f', '#c99a60'
+    for y in range(32, 128):
+        row = (y - 32) // 4
+        for x in range(16, 208):
+            cv.p(x, y, [M1, M2, M3, M1, M2][row % 5])
+        if (y - 32) % 4 == 3:
+            cv.hline(16, y, 192, ML)
+    for row in range(24):
+        y = 32 + row * 4
+        for jx in range(16 + (row * 29) % 48, 208, 48):
+            cv.vline(jx, y, 3, ML)
+    # 창문 빛 반사 (윤기)
+    for k, x0 in enumerate([30, 150]):
+        for j in range(32, 128):
+            cv.blend(x0 + (j - 32) // 4, j, 26, 1, '#fff6dc', 0.22)
+    # 파란 제한구역(양쪽) + 흰 선
+    WL = '#f8f6f0'
+    BL = '#5a86c8'
+    # 제한구역은 마루 결을 살려 파란색으로 다시 칠해요
+    for kx in (16, 174):
+        for y in range(62, 98):
+            for x in range(kx, kx + 34):
+                o = cv.get(x, y)
+                cv.p(x, y, '#3f62b0' if o[:3] == hx(ML)[:3] else ('#5a82cc' if sum(o[:3]) < 640 else '#6a92d8'))
+    cv.hline(16, 61, 34, WL); cv.hline(16, 98, 34, WL); cv.vline(49, 61, 38, WL)
+    cv.hline(174, 61, 34, WL); cv.hline(174, 98, 34, WL); cv.vline(174, 61, 38, WL)
+    # 자유투 반원
+    import math
+    for a in range(-90, 91, 2):
+        r = math.radians(a)
+        cv.p(round(49 + 10 * math.cos(r)), round(80 + 18 * math.sin(r)), WL)
+        cv.p(round(174 - 10 * math.cos(r)), round(80 + 18 * math.sin(r)), WL)
+    # 3점 선 (진한 남색)
+    NV = '#2c3a78'
+    for a in range(-90, 91, 1):
+        r = math.radians(a)
+        cv.p(round(18 + 50 * math.cos(r)), round(80 + 40 * math.sin(r)), NV)
+        cv.p(round(205 - 50 * math.cos(r)), round(80 + 40 * math.sin(r)), NV)
+    # 가운데 선 + 가운데 원
+    cv.vline(112, 32, 96, WL); cv.vline(113, 32, 96, WL)
+    for a in range(0, 360, 2):
+        r = math.radians(a)
+        cv.p(round(112.5 + 14 * math.cos(r)), round(80 + 12 * math.sin(r)), WL)
+    cv.blend(106, 76, 14, 9, '#dc4646', 0.35)
+    # 경기장 바깥 선
+    cv.hline(16, 34, 192, WL); cv.hline(16, 125, 192, WL)
+
+    # ---------- 뒷벽 ----------
+    cv.rect(16, 0, 192, 32, '#e8dcc8')
+    cv.rect(16, 0, 192, 2, K)
+    # 지붕 철골
+    cv.rect(16, 2, 192, 4, '#5f8a74')
+    for x in range(16, 208, 8):
+        cv.p(x, 3, '#3f6a54'); cv.p(x + 1, 4, '#3f6a54'); cv.p(x + 2, 5, '#3f6a54')
+        cv.p(x + 7, 3, '#3f6a54'); cv.p(x + 6, 4, '#3f6a54'); cv.p(x + 5, 5, '#3f6a54')
+    cv.hline(16, 5, 192, '#3f6a54')
+    # 높은 창 (밝은 빛)
+    for x0, x1 in [(16, 76), (148, 208)]:
+        cv.rect(x0, 7, x1 - x0, 9, '#fbf2d6')
+        cv.rect(x0, 7, x1 - x0, 3, '#fff8e6')
+        for x in range(x0, x1, 10):
+            cv.vline(x, 7, 9, '#b8a888')
+        cv.hline(x0, 7, x1 - x0, '#b8a888'); cv.hline(x0, 11, x1 - x0, '#cfc4a8'); cv.hline(x0, 16, x1 - x0, '#b8a888')
+    # 나무 벽판
+    cv.rect(16, 17, 192, 13, '#d8a96c')
+    for x in range(16, 208, 6):
+        cv.vline(x, 17, 13, '#c4955a')
+    cv.hline(16, 17, 192, '#e8c08a')
+    cv.rect(16, 29, 192, 2, '#9a6a3c')
+    cv.hline(16, 31, 192, K)
+
+    # 무대 + 학교 그림 현수막 (가운데)
+    cv.box(78, 3, 68, 18, '#8a5a3a')
+    cv.rect(80, 5, 64, 14, '#9ed4f0')
+    cv.rect(80, 5, 64, 4, '#c4e6f8')
+    cv.rect(82, 7, 6, 2, '#f8fcff'); cv.rect(130, 6, 8, 2, '#f8fcff')
+    cv.rect(80, 14, 64, 5, '#6eb45a')
+    cv.rect(98, 8, 28, 9, '#f8f6f0')          # 학교 건물
+    cv.rect(98, 8, 28, 1, '#dc4646')
+    cv.rect(110, 5, 4, 4, '#f8f6f0'); cv.p(111, 6, '#4278d2'); cv.p(112, 6, '#4278d2')
+    for i in range(100, 125, 4):
+        cv.rect(i, 10, 2, 2, '#4278d2'); cv.rect(i, 13, 2, 2, '#4278d2')
+    cv.rect(110, 14, 4, 3, '#a0643c')
+    # 자주색 무대 커튼
+    for x in (74, 144):
+        cv.rect(x, 2, 6, 20, '#962a2c')
+        cv.vline(x + 2, 2, 20, '#b8403c'); cv.vline(x + 4, 2, 20, '#7a1e22')
+    cv.hline(72, 2, 80, '#7a1e22')
+    # 무대 앞면
+    cv.rect(72, 20, 80, 2, '#e8c08a')
+    cv.rect(72, 22, 80, 8, '#a87444')
+    for x in range(72, 152, 8):
+        cv.vline(x, 22, 8, '#8a5a3a')
+    cv.hline(72, 30, 80, '#6c3c24')
+    # 무대 계단
+    cv.rect(104, 25, 16, 5, '#c48e58'); cv.hline(104, 25, 16, '#e8c08a'); cv.hline(104, 27, 16, '#a87444')
+
+    # H: 체육 도구 선반 (2~3칸)
+    sx = 33
+    cv.box(sx, 8, 30, 23, '#8a5a3a')
+    cv.rect(sx + 1, 9, 28, 21, '#5a3a24')
+    cv.rect(sx + 1, 19, 28, 2, '#a87444')
+    def ball(x, y, c, c2, line=None):
+        cv.sprite(x, y, ['.kkk.', 'k112k', 'k122k', 'k222k', '.kkk.'], {'k': K, '1': '#f8f6f0' if c != '#f8f6f0' else '#ffffff', '2': c})
+        cv.p(x + 1, y + 1, c2)
+        if line:
+            cv.vline(x + 2, y + 1, 3, line)
+    ball(sx + 2, 13, '#ee8032', '#f6a860', '#7a3a14')
+    ball(sx + 7, 13, '#ee8032', '#f6a860', '#7a3a14')
+    ball(sx + 12, 13, '#f8f6f0', '#ffffff', '#4278d2')
+    ball(sx + 17, 13, '#f4c846', '#f8e08c', '#4278d2')
+    ball(sx + 23, 13, '#dc4646', '#f07878')
+    ball(sx + 2, 24, '#f8f6f0', '#ffffff', K)
+    ball(sx + 7, 24, '#f8f6f0', '#ffffff', K)
+    cv.rect(sx + 13, 25, 7, 4, '#dc4646'); cv.rect(sx + 14, 26, 5, 2, '#f07878')   # 줄넘기 상자
+    cv.vline(sx + 22, 22, 7, '#f4c846'); cv.vline(sx + 24, 22, 7, '#6eb45a'); cv.vline(sx + 26, 22, 7, '#4278d2')  # 배턴
+    # 점수판
+    cv.box(18, 8, 13, 9, '#2a2a36')
+    text(cv, 19, 10, '12', '#f4c846'); cv.p(26, 11, '#dc4646')
+
+    # 늑목 (오른쪽 벽)
+    for x in range(164, 204, 8):
+        cv.rect(x, 8, 2, 23, '#c48e58'); cv.vline(x, 8, 23, '#e8c08a')
+    for y in range(10, 30, 3):
+        cv.hline(164, y, 34, '#a87444')
+    # 매트 더미
+    cv.box(152, 22, 11, 9, '#4278d2'); cv.hline(153, 25, 9, '#284e96'); cv.hline(153, 23, 9, '#6a9ae0')
+
+    # ---------- 옆벽 + 농구 골대 ----------
+    side_walls(cv, 128, '#efe6d6', '#c8bca4', '#ddd2bc')
+    for wy in (34, 102):
+        side_window(cv, 6, wy, 20, '#fbf2d6', '#962a2c')
+        side_window(cv, 209, wy, 20, '#fbf2d6', '#962a2c')
+    def hoop(x, flip):
+        d = -1 if flip else 1
+        bx = x
+        cv.rect(bx, 66, 3, 28, K); cv.rect(bx + (1 if not flip else 0), 67, 2, 26, '#f8f6f0')
+        cv.rect(bx + (1 if not flip else 0), 76, 2, 8, '#dc4646')
+        cx = x + d * 9 + (1 if flip else 2)
+        for a in range(0, 360, 20):
+            import math
+            r = math.radians(a)
+            cv.p(round(cx + 5 * math.cos(r)), round(80 + 4 * math.sin(r)), '#ee8032')
+        cv.dither(cx - 3, 78, 7, 4, '#f8f6f0')
+        cv.rect(cx - (6 if not flip else -4), 79, 2, 2, '#ee8032')
+    hoop(13, False)
+    hoop(208, True)
+
+    # ---------- 대여 탁자 (2~4, 3) ----------
+    x0, y0, w = 32, 48, 48
+    cv.blend(x0, y0 + 15, w, 2, K, 0.22)
+    cv.rect(x0, y0 + 1, w, 14, K)
+    cv.rect(x0 + 1, y0 + 2, w - 2, 4, '#e8eaf0'); cv.hline(x0 + 1, y0 + 2, w - 2, '#ffffff')
+    cv.rect(x0 + 1, y0 + 6, w - 2, 8, '#3c7840'); cv.hline(x0 + 1, y0 + 6, w - 2, '#6eb45a')
+    cv.vline(x0 + 16, y0 + 7, 7, '#2c5a30'); cv.vline(x0 + 31, y0 + 7, 7, '#2c5a30')
+    cv.box(x0 + 18, y0 + 8, 12, 5, '#f8f6f0'); cv.hline(x0 + 20, y0 + 10, 8, '#3c7840')  # 대여 안내 종이
+    # 물건: 줄넘기, 호루라기, 기록판, 공 바구니
+    cv.sprite(x0 + 3, y0 - 1, ['.rrr.', 'r...r', 'r.r.r', '.r.r.', '..yy.'], {'r': '#dc4646', 'y': '#f4c846'})
+    cv.box(x0 + 11, y0 + 1, 4, 3, '#ccd0d8'); cv.p(x0 + 15, y0 + 2, '#f4c846')
+    cv.box(x0 + 21, y0 - 3, 9, 8, '#a0643c'); cv.rect(x0 + 22, y0 - 2, 7, 6, '#f8f6f0')
+    cv.hline(x0 + 23, y0, 5, '#8c92a0'); cv.hline(x0 + 23, y0 + 2, 4, '#8c92a0'); cv.rect(x0 + 24, y0 - 4, 3, 2, '#8c92a0')
+    cv.sprite(x0 + 34, y0 - 4, ['.kkkkkkkkk.', 'kooowwwyyyk', 'kooowwwyyyk', '.kgggggggk.', '..kgggggk..'],
+              {'k': K, 'o': '#ee8032', 'w': '#f8f6f0', 'y': '#f4c846', 'g': '#8c92a0'})
+
+    # ---------- 문 (7,7)→(7,8) ----------
+    dx = 112
+    cv.rect(dx - 8, 128, 32, 16, K)
+    cv.rect(dx - 7, 129, 30, 15, '#5f8a74')
+    cv.vline(dx + 7, 129, 15, K); cv.vline(dx + 8, 129, 15, K)
+    cv.rect(dx - 4, 131, 8, 5, '#bfe4f4'); cv.rect(dx + 12, 131, 8, 5, '#bfe4f4')
+    cv.rect(dx + 5, 137, 2, 3, '#ccd0d8'); cv.rect(dx + 9, 137, 2, 3, '#ccd0d8')
+    cv.box(dx + 1, 116, 14, 11, '#6c6a7e')
+    for j in range(118, 126, 2):
+        cv.hline(dx + 2, j, 12, '#8c8aa0')
+    return cv
+
+
+# ======================================================================
+# 우리 집 224x144 (14x9칸)
+#   2 xfffffffffBBfx  B = 냉장고(10,2), 부엌 조리대(11,2)
+#   3~4 T(3,3)(4,3)(3,4)(4,4) = 식탁    m(8~10, 4~5) = 거실 러그
+#   7 xffffffDfffffx  D = 현관   엄마 (9,3)
+# ======================================================================
+def home():
+    cv = Canvas(224, 144)
+    # ---------- 바닥: 밝은 원목 마루 ----------
+    O1, O2, O3, OL, OH = '#e2b783', '#d9ad78', '#e8c090', '#b98a58', '#f0cd9c'
+    for y in range(32, 128):
+        row = (y - 32) // 6
+        for x in range(16, 208):
+            cv.p(x, y, [O1, O2, O3, O2][row % 4])
+        if (y - 32) % 6 == 5:
+            cv.hline(16, y, 192, OL)
+    for row in range(16):
+        y = 32 + row * 6
+        for jx in range(16 + (row * 37) % 56, 208, 56):
+            cv.vline(jx, y, 5, OL)
+        for gx in range(20 + (row * 23) % 40, 208, 40):
+            cv.hline(gx, y + 2, 3, OH)
+    # 창으로 들어오는 햇빛
+    for j in range(32, 100):
+        x0 = 22 + (j - 32) // 3
+        cv.blend(x0, j, 26, 1, '#fff4d0', 0.30 if j < 80 else 0.30 * (100 - j) / 20)
+
+    # ---------- 뒷벽: 크림색 벽지 ----------
+    WP, WP2 = '#f3e6cc', '#ead9b8'
+    cv.rect(16, 0, 192, 32, WP)
+    for x in range(18, 208, 6):
+        for y in range(3, 27, 2):
+            cv.p(x, y, WP2)
+    cv.rect(16, 0, 192, 2, K)
+    cv.hline(16, 2, 192, '#d8c4a0')
+    cv.rect(16, 27, 192, 3, '#a87444'); cv.hline(16, 27, 192, '#c48e58')
+    cv.hline(16, 31, 192, K)
+
+    # 창문 + 커튼
+    cv.box(21, 4, 26, 19, '#f8f6f0')
+    cv.rect(22, 5, 24, 17, '#bfe4f4')
+    cv.rect(22, 5, 24, 6, '#d6eefa')
+    cv.rect(22, 16, 24, 6, '#9ccf7a'); cv.rect(26, 14, 6, 3, '#7ab85e'); cv.rect(36, 13, 8, 4, '#7ab85e')  # 바깥 나무
+    cv.vline(33, 5, 17, '#f8f6f0'); cv.hline(22, 12, 24, '#f8f6f0')
+    cv.p(24, 7, '#ffffff'); cv.p(25, 6, '#ffffff'); cv.p(36, 7, '#ffffff')
+    cv.rect(20, 23, 28, 2, '#e8e0d0'); cv.hline(20, 24, 28, '#c8bca4')
+    for x in (17, 46):
+        cv.rect(x, 3, 5, 22, '#e8b4a0'); cv.vline(x + 1, 3, 22, '#f4cbb8'); cv.vline(x + 3, 3, 22, '#cc9480')
+    cv.hline(17, 3, 34, '#8a5a3a')
+
+    # 괘종시계
+    cv.box(52, 3, 10, 20, '#8a5a3a')
+    cv.rect(53, 4, 8, 2, '#a87444')
+    cv.sprite(53, 6, ['.kkkkk.', 'kwwkwwk', 'kwwkwwk', 'kwwwkwk', '.kkkkk.'], {'k': K, 'w': '#fffdf6'})
+    cv.rect(54, 12, 6, 9, '#5a3a24'); cv.vline(57, 12, 6, '#f4c846'); cv.rect(56, 17, 3, 3, '#f4c846')
+
+    # 모자 걸이 (나무 지그재그 + 밀짚모자)
+    for i in range(4):
+        x = 66 + i * 6
+        cv.p(x, 6, '#a87444'); cv.p(x + 1, 7, '#a87444'); cv.p(x + 2, 8, '#a87444'); cv.p(x + 3, 7, '#a87444'); cv.p(x + 4, 6, '#a87444')
+        cv.rect(x + 2, 9, 1, 2, '#8a5a3a')
+    cv.sprite(64, 9, ['...kkkk...', '..kyyyyk..', '.kkrrrrkk.', 'kyyyyyyyyk', '.kkkkkkkk.'], {'k': K, 'y': '#f4d878', 'r': '#dc4646'})
+    cv.sprite(78, 10, ['.kkkk.', 'kbbbbk', 'kbbbbkk', '.kkkkkk'], {'k': K, 'b': '#4278d2'})
+
+    # 작은 수납장 + 화분
+    cv.box(90, 18, 18, 13, '#a87444')
+    cv.hline(91, 19, 16, '#c48e58'); cv.vline(98, 20, 10, '#8a5a3a'); cv.p(96, 24, '#f4c846'); cv.p(100, 24, '#f4c846')
+    cv.sprite(92, 3, ['....k.k...', '...knkNk..', '..kNnkNnk.', '.knNkNknNk', '..kNnNnk..', '...kNnk...', '....kk....'],
+              {'k': K, 'n': '#6eb45a', 'N': '#3c7840'})
+    cv.vline(96, 9, 4, '#3c7840')
+    cv.box(93, 12, 8, 7, '#f8f6f0'); cv.hline(94, 13, 6, '#e8e4da')
+    cv.box(102, 13, 4, 6, '#dc8aa0'); cv.p(103, 12, '#dc4646'); cv.p(104, 11, '#dc4646')
+
+    # TV + 거실장 (7~9칸)
+    cv.box(112, 20, 46, 11, '#8a5a3a')
+    cv.hline(113, 21, 44, '#c48e58')
+    for x in (127, 142):
+        cv.vline(x, 22, 8, '#6c3c24')
+    cv.p(120, 25, '#f4c846'); cv.p(134, 25, '#f4c846'); cv.p(149, 25, '#f4c846')
+    cv.box(118, 5, 34, 15, '#2a2a36')
+    cv.rect(120, 7, 30, 11, '#3a4258')
+    for k in range(6):
+        cv.p(123 + k, 15 - k, '#56607e'); cv.p(124 + k, 15 - k, '#56607e')
+    cv.rect(132, 19, 6, 1, K)
+    cv.box(152, 13, 5, 8, '#f4c846'); cv.rect(151, 10, 7, 4, '#f8f0d8')   # 스탠드
+
+    # 부엌: 윗장 + 타일 벽
+    cv.rect(176, 16, 32, 11, '#f8f6f0')
+    for x in range(176, 208, 4):
+        cv.vline(x, 16, 11, '#dcdcd4')
+    for y in range(16, 27, 4):
+        cv.hline(176, y, 32, '#dcdcd4')
+    cv.box(176, 2, 32, 12, '#c48e58')
+    cv.vline(191, 3, 10, '#8a5a3a'); cv.hline(177, 3, 30, '#e0aa70')
+    cv.p(188, 9, '#f4c846'); cv.p(194, 9, '#f4c846')
+    cv.blend(176, 14, 32, 2, K, 0.2)
+    # 걸린 조리도구
+    cv.hline(194, 17, 12, '#8c92a0')
+    cv.vline(196, 17, 6, '#6c6a7e'); cv.rect(195, 23, 3, 2, '#6c6a7e')
+    cv.vline(201, 17, 4, '#a87444'); cv.rect(199, 21, 5, 4, '#2a2a36'); cv.hline(200, 21, 3, '#4a4a58')
+
+    # B(10,2): 냉장고 (벽까지 키 큼)
+    fx = 161
+    cv.box(fx, 6, 14, 42, '#dde2ea')
+    cv.vline(fx + 1, 7, 40, '#f4f6fa')
+    cv.hline(fx + 1, 22, 12, '#9aa2b4')
+    cv.rect(fx + 10, 12, 1, 7, '#8c92a0'); cv.rect(fx + 10, 26, 1, 9, '#8c92a0')
+    cv.rect(fx + 3, 9, 3, 3, '#f4c846'); cv.rect(fx + 4, 27, 3, 4, '#f8f6f0'); cv.hline(fx + 4, 28, 3, '#dc4646')  # 자석·메모
+    cv.blend(fx, 47, 15, 1, K, 0.3)
+    # B(11,2): 조리대 (싱크대 + 가스레인지)
+    kx = 176
+    cv.rect(kx, 31, 16, 17, K)
+    cv.rect(kx + 1, 32, 14, 5, '#e8e0d0'); cv.hline(kx + 1, 32, 14, '#f8f6f0')
+    cv.box(kx + 2, 33, 6, 4, '#9aa2b4'); cv.rect(kx + 3, 34, 4, 2, '#bfe4f4')   # 싱크
+    cv.vline(kx + 5, 29, 4, '#8c92a0'); cv.p(kx + 6, 29, '#8c92a0')
+    cv.sprite(kx + 9, 33, ['k.k', '.k.', 'k.k'], {'k': '#4a4a58'})                 # 화구
+    cv.rect(kx + 1, 37, 14, 10, '#c48e58'); cv.hline(kx + 1, 37, 14, '#e0aa70')
+    cv.vline(kx + 8, 38, 9, '#8a5a3a'); cv.p(kx + 6, 41, '#f4c846'); cv.p(kx + 10, 41, '#f4c846')
+    cv.blend(kx, 48, 16, 1, K, 0.3)
+    # 주전자
+    cv.sprite(kx + 9, 27, ['.kk.', 'krrk', 'krrkk', 'kkkk'], {'k': K, 'r': '#dc4646'})
+
+    # ---------- 거실 러그 m (8~10, 4~5) ----------
+    rx, ry, rw, rh = 128, 64, 48, 32
+    cv.rect(rx + 1, ry + 1, rw - 2, rh - 2, '#f6a0b4')
+    cv.rect(rx + 3, ry + 3, rw - 6, rh - 6, '#f8c8d4')
+    cv.rect(rx + 5, ry + 5, rw - 10, rh - 10, '#f6a0b4')
+    cv.rect(rx + 6, ry + 6, rw - 12, rh - 12, '#fbd9e2')
+    for i in range(rx + 9, rx + rw - 9, 6):
+        cv.p(i, ry + 15, '#f07890'); cv.p(i + 1, ry + 16, '#f07890'); cv.p(i, ry + 17, '#f07890'); cv.p(i - 1, ry + 16, '#f07890')
+    for i in range(rx + 2, rx + rw - 2, 2):
+        cv.p(i, ry, '#f8f0e8'); cv.p(i, ry + rh - 1, '#f8f0e8')
+
+    # ---------- 식탁 T (3~4, 3~4) ----------
+    tx, ty = 48, 48
+    def chair(x, y, back_up):
+        cv.box(x, y, 10, 7, '#a87444')
+        cv.hline(x + 1, y + 1, 8, '#c48e58')
+        if back_up:
+            cv.rect(x, y - 4, 10, 4, K); cv.rect(x + 1, y - 3, 8, 2, '#8a5a3a')
+    cv.blend(tx + 3, ty + 29, 28, 3, K, 0.2)
+    chair(tx + 5, ty + 1, True); chair(tx + 18, ty + 1, True)
+    cv.rect(tx + 2, ty + 6, 28, 20, K)
+    cv.rect(tx + 3, ty + 7, 26, 15, '#c48e58')
+    for y in range(ty + 9, ty + 22, 4):
+        cv.hline(tx + 3, y, 26, '#b47e48')
+    cv.hline(tx + 3, ty + 7, 26, '#e0aa70')
+    cv.rect(tx + 3, ty + 22, 26, 3, '#8a5a3a')
+    cv.rect(tx + 4, ty + 25, 2, 4, '#6c3c24'); cv.rect(tx + 26, ty + 25, 2, 4, '#6c3c24')
+    # 식탁 위: 꽃병, 접시, 컵
+    cv.box(tx + 14, ty + 9, 4, 6, '#f8f6f0'); cv.p(tx + 15, ty + 7, '#dc4646'); cv.p(tx + 16, ty + 8, '#dc4646'); cv.p(tx + 15, ty + 8, '#6eb45a')
+    cv.sprite(tx + 5, ty + 10, ['.kkkk.', 'kwyywk', 'kwyowk', '.kkkk.'], {'k': K, 'w': '#f8f6f0', 'y': '#f4c846', 'o': '#ee8032'})
+    cv.sprite(tx + 21, ty + 14, ['.kkkk.', 'kwnnwk', 'kwnnwk', '.kkkk.'], {'k': K, 'w': '#f8f6f0', 'n': '#6eb45a'})
+    cv.box(tx + 22, ty + 9, 4, 4, '#96d2f0')
+    chair(tx + 5, ty + 24, False); chair(tx + 18, ty + 24, False)
+    cv.rect(tx + 5, ty + 27, 10, 4, K); cv.rect(tx + 6, ty + 28, 8, 2, '#8a5a3a')
+    cv.rect(tx + 18, ty + 27, 10, 4, K); cv.rect(tx + 19, ty + 28, 8, 2, '#8a5a3a')
+
+    # ---------- 옆벽 + 현관 ----------
+    side_walls(cv, 128, '#f2e8d4', '#c8b898', '#e0d2b8')
+    side_window(cv, 6, 50, 26, '#bfe4f4', '#e8b4a0')
+    # 현관 (7,7): 돌 타일 + 신발
+    dx = 112
+    cv.rect(dx, 112, 16, 16, '#b8b4ac')
+    for j in (112, 120):
+        cv.hline(dx, j, 16, '#9a968e')
+    cv.vline(dx + 8, 112, 8, '#9a968e'); cv.vline(dx + 4, 120, 8, '#9a968e'); cv.vline(dx + 12, 120, 8, '#9a968e')
+    cv.rect(dx, 111, 16, 1, '#8a5a3a')
+    cv.sprite(dx + 3, 116, ['.kkk.kkk', 'kwrrkwrrk', 'kwrrkwrrk', 'kkkkkkkk'], {'k': K, 'w': '#f8f6f0', 'r': '#dc4646'})
+    cv.sprite(dx + 4, 122, ['.kk..kk', 'kbbkkbbk', 'kkkkkkkk'], {'k': K, 'b': '#4278d2'})
+    # 현관문
+    cv.rect(dx - 1, 128, 18, 16, K)
+    cv.rect(dx, 129, 16, 15, '#8a5a3a')
+    cv.vline(dx + 1, 129, 15, '#a87444')
+    cv.rect(dx + 3, 131, 10, 10, '#a87444'); cv.rect(dx + 4, 132, 8, 8, '#8a5a3a')
+    cv.rect(dx + 12, 136, 2, 2, '#f4c846')
+    return cv
+
+
 if __name__ == '__main__':
     OUT.mkdir(parents=True, exist_ok=True)
     b = bank(); b.save(OUT / 'bank.png')
     c = classroom(); c.save(OUT / 'classroom.png')
-    print('saved', OUT / 'bank.png', OUT / 'classroom.png')
+    g = gym(); g.save(OUT / 'gym.png')
+    h = home(); h.save(OUT / 'home.png')
+    print('saved', *[OUT / n for n in ('bank.png', 'classroom.png', 'gym.png', 'home.png')])
