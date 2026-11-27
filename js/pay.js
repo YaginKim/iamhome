@@ -1,9 +1,9 @@
 // 계산대 결제, 거스름돈, 카드 단말기, 은행 입금, 꿈이든 카드 확인, 되돌아보기 화면
-import { moneyCanvas, cardCanvas, toImg, PEOPLE, itemCanvas, MONEY, iconCanvas, tokenCanvas } from './sprites.js?v=202611270938';
-import { el, panel, closePanel, warn, line, flashHud } from './ui.js?v=202611270938';
-import { say, sfx } from './voice.js?v=202611270938';
-import { cashTotal, breakDown, exactFromWallet, fewestPieces, removePieces, addPieces } from './state.js?v=202611270938';
-import { won } from './data.js?v=202611270938';
+import { moneyCanvas, cardCanvas, toImg, PEOPLE, itemCanvas, MONEY, iconCanvas, tokenCanvas } from './sprites.js?v=202611271015';
+import { el, panel, closePanel, warn, line, flashHud } from './ui.js?v=202611271015';
+import { say, sfx } from './voice.js?v=202611271015';
+import { cashTotal, breakDown, exactFromWallet, fewestPieces, removePieces, addPieces } from './state.js?v=202611271015';
+import { won, levelCfg, areaLevel } from './data.js?v=202611271015';
 
 const MONEY_NAME = { 10: '십 원', 50: '오십 원', 100: '백 원', 500: '오백 원', 1000: '천 원', 5000: '오천 원', 10000: '만 원', 50000: '오만 원' };
 const money = (v, s = 3) => toImg(moneyCanvas(v), s, MONEY_NAME[v]);
@@ -87,7 +87,7 @@ export function makeDevice(withSlotLabel) {
 // ctx: { state, config, total, purpose: 'errand'|'eat'|'tutorial', mistake(), log, items }
 export function pay(ctx) {
   const { state, config, total } = ctx;
-  const L = config.levels[state.level];
+  const L = levelCfg(config, state);
   const denoms = L.money;
   const tray = [];
   let cardPaid = null;
@@ -275,7 +275,7 @@ export function pay(ctx) {
         ctx.mistake?.('underpay');
         return;
       }
-      if (state.level === '하' && paid > total && exactFromWallet(state.cash, total)) {
+      if (areaLevel(state, 'money') === '하' && paid > total && exactFromWallet(state.cash, total)) {
         ownerSays(talkBox, '돈이 너무 많아. 그림자랑 똑같이 맞춰 볼까?');
         ctx.mistake?.('overpay');
         return;
@@ -399,7 +399,7 @@ export function keypadAsk(area, prompt, answer, onWrong) {
 // ---------- 은행 입금 ----------
 export function deposit(ctx) {
   const { state, config } = ctx;
-  const L = config.levels[state.level];
+  const L = levelCfg(config, state);
   const unit = config.bank.depositUnit;
   const billsOnly = L.bank.deposit === 'billsOnly';
   const tray = [];
@@ -626,7 +626,7 @@ export { money, MONEY_NAME, shuffle, iconCanvas };
 // ctx: { state, config, total, who, mistake() }
 export function tokenPay(ctx) {
   const { state, config, total } = ctx;
-  const L = config.levels[state.level];
+  const L = levelCfg(config, state);
   let tray = 0;
   return new Promise(resolve => {
     const m = panel('pay');
@@ -807,5 +807,68 @@ export function expiryPick(item) {
       grid.append(b);
     }
     m.append(grid);
+  });
+}
+
+// ---------- 번호표 기다리기 (교육지원청) ----------
+export function waitTurn(ticket, mistake) {
+  return new Promise(res => {
+    const m = panel('order');
+    m.append(el('h2', null, '내 차례를 기다려요'));
+    const board = el('div', 'queue-board', '');
+    const mine = el('p', 'my-ticket', `내 번호표: ${ticket}번`);
+    const msg = el('p', 'hint', '전광판에 내 번호가 나오면 버튼을 눌러요.');
+    const btn = el('button', 'btn primary big', '제 차례예요!');
+    btn.style.display = 'flex'; btn.style.margin = '10px auto';
+    m.append(el('p', 'hint', '전광판'), board, mine, msg, btn);
+    let cur = ticket - 3, timer;
+    const show = () => { board.textContent = String(cur).padStart(3, '0'); say(`${cur}번 손님`); };
+    const next = () => {
+      cur++;
+      if (cur > ticket + 1) { cur = ticket - 2; msg.textContent = '내 번호가 지나갔어요! 다시 한번 잘 봐요.'; say(msg.textContent); sfx('no'); }
+      show();
+    };
+    show();
+    timer = setInterval(next, 2200);
+    btn.onclick = () => {
+      if (cur === ticket) { clearInterval(timer); sfx('ok'); say('내 차례예요!'); closePanel(); res(); return; }
+      sfx('no'); msg.textContent = '아직 내 번호가 아니에요. 전광판을 보고 기다려요.'; say(msg.textContent); mistake?.('ticketEarly');
+    };
+  });
+}
+
+// ---------- 신청서 쓰기 (교육지원청): 꿈이든 카드를 보고 이름·주소 고르기 ----------
+export function formFill(state, nChoices, mistake) {
+  const s = state.student;
+  return new Promise(res => {
+    const m = panel('idcheck');
+    m.append(el('h2', null, '신청서를 써요'));
+    const card = el('div', 'idcard');
+    const body = el('div', 'idcard-body');
+    const photo = el('div', 'photo'); photo.append(toImg(PEOPLE.player()[0], 4, '내 사진'));
+    const info = el('dl'); info.append(el('dt', null, '이름'), el('dd', null, s.name), el('dt', null, '주소'), el('dd', null, s.address));
+    body.append(photo, info); card.append(el('div', 'idcard-top', '꿈이든 카드'), body);
+    m.append(el('p', 'hint', '꿈이든 카드를 보고 신청서에 알맞은 것을 골라요.'), card);
+    const fields = [
+      ['이름', s.name, ['이하늘', '박바다', '최나무'].filter(x => x !== s.name)],
+      ['주소', s.address, ['별빛동 무지개로 7', '해님동 큰길 101', '달빛동 작은길 5'].filter(x => x !== s.address)],
+      ['온 이유', '서류 제출', ['놀러 옴', '물건 사기']],
+    ];
+    const done = new Set();
+    for (const [label, right, wrongs] of fields) {
+      const row = el('div', 'form-row'); row.append(el('b', null, label));
+      const opts = el('div', 'row');
+      for (const v of shuffle([right, ...shuffle(wrongs).slice(0, nChoices - 1)])) {
+        const b = el('button', 'btn', v);
+        b.onclick = () => {
+          if (done.has(label)) return;
+          if (v === right) { done.add(label); b.classList.add('primary'); sfx('ok'); say(v); if (done.size === fields.length) setTimeout(() => { closePanel(); res(); }, 600); }
+          else { sfx('no'); b.disabled = true; mistake?.('form'); }
+        };
+        opts.append(b);
+      }
+      row.append(opts); m.append(row);
+    }
+    say('꿈이든 카드를 보고 신청서를 써요.');
   });
 }

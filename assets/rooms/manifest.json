@@ -4,5 +4,8 @@
   "classroom": "classroom.png",
   "gym": "gym.png",
   "snackbar_in": "snackbar.png",
-  "field": "field.png"
+  "field": "field.png",
+  "convenience": "convenience.png",
+  "market": "market.png",
+  "hairshop": "hairshop.png"
 }

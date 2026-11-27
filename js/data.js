@@ -42,8 +42,8 @@ export async function loadData() {
 }
 
 // maxOverride: 하 단계에서도 물건 값이 비싼 가게(시장·미용실)는 이 값까지 보여 줘요
-export function itemsFor(data, stage, level, maxOverride) {
-  const cfg = data.config.levels[level];
+export function itemsFor(data, stage, level, maxOverride, cfgMax) {
+  const cfg = { maxPrice: cfgMax ?? data.config.levels[level].maxPrice };
   const max = Math.max(cfg.maxPrice, maxOverride || 0);
   return data.items.filter(it => it.stage === stage
     && levelIndex(it.min_level) <= levelIndex(level)
@@ -51,3 +51,19 @@ export function itemsFor(data, stage, level, maxOverride) {
 }
 
 export const won = n => n.toLocaleString('ko-KR') + '원';
+
+// 영역별 난이도: state.areas = { money, change, card, memory, talk } (비어 있으면 전체 난이도)
+export const AREAS = { money: '돈 내기', change: '거스름돈', card: '카드·키오스크', memory: '기억(심부름 수)', talk: '대화(보기 수)' };
+export function areaLevel(state, area) { return state.areas?.[area] || state.level; }
+export function levelCfg(config, state) {
+  const pick = a => config.levels[areaLevel(state, a)];
+  const base = config.levels[state.level];
+  return {
+    ...base,
+    money: pick('money').money, priceUnit: pick('money').priceUnit, maxPrice: pick('money').maxPrice, pay: pick('money').pay, bank: pick('money').bank,
+    change: pick('change').change,
+    card: pick('card').card,
+    itemsPerMission: pick('memory').itemsPerMission,
+    choices: pick('talk').choices,
+  };
+}
