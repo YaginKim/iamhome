@@ -663,3 +663,7 @@ body[data-map="poster"] .btn.primary:hover { background: #e85a5a; }
 }
 .link-box { font: inherit; font-size: var(--step--1); flex: 1 1 280px; min-width: 0; padding: 10px 12px; border: 0; background: var(--card); margin: var(--px);
   box-shadow: 0 -4px 0 var(--ink), 0 4px 0 var(--ink), -4px 0 0 var(--ink), 4px 0 0 var(--ink); }
+/* 쉬는 중: 체력 막대가 숨 쉬듯 밝아져요 */
+.stamina.resting .bar i { animation: rest 1.2s ease-in-out infinite; }
+@keyframes rest { 50% { filter: brightness(1.35); } }
+@media (prefers-reduced-motion: reduce) { .stamina.resting .bar i { animation: none; } }

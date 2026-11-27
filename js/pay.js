@@ -1,9 +1,9 @@
 // 계산대 결제, 거스름돈, 카드 단말기, 은행 입금, 꿈이든 카드 확인, 되돌아보기 화면
-import { moneyCanvas, cardCanvas, toImg, PEOPLE, itemCanvas, MONEY, iconCanvas, tokenCanvas } from './sprites.js?v=202611271623';
-import { el, panel, closePanel, warn, line, flashHud } from './ui.js?v=202611271623';
-import { say, sfx } from './voice.js?v=202611271623';
-import { cashTotal, breakDown, exactFromWallet, fewestPieces, removePieces, addPieces } from './state.js?v=202611271623';
-import { won, levelCfg, areaLevel } from './data.js?v=202611271623';
+import { moneyCanvas, cardCanvas, toImg, PEOPLE, itemCanvas, MONEY, iconCanvas, tokenCanvas } from './sprites.js?v=202611271713';
+import { el, panel, closePanel, warn, line, flashHud } from './ui.js?v=202611271713';
+import { say, sfx } from './voice.js?v=202611271713';
+import { cashTotal, breakDown, exactFromWallet, fewestPieces, removePieces, addPieces } from './state.js?v=202611271713';
+import { won, levelCfg, areaLevel } from './data.js?v=202611271713';
 
 const MONEY_NAME = { 10: '십 원', 50: '오십 원', 100: '백 원', 500: '오백 원', 1000: '천 원', 5000: '오천 원', 10000: '만 원', 50000: '오만 원' };
 const money = (v, s = 3) => toImg(moneyCanvas(v), s, MONEY_NAME[v]);

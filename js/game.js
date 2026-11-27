@@ -1,13 +1,13 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
-import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271623';
-import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271623';
-import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271623';
-import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271623';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271623';
-import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271623';
-import { syncOn, syncCfg, setSyncCfg, cloudSave, cloudLoad, cloudList, cloudDelete, cloudPing, errText, linkFor, readLinkHash, status as syncStatus } from './sync.js?v=202611271623';
-import { newState, load, save, wipe, lastSlot, setLastSlot, listSlots, slotId, slotLabel, teacherPin, setTeacherPin, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271623';
-import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271623';
+import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271713';
+import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271713';
+import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271713';
+import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271713';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271713';
+import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271713';
+import { syncOn, syncCfg, setSyncCfg, cloudSave, cloudLoad, cloudList, cloudDelete, cloudPing, errText, linkFor, readLinkHash, status as syncStatus } from './sync.js?v=202611271713';
+import { newState, load, save, wipe, lastSlot, setLastSlot, listSlots, slotId, slotLabel, teacherPin, setTeacherPin, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271713';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271713';
 
 const $ = s => document.querySelector(s);
 // 받침에 따라 조사 고르기: josa('우유', '은', '는') → '우유는'
@@ -742,13 +742,34 @@ function onStep() {
   if (stepCount % 40 === 0) changeStamina(-D.config.stamina.drainPerMinuteWalking);
 }
 
-function changeStamina(d) {
+function changeStamina(d, save = true) {
   const before = S.stamina;
   S.stamina = Math.max(0, Math.min(D.config.stamina.max, S.stamina + d));
   world.slow = S.settings.stamina && S.stamina <= 0;
-  if (before > 0 && S.stamina <= 0) notify('배가 너무 고파요… 분식점에서 먹을 걸 사 먹어요.', 'no');
-  hud(); persist();
+  if (before > 0 && S.stamina <= 0) notify('배가 너무 고파요… 잠깐 멈춰서 쉬거나, 먹을 걸 사 먹어요.', 'no');
+  hud(); if (save) persist();
 }
+
+// 쉬기: 동네나 방에서 가만히 서 있으면 체력이 조금씩 차요 (대화·계산 중에는 안 차요)
+let restIdle = 0, restGain = 0, restTold = false;
+setInterval(() => {
+  const r = D?.config.stamina.rest;
+  const quiet = () => ['#dialog', '#panel', '#popup', '#screen'].every(q => { const e = document.querySelector(q); return !e || e.hidden; });
+  const still = S && r && S.settings.stamina && S.tutorialDone && world?.map && !world.frozen && !busy && !document.hidden
+    && !world.isMoving() && !world.player.path.length && !world.keys.size && quiet();
+  if (!still || S.stamina >= D.config.stamina.max) {
+    if (restGain) { persist(); restGain = 0; }
+    restIdle = 0; document.querySelector('#hud-left .stamina')?.classList.remove('resting');
+    return;
+  }
+  restIdle++;
+  if (restIdle < r.delaySeconds || (restIdle - r.delaySeconds) % r.everySeconds) return;
+  changeStamina(r.amount, false);
+  restGain += r.amount;
+  document.querySelector('#hud-left .stamina')?.classList.add('resting');
+  if (restGain >= 10) { persist(); restGain = 0; }
+  if (!restTold) { restTold = true; notify('쉬는 중… 가만히 있으면 체력이 조금씩 차요.'); }
+}, 1000);
 
 // ---------- 튜토리얼 (집) ----------
 async function startTutorial() {
@@ -1186,7 +1207,7 @@ async function sellerTalk(who) {
     return counterBuy(def);
   }
   if (st.phase === 'toReturn') return rentalReturn(def);
-  if (st.phase === 'deliver' && def.mode === 'cash') return hungryOffer(def);
+  if (st.phase === 'deliver' && def.mode === 'cash' && canEat()) return hungryOffer(def);
   await talk(who, def.giver === 'mom' ? '또 와!' : '선생님께 가 보렴.');
 }
 
@@ -1595,15 +1616,18 @@ async function orderItems(def, opts = {}) {
   }
 }
 
+// 먹을거리는 스테이지마다 한 번 사 먹을 수 있어요 (심부름 물건을 산 다음에 물어봐요)
+const canEat = () => S.settings.stamina && !run.stage?.ate && S.stamina < 80;
 async function hungryOffer(def) {
-  if (!S.settings.stamina || S.stamina >= 60) return;
+  if (!canEat()) return;
+  const food = poolOf(def).filter(it => it.heal && it.price);
+  if (!food.length) return; // 먹을거리를 안 파는 곳 (미용실 등)
   const i = await choose(def.seller, 'shop.owner.hungry', [{ text: '네, 먹고 갈래요' }, { text: '괜찮아요' }]);
   if (i !== 0) return;
-  const food = poolOf(def).filter(it => it.heal && it.price);
-  if (!food.length) return;
   const pick = await new Promise(res => {
     const m = panel('order');
     m.append(el('h2', null, '무엇을 먹을까요?'));
+    m.append(el('p', 'hint', '이번 스테이지에서는 한 번만 사 먹을 수 있어요.'));
     if (S.hasMealCard) m.append(el('p', 'hint', `급식카드 잔액: ${won(S.meal)} · 먹을거리는 급식카드로 낼 수 있어요.`));
     const grid = el('div', 'menu');
     for (const it of food) {
@@ -1620,6 +1644,7 @@ async function hungryOffer(def) {
   if (!pick) return;
   const cardWord = S.hasMealCard ? (def.cashOnly ? ' 현금이나 급식카드로 내렴.' : ' 급식카드도 돼.') : '';
   await pay({ state: S, config: D.config, total: pick.price, purpose: 'eat', who: def.seller, cashOnly: def.cashOnly, log: run.stage || {}, mistake: k => mistake(k), ownerLine: `${pick.name} ${won(pick.price)}이야.${cardWord}` });
+  if (run.stage) run.stage.ate = true;
   changeStamina(pick.heal);
   notify(`냠냠! 체력이 ${pick.heal} 올랐어요.`, 'ok');
 }
@@ -1827,6 +1852,7 @@ async function tutorialHome() {
     c.append(ok); sc.append(c);
     sfx('ding'); say('다녀왔습니다! 집 스테이지 완료!');
   });
+  if (S.settings.stamina) await warn('tutorial.eat.title', 'tutorial.eat.body', null, 'ding');
   await talk('mom', '잘 다녀왔어! 이제 하나씩 해 볼까?');
   world.frozen = false;
   await nextStage();

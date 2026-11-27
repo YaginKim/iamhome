@@ -239,8 +239,13 @@
       "중": "bar",
       "상": "bar"
     },
-    "drainPerMission": 20,
+    "drainPerMission": 12,
     "drainPerMinuteWalking": 2,
+    "rest": {
+      "delaySeconds": 10,
+      "everySeconds": 10,
+      "amount": 1
+    },
     "atZero": "slowWalkAndHint",
     "canFail": false
   },

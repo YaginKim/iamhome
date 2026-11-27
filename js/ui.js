@@ -1,8 +1,8 @@
 // 화면 위에 얹는 UI: 상단 정보(HUD), 대화창, 선택지, 경고 팝업, 알림
-import { iconCanvas, toImg, PEOPLE, cardCanvas, tokenCanvas } from './sprites.js?v=202611271623';
-import { say, sfx } from './voice.js?v=202611271623';
-import { cashTotal } from './state.js?v=202611271623';
-import { won } from './data.js?v=202611271623';
+import { iconCanvas, toImg, PEOPLE, cardCanvas, tokenCanvas } from './sprites.js?v=202611271713';
+import { say, sfx } from './voice.js?v=202611271713';
+import { cashTotal } from './state.js?v=202611271713';
+import { won } from './data.js?v=202611271713';
 
 const $ = s => document.querySelector(s);
 export const el = (tag, cls, text) => {
@@ -172,11 +172,11 @@ export function choose(who, prompt, options, opts = {}) {
 
 // ---------- 경고 팝업 (반드시 [알겠어요]를 눌러야 닫힘) ----------
 let warnChain = Promise.resolve();
-export function warn(titleId, subId, cardKind) {
-  warnChain = warnChain.then(() => showWarn(titleId, subId, cardKind));
+export function warn(titleId, subId, cardKind, sound = 'no') {
+  warnChain = warnChain.then(() => showWarn(titleId, subId, cardKind, sound));
   return warnChain;
 }
-function showWarn(titleId, subId, cardKind) {
+function showWarn(titleId, subId, cardKind, sound) {
   return new Promise(res => {
     const m = $('#popup');
     m.innerHTML = '';
@@ -195,7 +195,7 @@ function showWarn(titleId, subId, cardKind) {
     ok.onclick = () => { m.hidden = true; res(); };
     card.append(ok);
     m.append(card);
-    sfx('no');
+    sfx(sound);
     say(t + ' ' + s, null);
     setTimeout(() => ok.focus(), 50);
   });
