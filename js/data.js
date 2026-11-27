@@ -41,11 +41,13 @@ export async function loadData() {
   return { items, config, lines };
 }
 
-export function itemsFor(data, stage, level) {
+// maxOverride: 하 단계에서도 물건 값이 비싼 가게(시장·미용실)는 이 값까지 보여 줘요
+export function itemsFor(data, stage, level, maxOverride) {
   const cfg = data.config.levels[level];
+  const max = Math.max(cfg.maxPrice, maxOverride || 0);
   return data.items.filter(it => it.stage === stage
     && levelIndex(it.min_level) <= levelIndex(level)
-    && (it.price == null || it.price <= cfg.maxPrice));
+    && (it.price == null || it.price <= max));
 }
 
 export const won = n => n.toLocaleString('ko-KR') + '원';

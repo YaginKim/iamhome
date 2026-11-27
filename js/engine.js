@@ -1,9 +1,9 @@
 // 위에서 내려다보는 지도: 타일 그리기, 이동(키보드·터치), 길찾기, 문·사람과 만나기
-import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611270825';
-import { sfx } from './voice.js?v=202611270825';
+import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611270938';
+import { sfx } from './voice.js?v=202611270938';
 
 export const T = 16;
-const BLOCK = new Set(['t', 'W', 'c', 'T', 'B', 'x', 'S', 'k', 'A', 'U', 'H']);
+const BLOCK = new Set(['t', 'W', 'c', 'T', 'B', 'x', 'S', 'k', 'A', 'U', 'H', 'K', 'M', 'C']);
 
 function hash(x, y) { return ((x * 73856093) ^ (y * 19349663)) >>> 0; }
 
@@ -73,6 +73,16 @@ function drawTile(ctx, ch, x, y) {
       f(PAL.k, 0, 0, T, T);
       for (let i = 0; i < 4; i++) f(i % 2 ? '#f8f6f0' : '#dc4646', i * 4, 1, 4, 10);
       f('#962a2c', 0, 11, T, 2); f('#e8d39a', 0, 13, T, 3);
+      break;
+    case 'K': // 셀프 계산대 (키오스크)
+      f('#cfe8f4', 0, 0, T, T); f(PAL.k, 3, 0, 10, 16); f('#f8f6f0', 4, 1, 8, 14); f('#4278d2', 5, 2, 6, 6); f('#96d2f0', 6, 3, 4, 3);
+      f(PAL.k, 6, 10, 4, 1); f('#f4c846', 6, 12, 4, 2);
+      break;
+    case 'M': // 미용실 거울
+      f('#fbeaf0', 0, 0, T, T); f(PAL.k, 2, 0, 12, 14); f('#bfe4f4', 3, 1, 10, 12); f('#f8f6f0', 4, 2, 3, 2);
+      break;
+    case 'C': // 미용실 의자
+      f('#fbeaf0', 0, 0, T, T); f(PAL.k, 3, 3, 10, 12); f('#dc4646', 4, 4, 8, 6); f('#962a2c', 4, 10, 8, 2); f('#8c92a0', 7, 12, 2, 3);
       break;
     case 'H': // 체육 도구 선반
       f('#e0a868', 0, 0, T, T); f(PAL.k, 1, 1, 14, 14); f('#a0643c', 2, 2, 12, 12);
@@ -629,12 +639,58 @@ export function convenienceMap() {
       'xqqqqqqqqqqqqx',
       'xqHHqqHHqqqqqx',
       'xqqqqqqqqqqqqx',
-      'xqHHqqHHqcccqx',
+      'xKHHqqHHqcccqx',
       'xqqqqqqqqqqqqx',
       'xxxxxxDxxxxxxx',
     ],
+    kiosk: { x: 1, y: 5 },
     npcs: [{ id: 'cashier', sprite: 'cashier', x: 10, y: 4, counter: true }],
     counter: { x: 10, y: 6 },
+    spawn: { x: 6, y: 6 },
+    door: { x: 6, y: 7 },
+  };
+}
+
+export function marketMap() {
+  return {
+    id: 'market', name: '전통시장',
+    tiles: [
+      'tttttttttttttttt',
+      'tUUUUUssssUUUUUt',
+      'tssssssssssssst',
+      'tscccssssssccc' + 'st',
+      'tssssssssssssst',
+      'tsHssssssssssHst',
+      'tssssssssssssst',
+      'tssssssDsssssss' + 't',
+      'tttttttttttttttt',
+    ].map(r => (r.length < 16 ? r.slice(0, -1) + 's'.repeat(16 - r.length) + 't' : r)),
+    npcs: [
+      { id: 'grocer', sprite: 'grocer', x: 3, y: 2, counter: true },
+      { id: 'baker', sprite: 'baker', x: 12, y: 2, counter: true },
+    ],
+    counters: { grocer: { x: 3, y: 4 }, baker: { x: 12, y: 4 } },
+    counter: { x: 3, y: 4 },
+    spawn: { x: 7, y: 6 },
+    door: { x: 7, y: 7 },
+  };
+}
+
+export function hairshopMap() {
+  return {
+    id: 'hairshop', name: '미용실',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xWMMWMMWWWWWWx',
+      'xqCqqCqqqqqqqx',
+      'xqqqqqqqqcccqx',
+      'xqqqqqqqqqqqqx',
+      'xqTTqqqqqqqqqx',
+      'xqqqqqqqqqqqqx',
+      'xxxxxxDxxxxxxx',
+    ],
+    npcs: [{ id: 'stylist', sprite: 'stylist', x: 10, y: 2, counter: true }],
+    counter: { x: 10, y: 4 },
     spawn: { x: 6, y: 6 },
     door: { x: 6, y: 7 },
   };

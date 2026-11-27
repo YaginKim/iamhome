@@ -233,6 +233,16 @@ body.touch.has-hud #world { margin-left: max(8px, env(safe-area-inset-left)); }
 .orient-steps span { display: block; color: var(--ink-soft); }
 .orient .btn { width: 100%; }
 
+/* 키오스크·가만히 있기 */
+.kiosk-screen { background: #22203a; padding: 14px; text-align: center; box-shadow: inset 0 0 0 6px #8c92a0; }
+.kiosk-screen h3 { color: #f8f6f0; margin: 4px 0 12px; }
+.kiosk-screen .device { margin: 10px auto; }
+.kiosk-sum { color: #f4c846; font-family: var(--font-num); font-size: var(--step-0); }
+.hold-bar { height: 34px; background: var(--card); margin: 16px auto; max-width: 520px; box-shadow: 0 -4px 0 var(--ink), 0 4px 0 var(--ink), -4px 0 0 var(--ink), 4px 0 0 var(--ink); }
+.hold-bar i { display: block; height: 100%; width: 0; background: var(--leaf); }
+.hold-btn { display: flex !important; margin: 10px auto !important; min-width: 240px; min-height: 96px !important; touch-action: none; }
+.hold-btn.on { background: var(--leaf); }
+
 /* 스티커 도감 */
 .book-btn { pointer-events: auto; min-height: 0; padding: 4px 10px 6px; margin: 4px; }
 .book-btn .cap { color: var(--ink-soft) !important; }

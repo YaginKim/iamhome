@@ -1,8 +1,8 @@
 // 화면 위에 얹는 UI: 상단 정보(HUD), 대화창, 선택지, 경고 팝업, 알림
-import { iconCanvas, toImg, PEOPLE, cardCanvas, tokenCanvas } from './sprites.js?v=202611270825';
-import { say, sfx } from './voice.js?v=202611270825';
-import { cashTotal } from './state.js?v=202611270825';
-import { won } from './data.js?v=202611270825';
+import { iconCanvas, toImg, PEOPLE, cardCanvas, tokenCanvas } from './sprites.js?v=202611270938';
+import { say, sfx } from './voice.js?v=202611270938';
+import { cashTotal } from './state.js?v=202611270938';
+import { won } from './data.js?v=202611270938';
 
 const $ = s => document.querySelector(s);
 export const el = (tag, cls, text) => {

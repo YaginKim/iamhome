@@ -58,8 +58,8 @@ snack_tteokkochi,snackbar,떡꼬치,1000,현금|체크|급식,15,하,분식,tteo
 snack_slush,snackbar,슬러시,1000,현금|체크|급식,10,하,음료,slush
 cvs_onigiri,convenience,삼각김밥,1500,현금|체크|급식,20,중,식품,onigiri
 cvs_cupramen,convenience,컵라면,1500,현금|체크|급식,25,중,식품,
-cvs_milk,convenience,우유,1800,현금|체크|급식,15,중,음료,
-cvs_bananamilk,convenience,바나나우유,1700,현금|체크|급식,15,중,음료,
+cvs_milk,convenience,우유,1800,현금|체크|급식,15,중,음료,milk
+cvs_bananamilk,convenience,바나나우유,1700,현금|체크|급식,15,중,음료,milk
 cvs_water,convenience,생수,1000,현금|체크|급식,10,하,음료,water
 cvs_snack,convenience,과자,1500,현금|체크|급식,10,중,간식,
 cvs_chocolate,convenience,초콜릿,1500,현금|체크|급식,10,중,간식,
@@ -67,23 +67,23 @@ cvs_icecream,convenience,아이스크림,1200,현금|체크|급식,10,중,간식
 cvs_sandwich,convenience,샌드위치,3200,현금|체크|급식,30,상,식품,
 cvs_dosirak,convenience,도시락,5000,현금|체크|급식,50,상,식품,
 cvs_wetwipe,convenience,물티슈,1500,현금|체크,,중,생활용품,
-market_greenonion,market,대파 한 단,3000,현금,,중,채소,greenonion
-market_apple,market,사과 3개,5000,현금|급식,20,중,과일,
-market_tofu,market,두부,2000,현금,,중,식품,
-market_beansprout,market,콩나물,1500,현금,,중,채소,
-market_mackerel,market,고등어 1마리,5000,현금,,상,생선,
-market_tteok,market,떡 한 팩,3000,현금|급식,20,중,식품,
-market_hotteok,market,호떡,1500,현금|급식,15,하,간식,
-market_banchan,market,반찬 한 통,5000,현금|급식,30,상,반찬,
-market_socks,market,양말 3켤레,5000,현금,,상,잡화,
-hair_cut,hairshop,학생 커트,12000,현금|체크,,상,서비스,
-hair_bangs,hairshop,앞머리 정리,5000,현금|체크,,중,서비스,
-hair_wash,hairshop,머리 감기,3000,현금|체크,,중,서비스,
+market_greenonion,market,대파 한 단,3000,현금,,하,채소,greenonion
+market_apple,market,사과 3개,5000,현금|급식,20,중,과일,apple
+market_tofu,market,두부,2000,현금,,하,식품,tofu
+market_beansprout,market,콩나물,1500,현금,,하,채소,beansprout
+market_mackerel,market,고등어 1마리,5000,현금,,상,생선,mackerel
+market_tteok,market,떡 한 팩,3000,현금|급식,20,하,식품,tteok
+market_hotteok,market,호떡,1500,현금|급식,15,하,간식,hotteok
+market_banchan,market,반찬 한 통,5000,현금|급식,30,상,반찬,banchan
+market_socks,market,양말 3켤레,5000,현금,,상,잡화,socks
+hair_cut,hairshop,학생 커트,12000,현금|체크,,상,서비스,scissors
+hair_bangs,hairshop,앞머리 정리,5000,현금|체크,,하,서비스,scissors
+hair_wash,hairshop,머리 감기,3000,현금|체크,,하,서비스,shampoo
 hair_shampoo,hairshop,샴푸,8000,현금|체크,,상,판매,shampoo
-hair_gel,hairshop,헤어젤,6000,현금|체크,,상,판매,
-hair_tie,hairshop,머리끈,2000,현금|체크,,중,판매,
-hair_pin,hairshop,머리핀,1500,현금|체크,,중,판매,
-hair_comb,hairshop,빗,3000,현금|체크,,중,판매,
+hair_gel,hairshop,헤어젤,6000,현금|체크,,상,판매,gel
+hair_tie,hairshop,머리끈,2000,현금|체크,,하,판매,hairtie
+hair_pin,hairshop,머리핀,1500,현금|체크,,하,판매,hairpin
+hair_comb,hairshop,빗,3000,현금|체크,,하,판매,comb
 mart_eggs,mart,계란 한 판,7500,현금|체크,,상,식품,eggs
 mart_milk,mart,우유 2.3L,5500,현금|체크|급식,25,상,식품,
 mart_ramen5,mart,라면 5개입,4500,현금|체크,,상,식품,
