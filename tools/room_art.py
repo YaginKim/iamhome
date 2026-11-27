@@ -2420,6 +2420,204 @@ def edu_office():
     return cv
 
 
+
+# ======================================================================
+# [초안] 전통시장 (야시장) 256x144 (16x9칸) — 칸 지도는 아직 게임에 없음
+#   0 밤하늘(불꽃·관람차) / 둘레 나무   1 천막: 채소 가게(1~5) · 떡집(10~14)
+#   2 채소 사장님 (3,2) · 떡집 사장님 (12,2), 머리 위 줄전구·청사초롱
+#   3 매대 (2~4) (11~13)   4 손님 자리 (3,4) (12,4)   5 상자 (2,5) (13,5)   7 나가는 곳 (7,7)
+# ======================================================================
+def market():
+    import math, random
+    rnd = random.Random(11)
+    cv = Canvas(256, 144, '#1c2a3a')
+    # ---------- 바닥: 돌 포장 ----------
+    S1, S2, SG = '#c8b8a0', '#bcac94', '#9e8e78'
+    for ty in range(1, 8):
+        for tx in range(1, 15):
+            x0, y0 = tx * T, ty * T
+            for j in range(0, 16, 8):
+                off = 4 if (j // 8 + ty) % 2 else 0
+                for i2 in range(-off, 16, 8):
+                    bx = x0 + i2
+                    c = S1 if ((bx // 8) + (y0 + j) // 8) % 3 else S2
+                    cv.rect(max(x0, bx), y0 + j, min(8, x0 + 16 - max(x0, bx)) - (0 if bx >= x0 else 0), 8, c)
+                    cv.vline(max(x0, bx), y0 + j, 8, SG)
+                cv.hline(x0, y0 + j, 16, SG)
+    for _ in range(60):
+        cv.p(rnd.randrange(16, 240), rnd.randrange(16, 128), '#d8caa4')
+    cv.blend(16, 16, 224, 112, '#2a3460', 0.14)                         # 저녁 빛
+
+    # ---------- 위쪽: 밤하늘 + 관람차 + 불꽃 ----------
+    for y in range(0, 16):
+        c = ['#1c2448', '#222c54', '#2a3460', '#323c6a'][min(3, y // 4)]
+        cv.hline(0, y, 256, c)
+    for _ in range(26):
+        cv.p(rnd.randrange(0, 256), rnd.randrange(0, 13), '#f8f6f0')
+    # 관람차 (위쪽만 보임)
+    cx, cy, r = 128, 26, 22
+    for a in range(0, 360, 2):
+        t = math.radians(a)
+        x, y = round(cx + r * math.cos(t)), round(cy + r * math.sin(t))
+        if y < 16:
+            cv.p(x, y, '#3a4a78')
+    for a in range(0, 360, 30):
+        t = math.radians(a)
+        for k in range(0, r):
+            x, y = round(cx + k * math.cos(t)), round(cy + k * math.sin(t))
+            if y < 16:
+                cv.p(x, y, '#34426e')
+        x, y = round(cx + r * math.cos(t)), round(cy + r * math.sin(t))
+        if y < 15:
+            cv.rect(x - 1, y, 3, 2, ['#f4c846', '#f07890', '#96d2f0'][a // 30 % 3])
+    # 불꽃
+    def firework(fx, fy, c1, c2, rr):
+        for a in range(0, 360, 30):
+            t = math.radians(a)
+            for k in range(2, rr):
+                cv.p(round(fx + k * math.cos(t)), round(fy + k * math.sin(t)), c1 if k < rr - 1 else c2)
+        cv.p(fx, fy, '#ffffff')
+    firework(40, 6, '#f4c846', '#ee8032', 6)
+    firework(210, 7, '#6ad0c0', '#f8f6f0', 6)
+    firework(78, 4, '#f07890', '#f8c8d4', 4)
+    firework(176, 3, '#b494e0', '#f8f6f0', 4)
+
+    # ---------- 둘레 나무 (밤) ----------
+    def tree(x, y):
+        cv.sprite(x, y, [
+            '....kkkkkk......',
+            '..kk332222kk....',
+            '.k3322222221k...',
+            'k332222222211k..',
+            'k322222222111k..',
+            'k222222221111k..',
+            '.k2222221111k...',
+            '..kk111111kk....',
+            '....kkttkk......',
+            '......tt........',
+            '.....kttk.......',
+        ], {'k': '#141c24', '1': '#1e3a2c', '2': '#2a5038', '3': '#3e6c4a', 't': '#4a3020'})
+    cv.rect(0, 16, 16, 128, '#22382c'); cv.rect(240, 16, 16, 128, '#22382c'); cv.rect(16, 128, 224, 16, '#22382c')
+    for y in range(16, 144, 16):
+        tree(0, y + 2); tree(240, y + 2)
+    for x in range(16, 240, 16):
+        if x != 112:
+            tree(x, 130)
+
+    # ---------- 천막 노점 (1줄) ----------
+    def stall(x0, x1, c1, c2, kind):
+        w = x1 - x0
+        cv.rect(x0, 32, w, 16, '#7a6450')                  # 천막 아래 그늘진 바닥
+        cv.blend(x0, 32, w, 16, '#22203a', 0.25)
+        # 가게 안쪽 선반 (사장님 뒤)
+        cv.rect(x0 + 2, 28, w - 4, 6, '#6c3c24'); cv.hline(x0 + 2, 28, w - 4, '#8a5a3a')
+        for q, ix in enumerate(range(x0 + 4, x1 - 6, 7)):
+            if kind == 'veg':
+                c = ['#6eb45a', '#ee8032', '#dc4646', '#f4c846', '#8c64c8'][q % 5]
+            else:
+                c = ['#f6a0b4', '#f8f6f0', '#6eb45a', '#c48e28', '#f8c8d4'][q % 5]
+            cv.rect(ix, 29, 5, 3, '#c48e58'); cv.rect(ix + 1, 29, 3, 2, c)
+        # 줄무늬 천막
+        cv.rect(x0, 16, w, 13, K)
+        for k, x in enumerate(range(x0 + 1, x1 - 1, 6)):
+            cv.rect(x, 17, min(6, x1 - 1 - x), 10, c1 if k % 2 == 0 else c2)
+        cv.hline(x0 + 1, 17, w - 2, '#ffffff')
+        for k, x in enumerate(range(x0 + 1, x1 - 1, 6)):        # 물결 끝단
+            c = c1 if k % 2 == 0 else c2
+            cv.rect(x + 1, 27, 4, 2, c); cv.hline(x + 2, 29, 2, c); cv.hline(x + 2, 30, 2, K)
+        # 간판 (글자 대신 그림)
+        sx = (x0 + x1) // 2 - 14
+        cv.box(sx, 18, 28, 8, '#f8f0dc')
+        if kind == 'veg':
+            cv.sprite(sx + 3, 19, ['.n.', 'oon', '.o.', '.o.'], {'n': '#6eb45a', 'o': '#ee8032'})          # 당근
+            cv.sprite(sx + 9, 19, ['.nn.', 'nNNn', 'nNNn', '.nn.'], {'n': '#6eb45a', 'N': '#a8e0a0'})    # 배추
+            cv.sprite(sx + 16, 19, ['.n.', 'rrr', 'rrr', '.r.'], {'n': '#6eb45a', 'r': '#dc4646'})       # 토마토
+            cv.sprite(sx + 22, 19, ['.n', 'yy', 'yy', 'y.'], {'n': '#6eb45a', 'y': '#f4c846'})
+        else:
+            for q, c in enumerate(['#f6a0b4', '#f8f6f0', '#6eb45a', '#f4d878']):
+                cv.rect(sx + 3 + q * 6, 20, 4, 3, c); cv.hline(sx + 3 + q * 6, 20, 4, '#ffffff')
+        # 천막 기둥
+        cv.rect(x0, 29, 2, 19, '#8c92a0'); cv.rect(x1 - 2, 29, 2, 19, '#8c92a0')
+    stall(16, 96, '#4a9a52', '#f8f6f0', 'veg')
+    stall(160, 240, '#dc4646', '#f8f6f0', 'tteok')
+
+    # ---------- 매대 (2~4, 3) / (11~13, 3) ----------
+    def counter(x0, kind):
+        y0, w = 48, 48
+        cv.blend(x0, y0 + 15, w, 2, K, 0.25)
+        cv.rect(x0, y0, w, 15, K)
+        cv.rect(x0 + 1, y0 + 1, w - 2, 5, '#c48e58'); cv.hline(x0 + 1, y0 + 1, w - 2, '#e0aa70')
+        cv.rect(x0 + 1, y0 + 6, w - 2, 8, '#8a5a3a')
+        for x in range(x0 + 4, x0 + w - 2, 8):
+            cv.vline(x, y0 + 7, 7, '#6c3c24')
+        cv.hline(x0 + 1, y0 + 9, w - 2, '#a87444')
+        if kind == 'veg':
+            goods = [('#6eb45a', '#a8e0a0'), ('#ee8032', '#f6a860'), ('#dc4646', '#f07878'), ('#8c64c8', '#b494e0'), ('#f4c846', '#f8e08c')]
+            for q, (c, hl) in enumerate(goods):
+                bx = x0 + 2 + q * 9
+                cv.rect(bx, y0 - 2, 8, 6, '#a87444'); cv.hline(bx, y0 - 2, 8, '#c48e58')       # 소쿠리
+                for j in range(2):
+                    for i2 in range(3):
+                        cv.rect(bx + 1 + i2 * 2, y0 - 4 + j * 2, 2, 2, c); cv.p(bx + 1 + i2 * 2, y0 - 4 + j * 2, hl)
+        else:
+            goods = ['#f6a0b4', '#f8f6f0', '#6eb45a', '#f8c8d4', '#c48e28']
+            for q, c in enumerate(goods):
+                bx = x0 + 2 + q * 9
+                cv.rect(bx, y0, 8, 3, '#e8e0d0'); cv.hline(bx, y0 + 2, 8, '#b8ac98')            # 쟁반
+                for i2 in range(3):
+                    cv.rect(bx + 1 + i2 * 2, y0 - 2, 2, 2, c); cv.p(bx + 1 + i2 * 2, y0 - 2, '#ffffff')
+                cv.rect(bx + 2, y0 - 4, 3, 2, c)
+        cv.box(x0 + w - 8, y0 + 7, 6, 5, '#f8f6f0'); cv.p(x0 + w - 5, y0 + 9, '#dc4646')       # 가격표
+    counter(32, 'veg')
+    counter(176, 'tteok')
+
+    # ---------- 상자 (2,5) (13,5) ----------
+    def crate(x, c, hl):
+        y = 82
+        cv.blend(x, y + 12, 14, 2, K, 0.25)
+        cv.rect(x, y, 14, 12, K)
+        cv.rect(x + 1, y + 4, 12, 7, '#c48e58')
+        cv.hline(x + 1, y + 6, 12, '#a87444'); cv.hline(x + 1, y + 9, 12, '#a87444')
+        cv.vline(x + 1, y + 4, 7, '#e0aa70')
+        for i2 in range(6):
+            cv.rect(x + 1 + i2 * 2, y + 1, 2, 3, c); cv.p(x + 1 + i2 * 2, y + 1, hl)
+    crate(33, '#dc4646', '#f07878')
+    crate(209, '#6eb45a', '#a8e0a0')
+
+    # ---------- 줄전구 + 청사초롱 (머리 위) ----------
+    pts = []
+    for x in range(16, 240):
+        t = (x - 16) / 224
+        y = round(34 + 4 * math.sin(t * math.pi * 3) ** 2)
+        pts.append((x, y))
+        cv.p(x, y, '#3a3448')
+    for k, (x, y) in enumerate(pts[4::14]):
+        cv.blend(x - 4, y + 2, 9, 5, '#fff0b0', 0.25)
+        cv.rect(x, y + 1, 2, 2, '#f8e08c'); cv.p(x, y + 1, '#ffffff')
+    for k, (x, y) in enumerate(pts[30::56]):                    # 청사초롱
+        top, bot = ('#dc4646', '#4278d2') if k % 2 == 0 else ('#4278d2', '#dc4646')
+        cv.vline(x + 2, y + 1, 2, '#3a3448')
+        cv.rect(x, y + 3, 5, 1, K)
+        cv.rect(x, y + 4, 5, 3, top); cv.rect(x, y + 7, 5, 3, bot)
+        cv.vline(x + 1, y + 4, 6, '#fff0b0')
+        cv.rect(x, y + 10, 5, 1, K); cv.p(x + 2, y + 11, '#f4c846')
+    # 바닥에 비친 불빛
+    for x in range(40, 232, 48):
+        for j in range(-5, 6):
+            half = int((1 - (j / 6) ** 2) ** 0.5 * 18)
+            cv.blend(x - half, 104 + j, half * 2, 1, '#fff0b0', 0.18)
+
+    # ---------- 나가는 곳 (7,7)→(7,8): 시장 입구 ----------
+    cv.rect(112, 128, 16, 16, S2)
+    cv.hline(112, 136, 16, SG); cv.vline(120, 128, 8, SG)
+    for gx in (108, 128):
+        cv.rect(gx, 120, 4, 24, '#8a5a3a'); cv.vline(gx, 120, 24, '#6c3c24'); cv.vline(gx + 3, 120, 24, '#a87444')
+        cv.rect(gx, 118, 4, 2, '#dc4646')
+        cv.blend(gx - 3, 116, 10, 6, '#fff0b0', 0.25)
+        cv.rect(gx + 1, 117, 2, 2, '#f8e08c')
+    return cv
+
+
 if __name__ == '__main__':
     OUT.mkdir(parents=True, exist_ok=True)
     b = bank(); b.save(OUT / 'bank.png')
@@ -2435,4 +2633,5 @@ if __name__ == '__main__':
     hs = hairshop(); hs.save(DRAFT / 'hairshop.png'); hs.save(DRAFT / 'hairshop_x4.png', 4)
     mo = moe(); mo.save(DRAFT / 'moe.png'); mo.save(DRAFT / 'moe_x4.png', 4)
     eo = edu_office(); eo.save(DRAFT / 'edu_office.png'); eo.save(DRAFT / 'edu_office_x4.png', 4)
-    print('draft', DRAFT / 'convenience.png', DRAFT / 'mart.png', DRAFT / 'hairshop.png', DRAFT / 'moe.png', DRAFT / 'edu_office.png')
+    mk = market(); mk.save(DRAFT / 'market.png'); mk.save(DRAFT / 'market_x4.png', 4)
+    print('draft', DRAFT / 'convenience.png', DRAFT / 'mart.png', DRAFT / 'hairshop.png', DRAFT / 'moe.png', DRAFT / 'edu_office.png', DRAFT / 'market.png')

@@ -9,6 +9,7 @@
 | `hairshop.png` (미용실) | 224×128 | 확인 대기 |
 | `moe.png` (교육부) | 256×160 | 확인 대기 |
 | `edu_office.png` (교육지원청) | 224×144 | 확인 대기 |
+| `market.png` (전통시장, 야시장) | 256×144 | 확인 대기 |
 
 - `*_x4.png`는 보기 편하게 4배로 키운 그림입니다.
 - 다시 만들기: `python3 tools/room_art.py`
@@ -82,3 +83,19 @@
 ```
 
 - 배치 그림의 위치를 그대로 따름. "민원실·번호표" 글자 표지판은 그리지 않음 (전광판 숫자, 창구 번호만 있음)
+
+## 전통시장(야시장) 칸 지도 제안 (16×9)
+
+```
+0 tttttttttttttttt   맨 위 줄은 밤하늘(불꽃·관람차), 둘레는 나무
+1 tAAAAAffffAAAAAt   A 천막: 채소 가게 (1~5) · 떡집 (10~14)
+2 tfffffffffffffft   채소 사장님 (3,2)  떡집 사장님 (12,2)   머리 위 줄전구·청사초롱(걸을 수 있음)
+3 tfcccffffffcccft   매대 (2~4) (11~13)
+4 tfffffffffffffft   손님 자리 (3,4) (12,4)
+5 tfBffffffffffBft   B 상자 (2,5) (13,5)
+6 tfffffffffffffft
+7 tffffffDffffffft  나가는 곳 (7,7) — 아래 나무 줄 (7,8)에 시장 입구 기둥
+8 tttttttttttttttt
+```
+
+- 배치 그림의 위치를 그대로 따름. 간판은 글자 대신 채소·떡 그림
