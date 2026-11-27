@@ -51,9 +51,9 @@
 
 ```
 0 xxxxxxxxxxxxxxxx
-1 xWWWWWWWWWWWWWWx   벽: 유리 난간 2층 · 가운데 큰 계단 · 상징 마크 (글자 표지판 없음)
-2 xffffffffffffffx   안내 직원 (2,2)  기념품 직원 (12,2)
-3 xcccfffffffcccfx   안내 데스크 (1~3)  기념품 매대 (11~13)
+1 xWWWWWWWWWWWWWWx   벽: 유리 난간 2층 · 가운데 큰 계단 · 정부 상징 원판 · 기념품 벽 진열장(11~14)
+2 xfffffffffffffRx   안내 직원 (2,2)  기념품 직원 (12,2)  R 기념품 세로 진열대 (14,2~3)
+3 xcccfffffffcccRx   안내 데스크 (1~3)  기념품 매대 (11~13)
 4 xffffffffffffffx   손님 자리 (2,4) (12,4)
 5 xfffffGffffffffx   G 검색대 (6,5)  — (7,5)는 걸어서 지나가는 검색 문(카펫 위)
 6 xffffffffffffffx   견학 안내원 (9,6)
@@ -63,3 +63,4 @@
 ```
 
 - 배치 그림의 위치를 그대로 따름. "안내·기념품·검색대" 글자 표지판은 그리지 않음
+- 추가: 기념품 매대 뒤 벽 진열장(벽이라 원래 막힌 곳), 오른쪽 세로 진열대 (14,2)(14,3)

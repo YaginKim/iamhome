@@ -1997,7 +1997,7 @@ def moe():
     for x in range(16, 240, 16):                                          # 대리석 판 줄눈
         cv.vline(x, 12, 17, '#dcdcd4')
     cv.hline(16, 20, 224, '#dcdcd4')
-    for x0 in (24, 160):                                                  # 금색 가로 장식
+    for x0 in (24,):                                                      # 금색 가로 장식
         cv.hline(x0 + 4, 16, 64, '#d8b870'); cv.hline(x0 + 4, 24, 48, '#d8b870')
     cv.rect(16, 28, 224, 3, '#c8c8c0'); cv.hline(16, 28, 224, '#dcdcd4')
     cv.hline(16, 31, 224, K)
@@ -2023,16 +2023,56 @@ def moe():
     # 계단참 화분
     for x, y in ((96, 20), (153, 20)):
         cv.sprite(x, y, ['.kgk.', 'kgGgk', 'kgggk', '.kwk.', '.kkk.'], {'k': K, 'g': '#6eb45a', 'G': '#a8e0a0', 'w': '#f8f6f0'})
-    # 상징 마크 (책과 새싹)
-    cv.sprite(120, 2, [
-        '...kkkk...',
-        '..k.gg.k..',
-        '.k.gGGg.k.',
-        'k...gg...k',
-        'kwwwkkwwwk',
-        'kwbwkkwbwk',
-        '.kkkkkkkk.',
-    ], {'k': '#2c3a78', 'g': '#6eb45a', 'G': '#a8e0a0', 'w': '#f8f6f0', 'b': '#96d2f0'})
+    # 정부 상징 (태극 문양) — 사용자가 준 그림을 17x17 도트로 옮김, 흰 원판 위
+    cv.sprite(118, 1, [
+        '......kkkkkkk......',
+        '....kkbbbbrrrkk....',
+        '...kbbbbrrrrrrrk...',
+        '..kbbbrrrrrrrrrrk..',
+        '.kbbbrrwwwwwrrrrrk.',
+        '.kbbrwwwwwwwwwrrrk.',
+        'kbbbwwwwwwwwwwwrrrk',
+        'kbbwwwwwwwwwwwwwrrk',
+        'kbbwwwwwwwbbbwwwrrk',
+        'kbbbwwwwwbbbbbwwrrk',
+        'kbbbbwwwbbbbbbbwrrk',
+        'kbbbbbbbbbbbbbbwrwk',
+        '.kbbbbbbbbbbbbbwrk.',
+        '.kbbbbbbbbbbbbwwwk.',
+        '..kbbbbbbbbbbbwwk..',
+        '...kbbbbbbbbbbwk...',
+        '....kkbbbbbbwkk....',
+        '......kkkkkkk......',
+    ], {'k': K, 'w': '#f8f6f0', 'b': '#1e3c78', 'r': '#e0283c'})
+    cv.p(122, 4, '#3c5a98'); cv.p(121, 5, '#3c5a98'); cv.p(120, 7, '#3c5a98')     # 남색 윤기
+    cv.p(129, 3, '#f06070'); cv.p(131, 4, '#f06070'); cv.p(132, 5, '#f06070')     # 빨강 윤기
+
+    # 기념품 벽 진열장 (기념품 매대 뒤, 11~14칸 벽)
+    wx0, wx1 = 170, 238
+    cv.rect(wx0, 12, wx1 - wx0, 20, K)
+    cv.rect(wx0 + 1, 13, wx1 - wx0 - 2, 18, '#c48e58')
+    for row, sy in enumerate((14, 20, 26)):
+        cv.rect(wx0 + 2, sy, wx1 - wx0 - 4, 5, '#f4ecdc')
+        cv.hline(wx0 + 2, sy + 5, wx1 - wx0 - 4, '#8a5a3a')
+        q = 0
+        ix = wx0 + 3
+        while ix < wx1 - 6:
+            c = ['#4278d2', '#dc4646', '#f4c846', '#6eb45a', '#f6a0b4', '#8c64c8', '#f8f6f0'][(q + row * 3) % 7]
+            kind = (q + row) % 4
+            if kind == 0:      # 머그컵
+                cv.rect(ix, sy + 2, 3, 3, c); cv.p(ix + 3, sy + 3, c); ix += 6
+            elif kind == 1:    # 인형
+                cv.sprite(ix, sy, ['k..k', 'kggk', 'gwwg', '.gg.', '.gg.'], {'k': K, 'g': c, 'w': '#f8f6f0'}); ix += 6
+            elif kind == 2:    # 책 세 권
+                for b2 in range(3):
+                    cv.rect(ix + b2 * 2, sy + 1, 2, 4, ['#4278d2', '#dc4646', '#6eb45a'][(b2 + q) % 3])
+                ix += 8
+            else:              # 접은 티셔츠
+                cv.rect(ix, sy + 2, 5, 3, c); cv.rect(ix - 1, sy + 2, 1, 1, c); cv.rect(ix + 5, sy + 2, 1, 1, c); ix += 8
+            q += 1
+    cv.blend(wx0 + 2, 14, wx1 - wx0 - 4, 17, '#ffffff', 0.10)
+    for x in range(wx0 + 6, wx1 - 4, 14):                                 # 진열장 조명
+        cv.rect(x, 12, 4, 1, '#fff4c8')
 
     # ---------- 안내 데스크 (1~3, 3) ----------
     x0, y0, w = 16, 48, 48
@@ -2069,6 +2109,32 @@ def moe():
     # 매대 위 위쪽 진열 (기념품 직원 뒤)
     for q, c in enumerate(['#4278d2', '#f4c846', '#dc4646', '#6eb45a']):
         cv.box(x0 + 10 + q * 8, y0 - 5, 6, 6, c)
+
+    # 기념품 진열대: 오른쪽 (14, 2~3) 세로 유리장
+    x, y = 225, 32
+    cv.blend(x + 1, y + 31, 14, 2, K, 0.25)
+    cv.rect(x, y - 4, 14, 35, K)
+    cv.rect(x + 1, y - 3, 12, 2, '#c48e58')
+    shelf_items = [['mug', 'pin', 'mug'], ['doll', 'doll'], ['book', 'book', 'book'], ['pin', 'mug', 'pin'], ['cap', 'cap']]
+    for row, items in enumerate(shelf_items):
+        sy = y - 1 + row * 6
+        cv.rect(x + 1, sy, 12, 6, GLASS)
+        cv.hline(x + 1, sy + 5, 12, '#c48e58')
+        for q, kind in enumerate(items):
+            c = ['#4278d2', '#dc4646', '#f4c846', '#6eb45a', '#f6a0b4', '#8c64c8'][(row * 2 + q) % 6]
+            ix = x + 2 + q * (12 // len(items))
+            if kind == 'mug':
+                cv.rect(ix, sy + 2, 3, 3, c); cv.p(ix + 3, sy + 3, c)
+            elif kind == 'pin':
+                cv.rect(ix + 1, sy + 2, 2, 2, c); cv.p(ix + 1, sy + 2, '#ffffff')
+            elif kind == 'book':
+                cv.rect(ix, sy + 1, 3, 4, c); cv.vline(ix, sy + 1, 4, '#f8f6f0')
+            elif kind == 'doll':
+                cv.sprite(ix, sy, ['k..k', 'kggk', 'gwwg', '.gg.', '.gg.'], {'k': K, 'g': c, 'w': '#f8f6f0'})
+            else:
+                cv.rect(ix, sy + 3, 5, 2, c); cv.rect(ix + 1, sy + 2, 3, 1, c)
+    cv.vline(x + 2, y - 1, 29, '#ffffff')
+    cv.rect(x + 1, y + 29, 12, 2, '#a87444')
 
     # ---------- 검색대 (6,5): 엑스레이 상자 + 걸어서 지나가는 검색 문(7,5) ----------
     x, y = 96, 80
