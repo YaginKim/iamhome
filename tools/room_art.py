@@ -1766,6 +1766,193 @@ def mart():
     return cv
 
 
+
+# ======================================================================
+# [초안] 미용실 224x128 (14x8칸) — 칸 지도는 아직 게임에 없음
+#   1 벽: 삼색 기둥(1), 거울+화장대(2, 5), 샴푸대(7~8), 시계, 제품 선반(11~13)
+#   2 미용 의자(2,2)(5,2), 샴푸 의자(7~8,2)   미용사 (10,2)
+#   3 계산대(9~11)   손님 자리 (10,4)
+#   5 대기 소파(2~3), 잡지 탁자(4), 화분(12)   문 (6,7)
+# ======================================================================
+def hairshop():
+    cv = Canvas(224, 128)
+    WALL, WALL2, WOOD, WOOD2 = '#8e6672', '#845e6a', '#8a5a3a', '#6c3c24'
+    # ---------- 바닥: 연분홍 타일 ----------
+    F1, F2, FG = '#f2dcd8', '#ead0cc', '#d8b8b4'
+    for ty in range(2, 7):
+        for tx in range(1, 13):
+            x0, y0 = tx * T, ty * T
+            cv.rect(x0, y0, T, T, F1 if (tx + ty) % 2 == 0 else F2)
+            cv.hline(x0, y0, T, FG); cv.vline(x0, y0, T, FG)
+            cv.p(x0 + 2, y0 + 2, '#fbeeec')
+    # 의자 아래 둥근 매트
+    for cx in (40, 88):
+        for j in range(-6, 7):
+            half = int((1 - (j / 7) ** 2) ** 0.5 * 14)
+            cv.blend(cx - half, 43 + j, half * 2, 1, '#c8a0a8', 0.45)
+    # 바닥에 떨어진 머리카락 조금
+    for x, y in ((30, 50), (34, 52), (50, 49), (78, 51), (96, 50), (92, 53)):
+        cv.p(x, y, '#5a4038'); cv.p(x + 1, y + 1, '#5a4038')
+
+    # ---------- 뒷벽 ----------
+    cv.rect(16, 0, 192, 32, WALL)
+    for x in range(18, 208, 8):
+        cv.vline(x, 2, 24, WALL2)
+    cv.rect(16, 0, 192, 2, K)
+    cv.rect(16, 26, 192, 4, WOOD); cv.hline(16, 26, 192, '#a87444')
+    cv.hline(16, 31, 192, K)
+
+    # 삼색 기둥 (1칸)
+    cv.box(18, 3, 7, 24, '#f8f6f0')
+    for j in range(4, 26):
+        for i2 in range(19, 24):
+            k = (i2 + j) % 6
+            cv.p(i2, j, '#dc4646' if k < 2 else ('#4278d2' if k < 4 else '#f8f6f0'))
+    cv.rect(18, 2, 7, 2, '#ccd0d8'); cv.rect(18, 26, 7, 2, '#ccd0d8')
+    cv.vline(19, 4, 22, '#ffffff')
+
+    # 거울 + 화장대 (2칸, 5칸)
+    def station(cx, items):
+        x0 = cx - 12
+        cv.rect(x0 + 4, 2, 16, 2, '#f8f0c8'); cv.hline(x0 + 4, 4, 16, '#c8b880')   # 거울 위 조명
+        cv.rect(x0 + 3, 4, 18, 17, WOOD2)
+        cv.rect(x0 + 4, 5, 16, 15, '#bfe4f4')
+        cv.rect(x0 + 4, 5, 16, 4, '#d8f0fa')
+        for k in range(5):
+            cv.p(x0 + 6 + k, 16 - k, '#f8fcff'); cv.p(x0 + 7 + k, 16 - k, '#e8f6fe')
+        cv.rect(x0, 20, 24, 3, WOOD); cv.hline(x0, 20, 24, '#a87444'); cv.hline(x0, 23, 24, WOOD2)
+        cv.rect(x0 + 2, 23, 2, 4, WOOD2); cv.rect(x0 + 20, 23, 2, 4, WOOD2)
+        for kind, ix in items:
+            if kind == 'cup':      # 가위·빗 꽂이
+                cv.box(x0 + ix, 16, 4, 5, '#dc8aa0'); cv.vline(x0 + ix + 1, 13, 3, '#ccd0d8'); cv.vline(x0 + ix + 2, 14, 2, K)
+            elif kind == 'palette':
+                cv.box(x0 + ix, 18, 7, 3, K)
+                for q, c in enumerate(['#f6a0b4', '#f4c846', '#96d2f0', '#8c64c8', '#6eb45a']):
+                    cv.p(x0 + ix + 1 + q, 19, c)
+            elif kind == 'bottle':
+                cv.box(x0 + ix, 15, 3, 6, '#f8f6f0'); cv.p(x0 + ix + 1, 14, '#4278d2')
+            elif kind == 'dryer':
+                cv.sprite(x0 + ix, 15, ['kkkkk.', 'kpppkk', 'kkkkk.', '..kk..', '..kk..'], {'k': K, 'p': '#f6a0b4'})
+    station(40, [('palette', 3), ('cup', 15)])
+    station(88, [('dryer', 3), ('bottle', 12), ('bottle', 16)])
+
+    # 샴푸대 (7~8칸 벽 + 2줄 샴푸 의자)
+    cv.box(114, 14, 20, 12, '#f8f6f0')
+    cv.rect(116, 16, 16, 5, '#dcdcd4'); cv.rect(118, 17, 12, 3, '#bfe4f4')
+    cv.rect(123, 10, 2, 5, '#ccd0d8'); cv.rect(121, 10, 6, 1, '#ccd0d8')
+    cv.box(136, 16, 6, 8, '#f8f6f0'); cv.p(138, 15, '#6eb45a')        # 샴푸통
+    # 시계
+    cv.sprite(147, 4, ['.kkkkk.', 'kwwkwwk', 'kwwkwwk', 'kwwkkwk', 'kwwwwwk', '.kkkkk.'], {'k': K, 'w': '#f8f6f0'})
+    # 제품 선반 (11~13칸)
+    cv.rect(172, 3, 34, 23, WOOD2)
+    for k, sy in enumerate((4, 11, 18)):
+        cv.rect(173, sy, 32, 6, '#b88a90')
+        for q, x in enumerate(range(174, 204, 4)):
+            c = ['#f8f6f0', '#f6a0b4', '#96d2f0', '#f8f6f0', '#a8dcd0', '#f4d878', '#f8f6f0', '#c8a0d8'][(q + k * 3) % 8]
+            hh = 4 + (q + k) % 2
+            cv.rect(x, sy + 6 - hh, 3, hh, c); cv.p(x + 1, sy + 5 - hh, '#6c6a7e')
+        cv.hline(173, sy + 6, 32, WOOD)
+    cv.blend(172, 26, 34, 1, K, 0.3)
+
+    # ---------- 미용 의자 (2,2)(5,2): 뒤에서 본 검은 의자 ----------
+    def chair(cx):
+        x, y = cx - 8, 32
+        cv.blend(x + 2, y + 13, 12, 2, K, 0.25)
+        cv.rect(x + 6, y + 10, 4, 3, '#ccd0d8')                          # 기둥
+        cv.rect(x + 3, y + 13, 10, 2, '#9aa2b4'); cv.hline(x + 3, y + 13, 10, '#e8ecf2')   # 받침
+        cv.rect(x + 2, y, 12, 11, K)
+        cv.rect(x + 3, y + 1, 10, 9, '#3a2a30'); cv.hline(x + 3, y + 1, 10, '#5a4048')
+        cv.rect(x + 1, y + 5, 2, 5, K); cv.rect(x + 13, y + 5, 2, 5, K)  # 팔걸이
+        cv.rect(x + 5, y + 3, 6, 1, '#5a4048')
+    chair(40); chair(88)
+    # 샴푸 의자 (7~8, 2): 세면대 쪽으로 누운 의자
+    x, y = 112, 32
+    cv.blend(x + 2, y + 13, 30, 2, K, 0.25)
+    cv.rect(x + 4, y + 1, 24, 10, K)
+    cv.rect(x + 5, y + 2, 22, 8, '#3a2a30'); cv.hline(x + 5, y + 2, 22, '#5a4048')
+    cv.rect(x + 8, y - 2, 16, 4, '#f8f6f0'); cv.hline(x + 8, y - 2, 16, '#ffffff'); cv.hline(x + 8, y + 1, 16, K)  # 세면 그릇
+    cv.rect(x + 14, y + 11, 4, 3, '#ccd0d8'); cv.rect(x + 10, y + 13, 12, 2, '#9aa2b4')
+
+    # ---------- 계산대 (9~11, 3) ----------
+    x0, y0, w = 144, 48, 48
+    cv.blend(x0, y0 + 15, w, 2, K, 0.22)
+    cv.rect(x0, y0 + 1, w, 14, K)
+    cv.rect(x0 + 1, y0 + 2, w - 2, 4, '#f8f6f0'); cv.hline(x0 + 1, y0 + 2, w - 2, '#ffffff')
+    cv.rect(x0 + 1, y0 + 6, w - 2, 8, WOOD); cv.hline(x0 + 1, y0 + 6, w - 2, '#a87444')
+    for x in range(x0 + 4, x0 + w - 2, 6):
+        cv.vline(x, y0 + 7, 7, WOOD2)
+    cv.box(x0 + 3, y0 - 3, 11, 6, '#3a3a48'); cv.rect(x0 + 4, y0 - 2, 9, 4, '#f6a0b4')   # 예약 태블릿
+    cv.box(x0 + 30, y0 - 1, 4, 5, '#f8f6f0')                                              # 꽃병
+    cv.p(x0 + 31, y0 - 4, '#dc4646'); cv.p(x0 + 33, y0 - 3, '#f4c846'); cv.vline(x0 + 32, y0 - 3, 2, '#6eb45a')
+    for q, c in enumerate(['#f6a0b4', '#a8dcd0', '#f8f6f0']):                             # 판매 제품
+        cv.box(x0 + 37 + q * 3, y0 - 2, 3, 6, c)
+
+    # ---------- 대기 소파 (2~3, 5) + 잡지 탁자 (4, 5) ----------
+    x, y = 32, 80
+    cv.blend(x + 1, y + 14, 32, 2, K, 0.22)
+    cv.rect(x, y, 32, 14, K)
+    cv.rect(x + 1, y + 1, 30, 5, '#6a8aa0'); cv.hline(x + 1, y + 1, 30, '#8aaac0')       # 등받이
+    cv.rect(x + 1, y + 6, 30, 6, '#7c9cb4'); cv.vline(x + 16, y + 6, 6, '#5a7a90')       # 방석
+    cv.rect(x + 1, y + 12, 30, 1, '#5a7a90')
+    cv.rect(x, y + 3, 3, 10, K); cv.rect(x + 29, y + 3, 3, 10, K)
+    cv.rect(x + 1, y + 4, 1, 8, '#6a8aa0'); cv.rect(x + 30, y + 4, 1, 8, '#6a8aa0')
+    cv.box(x + 4, y + 3, 6, 4, '#f6a0b4')                                                 # 쿠션
+    tx, ty = 66, 84
+    cv.blend(tx + 1, ty + 9, 12, 2, K, 0.2)
+    cv.box(tx, ty, 12, 7, '#c48e58'); cv.hline(tx + 1, ty + 1, 10, '#e0aa70')
+    cv.rect(tx + 2, ty + 7, 1, 3, WOOD2); cv.rect(tx + 9, ty + 7, 1, 3, WOOD2)
+    cv.rect(tx + 2, ty + 2, 5, 3, '#f4c846'); cv.rect(tx + 3, ty + 1, 5, 3, '#96d2f0')    # 잡지
+    cv.box(tx + 8, ty + 2, 3, 3, '#f8f6f0')                                               # 컵
+
+    # ---------- 화분 (12, 5): 파스텔 잎 ----------
+    cv.blend(193, 89, 14, 3, K, 0.25)
+    cv.sprite(191, 71, [
+        '....kk.....kk...',
+        '...kppk...kbbk..',
+        '..kpPPpk.kbBBbk.',
+        '..kpPPpk.kbBBbk.',
+        '..kpPppk.kbBbbk.',
+        '...kppk.k.kbbk..',
+        '.kk.kk.kyk.kk...',
+        'kyyk..kyYyk.kk..',
+        'kyYyk.kyYyk.kpk.',
+        'kyYyk..kyk.kpPk.',
+        '.kyyk..kyk.kppk.',
+        '..kk...kyk..kk..',
+        '........k.......',
+    ], {'k': K, 'p': '#f6a0b4', 'P': '#f8c8d4', 'b': '#96c8d8', 'B': '#c4e4ee', 'y': '#a8c870', 'Y': '#d0e898'})
+    cv.sprite(192, 83, [
+        '..kkkkkkkkkk..',
+        '.kwwwwwwwwwwk.',
+        '..kwwwwwwwwk..',
+        '..kwwwwwwwwk..',
+        '..kcwwwwwwck..',
+        '..kccwwwwcck..',
+        '...kccwwcck...',
+        '...kkkkkkkk...',
+    ], {'k': K, 'w': '#e8d8d0', 'c': '#c8b0a8'})
+    cv.rect(195, 84, 8, 1, '#6c4a3a')
+
+    # ---------- 옆벽·앞벽·문 ----------
+    CAP, CAP2 = '#efe0dc', '#c4a8a4'
+    for x in (12, 208):
+        cv.rect(x, 0, 4, 116, CAP)
+        cv.vline(x + (3 if x == 12 else 0), 0, 116, CAP2)
+    cv.vline(11, 0, 116, K); cv.vline(212, 0, 116, K)
+    cv.rect(12, 112, 200, 4, CAP); cv.hline(12, 112, 200, CAP2); cv.hline(12, 116, 200, K)
+    cv.rect(12, 117, 200, 11, K)
+    cv.blend(16, 108, 192, 4, K, 0.10)
+    dx = 96
+    cv.rect(dx - 1, 112, 18, 16, K)
+    cv.rect(dx, 112, 16, 16, '#e0d0cc')
+    cv.rect(dx + 1, 113, 14, 14, '#9a7a80')
+    for j in range(115, 126, 2):
+        cv.hline(dx + 2, j, 12, '#ac8c92')
+    cv.rect(dx - 3, 112, 3, 6, '#bfe4f4'); cv.rect(dx + 16, 112, 3, 6, '#bfe4f4')
+    cv.vline(dx - 3, 112, 6, K); cv.vline(dx + 18, 112, 6, K)
+    return cv
+
+
 if __name__ == '__main__':
     OUT.mkdir(parents=True, exist_ok=True)
     b = bank(); b.save(OUT / 'bank.png')
@@ -1778,4 +1965,5 @@ if __name__ == '__main__':
     DRAFT.mkdir(parents=True, exist_ok=True)
     cs = convenience(); cs.save(DRAFT / 'convenience.png'); cs.save(DRAFT / 'convenience_x4.png', 4)
     mt = mart(); mt.save(DRAFT / 'mart.png'); mt.save(DRAFT / 'mart_x4.png', 4)
-    print('draft', DRAFT / 'convenience.png', DRAFT / 'mart.png')
+    hs = hairshop(); hs.save(DRAFT / 'hairshop.png'); hs.save(DRAFT / 'hairshop_x4.png', 4)
+    print('draft', DRAFT / 'convenience.png', DRAFT / 'mart.png', DRAFT / 'hairshop.png')
