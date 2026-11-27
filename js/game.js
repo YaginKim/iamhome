@@ -1,12 +1,12 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
-import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271033';
-import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271033';
-import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271033';
-import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271033';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271033';
-import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271033';
-import { newState, load, save, wipe, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271033';
-import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271033';
+import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271036';
+import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271036';
+import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271036';
+import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271036';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271036';
+import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271036';
+import { newState, load, save, wipe, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271036';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271036';
 
 const $ = s => document.querySelector(s);
 // 받침에 따라 조사 고르기: josa('우유', '은', '는') → '우유는'

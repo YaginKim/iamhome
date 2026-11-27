@@ -7,5 +7,8 @@
   "field": "field.png",
   "convenience": "convenience.png",
   "market": "market.png",
-  "hairshop": "hairshop.png"
+  "hairshop": "hairshop.png",
+  "mart": "mart.png",
+  "edu_office": "edu_office.png",
+  "moe": "moe.png"
 }

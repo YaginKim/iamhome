@@ -1,4 +1,4 @@
-"""방 그림(도트) 초안: 편의점, 전통시장, 미용실
+"""방 그림(도트) 초안: 편의점, 전통시장, 미용실, 대형마트, 교육지원청, 교육부
 사용법: python3 tools/room_art_more.py
 결과: assets/rooms/convenience.png (224x128), market.png (256x144), hairshop.png (224x128)
 
@@ -227,8 +227,141 @@ def hairshop():
     return cv
 
 
+def mart():
+    """대형마트 256x176 (16x11칸)
+      1 xHHHHWWWWWHHHHHx   벽쪽 진열대 + 가운데 벽(냉장 코너)
+      3,5 xqHHqqHHqqHHqqqx  코너 진열대 (식품 2~3, 생활용품 6~7, 과일 10~11)  표지판은 게임이 2줄에 그림
+      7 xqqqqqqqqqcccqKx   계산대 10~12, 셀프 계산대 14   점원 (11,6)
+      9 xqqRqqqDqqqqqqqx   R = 카트 보관대 (3,9)   D = 문 (7,9)
+    """
+    cv = Canvas(256, 176)
+    tile_floor(cv, 1, 2, 15, 10, '#eef4f6', '#e2eaee', '#c8d4da', '#ffffff')
+    room_shell(cv, 16, 11, 7, '#f6f6f2', '#dcdcd2')
+    # 벽: 빨간 띠 + MART 간판 + 냉장 코너
+    cv.rect(16, 3, 224, 3, '#dc4646'); cv.hline(16, 6, 224, '#962a2c')
+    cv.box(104, 7, 46, 11, '#f4c846'); text(cv, 112, 10, 'MART', '#962a2c')
+    cv.rect(80, 19, 80, 13, K)
+    for i in range(5):
+        gx = 81 + i * 16
+        cv.rect(gx, 20, 15, 11, '#bfe4f4')
+        for j in range(3):
+            cv.rect(gx + 2 + j * 4, 23, 3, 6, GOODS[(i + j * 2) % len(GOODS)])
+    shelf(cv, 1, 1, 4, 31, h=30, top_y=2)
+    shelf(cv, 10, 1, 5, 32, h=30, top_y=2)
+    # 코너 진열대: 식품(노랑·빨강), 생활용품(파랑·흰색), 과일(빨강·초록)
+    for ty in (3, 5):
+        shelf(cv, 2, ty, 2, 40 + ty)
+        shelf(cv, 6, ty, 2, 50 + ty)
+        shelf(cv, 10, ty, 2, 60 + ty)
+    # 계산대 (10~12, 7줄) + 컨베이어
+    counter(cv, 10, 7, 3, '#3a3850', '#dc4646', '#962a2c')
+    for x in range(162, 206, 4):
+        cv.vline(x, 113, 3, '#6c6a7e')
+    cv.box(196, 110, 10, 6, '#3a3850'); cv.rect(198, 111, 6, 2, '#bfe4b0')
+    # 셀프 계산대 (14,7)
+    x, y = 224, 112
+    cv.rect(x + 3, y, 10, 16, K); cv.rect(x + 4, y + 1, 8, 14, '#f8f6f0')
+    cv.rect(x + 5, y + 2, 6, 6, '#4278d2'); cv.rect(x + 6, y + 3, 4, 3, '#96d2f0'); cv.rect(x + 6, y + 12, 4, 2, '#f4c846')
+    # 카트 보관대 (3,9)
+    x, y = 48, 144
+    for i in range(3):
+        cx = x + 1 + i * 2
+        cv.rect(cx, y + 3, 13, 9, K); cv.rect(cx + 1, y + 4, 11, 6, '#ccd0d8')
+        for j in range(cx + 3, cx + 12, 3):
+            cv.vline(j, y + 4, 6, '#8c92a0')
+    cv.rect(x + 3, y + 12, 2, 2, K); cv.rect(x + 13, y + 12, 2, 2, K)
+    cv.box(x + 11, y, 5, 4, '#dc4646')
+    return cv
+
+
+def edu_office():
+    """교육지원청 224x144 (14x9칸)
+      1 xWWWWWWWWWVWEx   V = 자판기 (10,1)   E = 엘리베이터 (12,1)
+      3 xKqcccccqqqqqx   K = 번호표 기계 (1,3)   c = 민원 창구 3~7 (직원 5,2)
+      5 xqTTqqqqTTqqqx   T = 기다리는 의자
+      7 xqqqqqDqqqqqqx   D = 문 (6,7)
+    """
+    cv = Canvas(224, 144)
+    tile_floor(cv, 1, 2, 13, 8, '#eef0f4', '#e4e8ee', '#cfd4dc', '#ffffff')
+    room_shell(cv, 14, 9, 6, '#eef0f4', '#d4d8e0')
+    # 벽: 보라 띠 + 전광판
+    cv.rect(16, 3, 192, 3, '#8c64c8'); cv.hline(16, 6, 192, '#5a3e8c')
+    cv.rect(24, 9, 40, 14, K); cv.rect(25, 10, 38, 12, '#14131f'); text(cv, 34, 13, '017', '#ff6a4a')
+    # 자판기 (10,1)
+    x = 160
+    cv.rect(x + 1, 4, 14, 28, K); cv.rect(x + 2, 5, 12, 26, '#dc4646'); cv.rect(x + 3, 7, 7, 14, '#bfe4f4')
+    for i, c in enumerate(['#4278d2', '#6eb45a', '#f4c846']):
+        cv.rect(x + 4 + i * 2, 9, 1, 10, c)
+    cv.rect(x + 11, 10, 2, 2, K); cv.rect(x + 4, 25, 8, 3, K)
+    # 엘리베이터 (12,1)
+    x = 192
+    cv.rect(x, 4, 16, 28, K); cv.rect(x + 1, 5, 14, 27, '#ccd0d8'); cv.vline(x + 8, 5, 27, '#8c92a0')
+    cv.rect(x + 5, 6, 6, 3, '#f4c846')
+    # 번호표 기계 (1,3)
+    x, y = 16, 48
+    cv.blend(x + 3, y + 14, 12, 2, K, 0.2)
+    cv.rect(x + 3, y, 10, 16, K); cv.rect(x + 4, y + 1, 8, 14, '#f8f6f0')
+    cv.rect(x + 5, y + 2, 6, 5, '#4278d2'); cv.rect(x + 6, y + 9, 4, 2, '#dc4646'); cv.rect(x + 6, y + 12, 4, 1, K)
+    # 민원 창구 (3~7, 3줄) + 칸막이
+    counter(cv, 3, 3, 5, '#f8f6f0', '#8c64c8', '#5a3e8c')
+    for x in (64, 96):
+        cv.rect(x, 38, 2, 10, '#bfe4f4'); cv.vline(x + 2, 38, 10, K)
+    cv.box(72, 49, 10, 5, '#f8f6f0'); cv.hline(74, 51, 6, K)
+    # 기다리는 의자 (2~3, 8~9칸, 5줄)
+    for tx in (2, 8):
+        x, y = tx * T, 80
+        cv.blend(x + 1, y + 13, 30, 3, K, 0.2)
+        for i in range(3):
+            cv.rect(x + 1 + i * 10, y + 3, 9, 10, K); cv.rect(x + 2 + i * 10, y + 4, 7, 4, '#4278d2'); cv.rect(x + 2 + i * 10, y + 8, 7, 4, '#284e96')
+    plant(cv, 192, 72)
+    return cv
+
+
+def moe():
+    """교육부 256x160 (16x10칸)
+      3 xcccqqqqqqqcccqx   안내 데스크 1~3 (직원 2,2) / 기념품 가게 11~13 (직원 12,2)
+      5 xqqqqqGqqqqqqqqx   G = 보안 검색대 (6,5)
+      7 xqTTqqqqqqqTTqqx   T = 긴 의자   견학 안내 선생님 (9,6)
+      8 xqqqqqqDqqqqqqqx   D = 문 (7,8)
+    """
+    cv = Canvas(256, 160)
+    # 대리석 바닥
+    for ty in range(2, 9):
+        for tx in range(1, 15):
+            x, y = tx * T, ty * T
+            cv.rect(x, y, T, T, '#f2f0ea' if (tx + ty) % 2 == 0 else '#e6e2d8')
+            cv.hline(x, y, T, '#d0cabc'); cv.vline(x, y, T, '#d0cabc')
+            cv.p(x + 5, y + 9, '#dcd6ca'); cv.p(x + 6, y + 10, '#dcd6ca'); cv.p(x + 11, y + 4, '#dcd6ca')
+    # 가운데 빨간 카펫 (문에서 안쪽으로)
+    cv.rect(108, 64, 24, 80, '#b44040'); cv.vline(108, 64, 80, '#f4c846'); cv.vline(131, 64, 80, '#f4c846')
+    room_shell(cv, 16, 10, 7, '#eef0f4', '#d4d8e0')
+    # 벽: 초록 띠 + 기관 마크 + 창문
+    cv.rect(16, 3, 224, 3, '#3c7840'); cv.hline(16, 6, 224, '#264c28')
+    cv.box(116, 8, 24, 20, '#f8f6f0'); cv.rect(120, 12, 16, 12, '#4278d2'); cv.rect(124, 15, 8, 6, '#f4c846'); cv.rect(126, 13, 4, 2, '#dc4646')
+    for wx in (56, 168):
+        cv.box(wx, 9, 28, 18, '#bfe4f4'); cv.vline(wx + 14, 10, 16, '#96d2f0'); cv.rect(wx + 3, 11, 5, 3, '#f8f6f0')
+    # 안내 데스크 (1~3) / 기념품 가게 (11~13)
+    counter(cv, 1, 3, 3, '#f8f6f0', '#3c7840', '#264c28')
+    cv.box(22, 49, 10, 5, '#f8f6f0'); cv.hline(24, 51, 6, K)
+    counter(cv, 11, 3, 3, '#f8f6f0', '#f6a0b4', '#c86482')
+    for i, c in enumerate(['#4278d2', '#f4c846', '#dc4646', '#6eb45a']):
+        cv.box(180 + i * 6, 47, 5, 6, c)
+    # 보안 검색대 (6,5)
+    x, y = 96, 80
+    cv.blend(x + 1, y + 14, 15, 2, K, 0.25)
+    cv.rect(x + 1, y + 2, 14, 12, K); cv.rect(x + 2, y + 3, 12, 10, '#8c92a0'); cv.rect(x + 4, y + 5, 8, 6, K); cv.rect(x + 5, y + 6, 6, 4, '#3a3850')
+    cv.rect(x + 6, y, 4, 2, '#6eb45a')
+    # 긴 의자 (2~3, 11~12칸, 7줄)
+    for tx in (2, 11):
+        x, y = tx * T, 112
+        cv.blend(x + 1, y + 13, 30, 3, K, 0.2)
+        cv.rect(x + 1, y + 3, 30, 10, K); cv.rect(x + 2, y + 4, 28, 4, '#c48e28'); cv.rect(x + 2, y + 8, 28, 4, '#8a5e18')
+    plant(cv, 16, 120); plant(cv, 224, 120)
+    return cv
+
+
 if __name__ == '__main__':
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, fn in (('convenience', convenience), ('market', market), ('hairshop', hairshop)):
+    for name, fn in (('convenience', convenience), ('market', market), ('hairshop', hairshop), ('mart', mart), ('edu_office', edu_office), ('moe', moe)):
         fn().save(OUT / f'{name}.png')
         print('saved', OUT / f'{name}.png')
