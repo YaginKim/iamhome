@@ -402,7 +402,7 @@ def classroom():
         cv.p(bx + 8 + i, by + 14 + (i // 6) % 2, '#3e7c60')
     cv.dither(bx + 50, by + 4, 14, 3, '#3e7c60')
     # 분필 글씨: 날짜 + 동그라미 + 줄
-    text(cv, bx + 5, by + 4, '11/27', '#f0efe6')
+    # 날짜(51,7 부터)는 게임이 그날 날짜로 써 넣어요 (js/engine.js drawChalkDate)
     cv.hline(bx + 5, by + 11, 30, '#d6dccc'); cv.hline(bx + 5, by + 14, 22, '#d6dccc')
     cv.sprite(bx + 44, by + 8, [
         '.yyy.',

@@ -1,6 +1,6 @@
 // 위에서 내려다보는 지도: 타일 그리기, 이동(키보드·터치), 길찾기, 문·사람과 만나기
-import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611270411';
-import { sfx } from './voice.js?v=202611270411';
+import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611270454';
+import { sfx } from './voice.js?v=202611270454';
 
 export const T = 16;
 const BLOCK = new Set(['t', 'W', 'c', 'T', 'B', 'x', 'S', 'k', 'A', 'U', 'H']);
@@ -180,6 +180,23 @@ async function loadRoomArt(id) {
   return img;
 }
 
+// 교실 칠판에 오늘 날짜(폰·PC 시계 기준)를 분필 글씨로 씁니다. 예: 11/27
+const CHALK_GLYPH = {
+  0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001011001111',
+  4: '101101111001001', 5: '111100111001111', 6: '111100111101111', 7: '111001010010010',
+  8: '111101111101111', 9: '111101111001111', '/': '001001010100100',
+};
+function drawChalkDate(ctx, x, y) {
+  const d = new Date();
+  ctx.fillStyle = '#f0efe6';
+  for (const ch of `${d.getMonth() + 1}/${d.getDate()}`) {
+    const g = CHALK_GLYPH[ch];
+    for (let i = 0; i < 15; i++) if (g[i] === '1') ctx.fillRect(x + (i % 3), y + Math.floor(i / 3), 1, 1);
+    x += 4;
+  }
+}
+const ROOM_EXTRAS = { classroom: ctx => drawChalkDate(ctx, 51, 7) };
+
 export class World {
   constructor(canvas) {
     this.cv = canvas;
@@ -216,7 +233,7 @@ export class World {
     this.bg = document.createElement('canvas');
     this.bg.width = W * T; this.bg.height = H * T;
     const bctx = this.bg.getContext('2d');
-    if (roomArt && roomArt.width === W * T && roomArt.height === H * T) bctx.drawImage(roomArt, 0, 0);
+    if (roomArt && roomArt.width === W * T && roomArt.height === H * T) { bctx.drawImage(roomArt, 0, 0); ROOM_EXTRAS[map.id]?.(bctx); }
     else this.grid.forEach((row, y) => row.forEach((ch, x) => drawTile(bctx, ch, x, y)));
     for (const b of map.buildings || []) drawBuilding(bctx, b, true);
     this.npcSprites = (map.npcs || []).map(n => PEOPLE[n.sprite]());
