@@ -1,8 +1,8 @@
 // 화면 위에 얹는 UI: 상단 정보(HUD), 대화창, 선택지, 경고 팝업, 알림
-import { iconCanvas, toImg, PEOPLE, cardCanvas, tokenCanvas } from './sprites.js?v=202611271129';
-import { say, sfx } from './voice.js?v=202611271129';
-import { cashTotal } from './state.js?v=202611271129';
-import { won } from './data.js?v=202611271129';
+import { iconCanvas, toImg, PEOPLE, cardCanvas, tokenCanvas } from './sprites.js?v=202611271132';
+import { say, sfx } from './voice.js?v=202611271132';
+import { cashTotal } from './state.js?v=202611271132';
+import { won } from './data.js?v=202611271132';
 
 const $ = s => document.querySelector(s);
 export const el = (tag, cls, text) => {
@@ -115,7 +115,7 @@ function portrait(who) {
   return toImg(PORTRAITS[who], 4, '');
 }
 
-const NAMES = { mom: '엄마', owner: '분식점 사장님', teller: '은행 직원', player: '나', teacher: '선생님', clerk: '반장', helper: '체육 도우미', parent: '운동회 부스 도우미', friend: '짝꿍' };
+const NAMES = { mom: '엄마', owner: '분식점 사장님', teller: '은행 직원', player: '나', teacher: '선생님', clerk: '반장', helper: '체육 도우미', parent: '운동회 부스 도우미', friend: '짝꿍', cashier: '계산대 점원', grocer: '채소 가게 사장님', baker: '떡집 사장님', stylist: '미용사 선생님', officer: '민원실 직원', guard: '안내 데스크 직원', guide: '견학 안내 선생님', giftclerk: '기념품 가게 직원' };
 
 function openDialog(who, text, voiceId) {
   const d = $('#dialog');

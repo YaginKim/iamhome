@@ -1,9 +1,9 @@
 // 위에서 내려다보는 지도: 타일 그리기, 이동(키보드·터치), 길찾기, 문·사람과 만나기
-import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611271129';
-import { sfx } from './voice.js?v=202611271129';
+import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611271132';
+import { sfx } from './voice.js?v=202611271132';
 
 export const T = 16;
-const BLOCK = new Set(['t', 'W', 'c', 'T', 'B', 'x', 'S', 'k', 'A', 'U', 'H']);
+const BLOCK = new Set(['t', 'W', 'c', 'T', 'B', 'x', 'S', 'k', 'A', 'U', 'H', 'K', 'M', 'C', 'R', 'V', 'E', 'G']);
 
 function hash(x, y) { return ((x * 73856093) ^ (y * 19349663)) >>> 0; }
 
@@ -73,6 +73,30 @@ function drawTile(ctx, ch, x, y) {
       f(PAL.k, 0, 0, T, T);
       for (let i = 0; i < 4; i++) f(i % 2 ? '#f8f6f0' : '#dc4646', i * 4, 1, 4, 10);
       f('#962a2c', 0, 11, T, 2); f('#e8d39a', 0, 13, T, 3);
+      break;
+    case 'K': // 셀프 계산대 (키오스크)
+      f('#cfe8f4', 0, 0, T, T); f(PAL.k, 3, 0, 10, 16); f('#f8f6f0', 4, 1, 8, 14); f('#4278d2', 5, 2, 6, 6); f('#96d2f0', 6, 3, 4, 3);
+      f(PAL.k, 6, 10, 4, 1); f('#f4c846', 6, 12, 4, 2);
+      break;
+    case 'R': // 카트 보관대
+      f('#cfe8f4', 0, 0, T, T); f(PAL.k, 1, 4, 14, 9); f('#ccd0d8', 2, 5, 12, 6); for (let i = 3; i < 13; i += 3) f('#8c92a0', i, 5, 1, 6);
+      f(PAL.k, 3, 13, 2, 2); f(PAL.k, 11, 13, 2, 2); f('#dc4646', 12, 2, 3, 3);
+      break;
+    case 'V': // 자판기
+      f('#f4e6c8', 0, 0, T, T); f(PAL.k, 1, 0, 14, 16); f('#dc4646', 2, 1, 12, 14); f('#bfe4f4', 3, 2, 7, 8);
+      for (let i = 0; i < 3; i++) f(['#4278d2', '#6eb45a', '#f4c846'][i], 4 + i * 2, 3, 1, 5); f(PAL.k, 11, 4, 2, 2); f(PAL.k, 4, 12, 8, 2);
+      break;
+    case 'E': // 엘리베이터
+      f('#f4e6c8', 0, 0, T, T); f(PAL.k, 1, 0, 14, 16); f('#ccd0d8', 2, 1, 12, 15); f('#8c92a0', 7, 1, 2, 15); f('#f4c846', 6, 2, 4, 2);
+      break;
+    case 'G': // 보안 검색대
+      f('#eef0f4', 0, 0, T, T); f(PAL.k, 1, 2, 14, 12); f('#8c92a0', 2, 3, 12, 10); f(PAL.k, 4, 5, 8, 6); f('#6eb45a', 6, 1, 4, 2);
+      break;
+    case 'M': // 미용실 거울
+      f('#fbeaf0', 0, 0, T, T); f(PAL.k, 2, 0, 12, 14); f('#bfe4f4', 3, 1, 10, 12); f('#f8f6f0', 4, 2, 3, 2);
+      break;
+    case 'C': // 미용실 의자
+      f('#fbeaf0', 0, 0, T, T); f(PAL.k, 3, 3, 10, 12); f('#dc4646', 4, 4, 8, 6); f('#962a2c', 4, 10, 8, 2); f('#8c92a0', 7, 12, 2, 3);
       break;
     case 'H': // 체육 도구 선반
       f('#e0a868', 0, 0, T, T); f(PAL.k, 1, 1, 14, 14); f('#a0643c', 2, 2, 12, 12);
@@ -197,6 +221,19 @@ function drawChalkDate(ctx, x, y) {
 }
 const ROOM_EXTRAS = { classroom: ctx => drawChalkDate(ctx, 51, 7) };
 
+// 방 안 표지판 (코너 이름, 창구 이름)
+function drawLabel(ctx, l) {
+  ctx.font = '16px Sam3KR';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '-3px';
+  const tw = Math.ceil(ctx.measureText(l.text).width);
+  const sw = tw + 8, cx = Math.round(l.x * T + T / 2 - sw / 2), cy = l.y * T + 1;
+  ctx.fillStyle = PAL.k; ctx.fillRect(cx, cy, sw, 15);
+  ctx.fillStyle = l.color || '#f4c846'; ctx.fillRect(cx + 1, cy + 1, sw - 2, 13);
+  ctx.fillStyle = PAL.k; ctx.textBaseline = 'top';
+  ctx.fillText(l.text, cx + 4, cy);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+}
+
 export class World {
   constructor(canvas) {
     this.cv = canvas;
@@ -233,9 +270,11 @@ export class World {
     this.bg = document.createElement('canvas');
     this.bg.width = W * T; this.bg.height = H * T;
     const bctx = this.bg.getContext('2d');
-    if (roomArt && roomArt.width === W * T && roomArt.height === H * T) { bctx.drawImage(roomArt, 0, 0); ROOM_EXTRAS[map.id]?.(bctx); }
+    const useArt = roomArt && roomArt.width === W * T && roomArt.height === H * T;
+    if (useArt) { bctx.drawImage(roomArt, 0, 0); ROOM_EXTRAS[map.id]?.(bctx); }
     else this.grid.forEach((row, y) => row.forEach((ch, x) => drawTile(bctx, ch, x, y)));
     for (const b of map.buildings || []) drawBuilding(bctx, b, true);
+    if (!useArt) for (const l of map.labels || []) drawLabel(bctx, l); // 방 그림이 있으면 글자 표지는 안 그림
     this.npcSprites = (map.npcs || []).map(n => PEOPLE[n.sprite]());
     const p = spawn || map.spawn;
     Object.assign(this.player, { x: p.x, y: p.y, rx: p.x, ry: p.y, path: [] });
@@ -297,7 +336,7 @@ export class World {
     const b = (this.map.buildings || []).find(b => tx >= b.x && tx < b.x + b.w && ty >= b.y && ty < b.y + b.h);
     if (b) target = [b.doorX, b.doorY];
     const n = (this.map.npcs || []).find(n => Math.abs(n.x - tx) <= 0 && Math.abs(n.y - ty) <= 1);
-    if (n) target = this.nearestFree(n.x, n.y);
+    if (n) target = n.counter && this.blocked[n.y + 2]?.[n.x] === false ? [n.x, n.y + 2] : this.nearestFree(n.x, n.y); // 창구 뒤 사람은 창구 앞으로
     if (this.blocked[target[1]]?.[target[0]] !== false) target = this.nearestFree(tx, ty);
     if (!target) return;
     const path = this.bfs([this.player.x, this.player.y], target);
@@ -594,143 +633,6 @@ export function gymMap() {
   };
 }
 
-// ---------- 아직 스테이지가 없는 곳 (방 그림·칸 지도만 먼저 준비) ----------
-// k = 막힌 물건(키오스크, 의자, 화분 등), U = 천막. 사람 id는 스테이지를 만들 때 정합니다.
-export function convenienceMap() {
-  return {
-    id: 'convenience_in', name: '편의점',
-    tiles: [
-      'xxxxxxxxxxxxxx',
-      'xWWWWWWWWWWWWx',
-      'xqqqqqqqqqqqqx',
-      'xqTTqqTTqqqqqx',
-      'xqqqqqqqqqqqqx',
-      'xkTTqqTTqcccqx',
-      'xqqqqqqqqqqqkx',
-      'xxxxxxDxxxxxxx',
-    ],
-    npcs: [{ id: 'cs_clerk', sprite: 'teller', x: 10, y: 4, counter: true }],
-    counter: { x: 10, y: 6 }, kiosk: { x: 1, y: 5 },
-    spawn: { x: 6, y: 6 },
-    door: { x: 6, y: 7 },
-  };
-}
-
-export function martMap() {
-  return {
-    id: 'mart_in', name: '대형마트',
-    tiles: [
-      'xxxxxxxxxxxxxxxx',
-      'xWWWWWWWWWWWWWWx',
-      'xqqqqqqqqqqqqqqx',
-      'xqTTqqTTqqTTqqqx',
-      'xqqqTqqqTqqqqTqx',
-      'xqqqTqqqTqqqqTqx',
-      'xqqqqqqqqqqqqqqx',
-      'xqcccqcccqcccqkx',
-      'xqqqqqqqqqqqqqqx',
-      'xqqkqqqDqqqqqqqx',
-      'xxxxxxxxxxxxxxxx',
-    ],
-    npcs: [{ id: 'mart_clerk', sprite: 'helper', x: 11, y: 6, counter: true }],
-    counter: { x: 11, y: 8 }, kiosk: { x: 14, y: 7 }, cart: { x: 3, y: 9 },
-    sections: { food: { x: 2, y: 3 }, living: { x: 6, y: 3 }, fruit: { x: 10, y: 3 } },
-    spawn: { x: 7, y: 8 },
-    door: { x: 7, y: 9 },
-  };
-}
-
-export function hairshopMap() {
-  return {
-    id: 'hairshop_in', name: '미용실',
-    tiles: [
-      'xxxxxxxxxxxxxx',
-      'xWWWWWWWWWWWWx',
-      'xqkqqkqkkqqqqx',
-      'xqqqqqqqqcccqx',
-      'xqqqqqqqqqqqqx',
-      'xqkkkqqqqqqqkx',
-      'xqqqqqqqqqqqqx',
-      'xxxxxxDxxxxxxx',
-    ],
-    npcs: [{ id: 'stylist', sprite: 'parent', x: 10, y: 2, counter: true }],
-    counter: { x: 10, y: 4 },
-    spawn: { x: 6, y: 6 },
-    door: { x: 6, y: 7 },
-  };
-}
-
-export function moeMap() {
-  return {
-    id: 'moe_in', name: '교육부',
-    tiles: [
-      'xxxxxxxxxxxxxxxx',
-      'xWWWWWWWWWWWWWWx',
-      'xqqqqqqqqqqqqqkx',
-      'xcccqqqqqqqccckx',
-      'xqqqqqqqqqqqqqqx',
-      'xqqqqqkqqqqqqqqx',
-      'xqqqqqqqqqqqqqqx',
-      'xqkkqqqqqqqkkqqx',
-      'xkqqqqqDqqqqqqkx',
-      'xxxxxxxxxxxxxxxx',
-    ],
-    npcs: [
-      { id: 'moe_info', sprite: 'teller', x: 2, y: 2, counter: true },
-      { id: 'moe_shop', sprite: 'owner', x: 12, y: 2, counter: true },
-      { id: 'moe_guide', sprite: 'teacher', x: 9, y: 6 },
-    ],
-    counter: { x: 2, y: 4 }, counters: [{ x: 2, y: 4 }, { x: 12, y: 4 }], security: { x: 6, y: 5 },
-    spawn: { x: 7, y: 7 },
-    door: { x: 7, y: 8 },
-  };
-}
-
-export function eduOfficeMap() {
-  return {
-    id: 'edu_office_in', name: '교육지원청',
-    tiles: [
-      'xxxxxxxxxxxxxx',
-      'xWWWWWWWWWkWkx',
-      'xqqqqqqqqqqqqx',
-      'xkqcccccqqqqqx',
-      'xqqqqqqqqqqqqx',
-      'xqkkqqqqkkqqkx',
-      'xqqqqqqqqqqqqx',
-      'xqqqqqDqqqqqqx',
-      'xxxxxxxxxxxxxx',
-    ],
-    npcs: [{ id: 'edu_clerk', sprite: 'teller', x: 5, y: 2, counter: true }],
-    counter: { x: 5, y: 4 }, ticket: { x: 1, y: 3 }, vending: { x: 10, y: 1 }, elevator: { x: 12, y: 1 },
-    spawn: { x: 6, y: 6 },
-    door: { x: 6, y: 7 },
-  };
-}
-
-export function marketMap() {
-  return {
-    id: 'market_in', name: '전통시장',
-    tiles: [
-      'tttttttttttttttt',
-      'tUUUUUqqqqUUUUUt',
-      'tqqqqqqqqqqqqqqt',
-      'tqcccqqqqqqcccqt',
-      'tqqqqqqqqqqqqqqt',
-      'tqkqqqqqqqqqqkqt',
-      'tqqqqqqqqqqqqqqt',
-      'tqqqqqqDqqqqqqqt',
-      'tttttttttttttttt',
-    ],
-    npcs: [
-      { id: 'veg_owner', sprite: 'owner', x: 3, y: 2, counter: true },
-      { id: 'tteok_owner', sprite: 'parent', x: 12, y: 2, counter: true },
-    ],
-    counter: { x: 3, y: 4 }, counters: [{ x: 3, y: 4 }, { x: 12, y: 4 }],
-    spawn: { x: 7, y: 6 },
-    door: { x: 7, y: 7 },
-  };
-}
-
 export function fieldMap() {
   return {
     id: 'field', name: '운동장',
@@ -754,5 +656,148 @@ export function fieldMap() {
     counter: { x: 11, y: 4 },
     spawn: { x: 8, y: 8 },
     door: { x: 8, y: 9 },
+  };
+}
+
+export function convenienceMap() {
+  return {
+    id: 'convenience', name: '편의점',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xHHHHHWWWHHHHx',
+      'xqqqqqqqqqqqqx',
+      'xqHHqqHHqqqqqx',
+      'xqqqqqqqqqqqqx',
+      'xKHHqqHHqcccqx',
+      'xqqqqqqqqqqqkx',
+      'xxxxxxDxxxxxxx',
+    ],
+    kiosk: { x: 1, y: 5 },
+    npcs: [{ id: 'cashier', sprite: 'cashier', x: 10, y: 4, counter: true }],
+    counter: { x: 10, y: 6 },
+    spawn: { x: 6, y: 6 },
+    door: { x: 6, y: 7 },
+  };
+}
+
+export function marketMap() {
+  return {
+    id: 'market', name: '전통시장',
+    tiles: [
+      'tttttttttttttttt',
+      'tUUUUUssssUUUUUt',
+      'tssssssssssssst',
+      'tscccssssssccc' + 'st',
+      'tssssssssssssst',
+      'tsHssssssssssHst',
+      'tssssssssssssst',
+      'tssssssDsssssss' + 't',
+      'tttttttttttttttt',
+    ].map(r => (r.length < 16 ? r.slice(0, -1) + 's'.repeat(16 - r.length) + 't' : r)),
+    npcs: [
+      { id: 'grocer', sprite: 'grocer', x: 3, y: 2, counter: true },
+      { id: 'baker', sprite: 'baker', x: 12, y: 2, counter: true },
+    ],
+    counters: { grocer: { x: 3, y: 4 }, baker: { x: 12, y: 4 } },
+    counter: { x: 3, y: 4 },
+    spawn: { x: 7, y: 6 },
+    door: { x: 7, y: 7 },
+  };
+}
+
+export function hairshopMap() {
+  return {
+    id: 'hairshop', name: '미용실',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xWMMWMMWWWWWWx',
+      'xqCqqCqkkqqqqx',
+      'xqqqqqqqqcccqx',
+      'xqqqqqqqqqqqqx',
+      'xqTTkqqqqqqqkx',
+      'xqqqqqqqqqqqqx',
+      'xxxxxxDxxxxxxx',
+    ],
+    npcs: [{ id: 'stylist', sprite: 'stylist', x: 10, y: 2, counter: true }],
+    counter: { x: 10, y: 4 },
+    spawn: { x: 6, y: 6 },
+    door: { x: 6, y: 7 },
+  };
+}
+
+export function martMap() {
+  return {
+    id: 'mart', name: '대형마트',
+    tiles: [
+      'xxxxxxxxxxxxxxxx',
+      'xHHHHWWWWWHHHHHx',
+      'xqqqqqqqqqqqqqqx',
+      'xqHHqqHHqqHHqqqx',
+      'xqqqHqqqHqqqqHqx',
+      'xqqqHqqqHqqqqHqx',
+      'xqqqqqqqqqqqqqqx',
+      'xqkkkqkkkqcccqKx',
+      'xqqqqqqqqqqqqqqx',
+      'xqqRqqqDqqqqqqqx',
+      'xxxxxxxxxxxxxxxx',
+    ],
+    npcs: [{ id: 'cashier', sprite: 'cashier', x: 11, y: 6, counter: true }],
+    objects: [{ id: 'cart', x: 3, y: 9 }, { id: 'c_food', x: 2, y: 3 }, { id: 'c_daily', x: 6, y: 3 }, { id: 'c_fruit', x: 10, y: 3 }],
+    labels: [{ x: 2.5, y: 2, text: '식품' }, { x: 6.5, y: 2, text: '생활용품', color: '#96d2f0' }, { x: 10.5, y: 2, text: '과일', color: '#f6a0b4' }],
+    kiosk: { x: 14, y: 7 },
+    counter: { x: 11, y: 8 },
+    spawn: { x: 7, y: 8 },
+    door: { x: 7, y: 9 },
+  };
+}
+
+export function eduOfficeMap() {
+  return {
+    id: 'edu_office', name: '교육지원청',
+    tiles: [
+      'xxxxxxxxxxxxxx',
+      'xWWWWWWWWWVWEx',
+      'xqqqqqqqqqqqqx',
+      'xKqcccccqqqqqx',
+      'xqqqqqqqqqqqqx',
+      'xqTTqqqqTTqqkx',
+      'xqqqqqqqqqqqqx',
+      'xqqqqqDqqqqqqx',
+      'xxxxxxxxxxxxxx',
+    ],
+    npcs: [{ id: 'officer', sprite: 'officer', x: 5, y: 2, counter: true }],
+    objects: [{ id: 'ticket', x: 1, y: 3 }, { id: 'vending', x: 10, y: 1 }, { id: 'elevator', x: 12, y: 1 }],
+    labels: [{ x: 5, y: 1, text: '민원실' }, { x: 2.2, y: 2, text: '번호표', color: '#96d2f0' }],
+    counter: { x: 5, y: 4 },
+    spawn: { x: 6, y: 6 },
+    door: { x: 6, y: 7 },
+  };
+}
+
+export function moeMap() {
+  return {
+    id: 'moe', name: '교육부',
+    tiles: [
+      'xxxxxxxxxxxxxxxx',
+      'xWWWWWWWWWWWWWWx',
+      'xqqqqqqqqqqqqqkx',
+      'xcccqqqqqqqccckx',
+      'xqqqqqqqqqqqqqqx',
+      'xqqqqqGqqqqqqqqx',
+      'xqqqqqqqqqqqqqqx',
+      'xqTTqqqqqqqTTqqx',
+      'xkqqqqqDqqqqqqkx',
+      'xxxxxxxxxxxxxxxx',
+    ],
+    npcs: [
+      { id: 'guard', sprite: 'guard', x: 2, y: 2, counter: true },
+      { id: 'giftclerk', sprite: 'giftclerk', x: 12, y: 2, counter: true },
+      { id: 'guide', sprite: 'guide', x: 9, y: 6 },
+    ],
+    objects: [{ id: 'gate', x: 6, y: 5 }],
+    labels: [{ x: 2, y: 1, text: '안내' }, { x: 12, y: 1, text: '기념품', color: '#f6a0b4' }, { x: 6, y: 4, text: '검색대', color: '#96d2f0' }],
+    counter: { x: 2, y: 4 },
+    spawn: { x: 7, y: 7 },
+    door: { x: 7, y: 8 },
   };
 }

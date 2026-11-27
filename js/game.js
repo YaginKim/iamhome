@@ -1,14 +1,22 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
-import { loadData, itemsFor, won, LEVELS } from './data.js?v=202611271129';
-import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271129';
-import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271129';
-import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, martMap, hairshopMap, moeMap, eduOfficeMap, marketMap, loadBuildingManifest } from './engine.js?v=202611271129';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271129';
-import { pay, tokenPay, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271129';
-import { newState, load, save, wipe, today, breakDown, addPieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271129';
-import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271129';
+import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271132';
+import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271132';
+import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271132';
+import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271132';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271132';
+import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271132';
+import { newState, load, save, wipe, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271132';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271132';
 
 const $ = s => document.querySelector(s);
+// 받침에 따라 조사 고르기: josa('우유', '은', '는') → '우유는'
+function josa(word, withB, noB) {
+  const w = String(word).replace(/[^가-힣0-9]+$/, '');
+  const c = w.charCodeAt(w.length - 1);
+  const has = c >= 0xAC00 && c <= 0xD7A3 ? (c - 0xAC00) % 28 !== 0 : /[013678]$/.test(w);
+  return word + (has ? withB : noB);
+}
+const listOf = items => items.map(i => i.name).join(', ');
 let D, S, world;
 const run = { stage: null }; // 이번 판의 진행 (저장하지 않는 값)
 
@@ -107,7 +115,7 @@ function lives() {
   const max = L().triesBeforeIdCheck;
   return { max, left: max - Math.min(max, st.tries || 0) };
 }
-function L() { return D.config.levels[S.level]; }
+function L() { return levelCfg(D.config, S); }
 
 // ---------- 타이틀 ----------
 // ---------- 시작 화면 배경 (포스터) ----------
@@ -272,6 +280,19 @@ function settingsScreen() {
       sel.append(b);
     }
     f.append(lb, sel); sh.append(f);
+    // 영역별 난이도 (경계선 학생용): 비워 두면 위의 난이도를 따라가요
+    sh.append(el('h3', null, '영역별 난이도'), el('p', 'note', '학생에 맞게 영역마다 따로 정할 수 있어요. "기본"은 위의 난이도를 따라가요.'));
+    cur.areas ||= {};
+    for (const [key, label] of Object.entries(AREAS)) {
+      const r = el('div', 'area-row'); r.append(el('span', null, label));
+      for (const l of ['기본', ...LEVELS]) {
+        const on = (cur.areas[key] || '기본') === l;
+        const b = el('button', 'btn' + (on ? ' primary' : ''), l);
+        b.onclick = () => { if (l === '기본') delete cur.areas[key]; else cur.areas[key] = l; save(cur); settingsScreen(); };
+        r.append(b);
+      }
+      sh.append(r);
+    }
     sh.append(el('p', 'note', `오늘 끝낸 스테이지: ${cur.day.date === today() ? cur.day.count : 0}개 / 하루 ${D.config.session.maxStagesPerDay}개`));
   } else sh.append(el('p', 'note', '아직 저장된 진행이 없어요.'));
   const row = el('div', 'row');
@@ -335,7 +356,9 @@ async function enterRoom(def) {
   await world.load(def.map());
   hud(); world.frozen = false;
   const st = run.stage;
-  if (st && st.def === def && st.phase === 'toSchool') { st.phase = 'atRoom'; goal('giver', '선생님께 가서 인사해요.'); }
+  if (st && st.def === def && st.phase === 'toSchool' && def.mode === 'script') { st.phase = 'script'; st.step = 0; stepGoal(); }
+  else if (st && st.def === def && st.phase === 'toSchool') { st.phase = 'atRoom'; goal('giver', '선생님께 가서 인사해요.'); }
+  else if (st && st.def === def && def.mart && st.phase === 'toShop') martGoal();
   else updateGoalMarker();
 }
 async function enterBank() {
@@ -356,6 +379,14 @@ function updateGoalMarker() {
     if (b) world.goal = { x: b.doorX, y: b.doorY }; // 문 위를 가리키는 화살표
   } else if (run.map === 'home' && g === 'home') world.goal = { x: 9, y: 3 }; // 엄마 머리 위
   else if (run.map === 'bank' && g === 'bank') world.goal = (L().bank.mode === 'atm' && run.tutorial?.step !== 'bank') ? { x: world.map.atm.x, y: world.map.atm.y + 1 } : { ...world.map.counter };
+  else if ((g === 'step' || g === 'obj') && run.goalTarget) {
+    const t = run.goalTarget;
+    const n = (world.map.npcs || []).find(n => n.id === t) || (world.map.objects || []).find(o => o.id === t);
+    if (n) world.goal = n.counter ? { x: n.x, y: n.y + 2 } : { x: n.x, y: n.y }; // 창구 뒤 사람은 창구 앞 칸
+  }
+  else if (g === 'kiosk' && world.map.kiosk) world.goal = { x: world.map.kiosk.x, y: world.map.kiosk.y };
+  else if ((g === 'counter' || g === run.map) && world.map.counters && run.stage?.errand?.left?.length) world.goal = { ...world.map.counters[run.stage.errand.left[0]] };
+  else if ((g === 'counter' || g === run.map) && run.stage?.errand?.payBy === 'kiosk' && world.map.kiosk) world.goal = { x: world.map.kiosk.x, y: world.map.kiosk.y };
   else if ((g === 'counter' || g === run.map) && world.map.counter) world.goal = { ...world.map.counter };
   else if (g === 'giver' && run.stage?.def) {
     const n = (world.map.npcs || []).find(n => n.id === run.stage.def.giver);
@@ -378,7 +409,7 @@ async function onArrive(x, y, settled) {
       world.player.path = [];
       busy = true;
       await fade(() => world.load(townMap(S, unlocked()), { x, y: y + 1 }));
-      notify(`${b.label}은 아직 열리지 않았어요.`, 'no');
+      notify(`${josa(b.label, '은', '는')} 아직 열리지 않았어요.`, 'no');
       busy = false;
       return;
     }
@@ -413,7 +444,9 @@ async function onArrive(x, y, settled) {
     ? y === n.y + 2 && Math.abs(n.x - x) <= 1
     : Math.max(Math.abs(n.x - x), Math.abs(n.y - y)) <= 1);
   const who = (m.npcs || []).find(near)?.id
-    || (run.map === 'bank' && m.atm && Math.max(Math.abs(m.atm.x - x), Math.abs(m.atm.y - y)) <= 1 ? 'atm' : null);
+    || (run.map === 'bank' && m.atm && Math.max(Math.abs(m.atm.x - x), Math.abs(m.atm.y - y)) <= 1 ? 'atm' : null)
+    || (m.kiosk && Math.max(Math.abs(m.kiosk.x - x), Math.abs(m.kiosk.y - y)) <= 1 ? 'kiosk' : null)
+    || (m.objects || []).find(o => Math.max(Math.abs(o.x - x), Math.abs(o.y - y)) <= 1)?.id;
   if (!who) { run.nearNpc = null; return; }
   if (run.nearNpc === who) return;
   run.nearNpc = who;
@@ -453,10 +486,18 @@ async function startTutorial() {
 }
 
 async function meet(who) {
+  const st = run.stage;
+  if (st?.def.mode === 'script' && st.phase === 'script') {
+    const target = st.def.steps(S.level)[st.step];
+    if (who === target) return runStep(target);
+    if (who !== 'mom') return talk(null, '먼저 노란 글씨 목표를 따라가 봐요.');
+  }
+  if (st?.def.mart && st.phase === 'toShop' && (who === 'cart' || who.startsWith('c_'))) return martObject(who);
   if (who === 'mom') return momTalk();
   if (who === 'teacher') return teacherTalk();
   if (who === 'friend') return talk('friend', '안녕! 오늘도 같이 힘내자.');
   if (who === 'teller' || who === 'atm') return bankTalk(who);
+  if (who === 'kiosk') return kioskTalk();
   return sellerTalk(who);
 }
 
@@ -470,7 +511,7 @@ async function momTalk() {
     return talk('mom', '오늘도 잘했어! 동네를 둘러봐도 좋아.');
   }
   const def = st.def;
-  if (st.phase === 'atHome') return def.giver === 'mom' ? giveErrand() : leaveForSchool(def);
+  if (st.phase === 'atHome') return def.mode === 'script' ? leaveForSchool(def) : def.giver === 'mom' ? giveErrand() : leaveForSchool(def);
   if (st.phase === 'deliver' && def.giver === 'mom') return deliverErrand();
   if (st.phase === 'toShop') return talk('mom', `${def.name}에 다녀와 줄래? 메모를 잊지 마!`);
   if (st.phase === 'toSchool') return talk('mom', '현관으로 가서 인사하고 학교에 가렴.');
@@ -614,10 +655,38 @@ const STAGES = [
     itemStage: 'field', counterName: '운동회 먹거리 부스', greet: ['안녕하세요!', ['야, 이거 줘.', '안녕히 계세요.', '(아무 말 없이 서 있기)']], bye: ['감사합니다. 안녕히 계세요!', ['안녕히 가세요.', '(그냥 가기)', '안녕하세요!']] },
   { id: 'snackbar', name: '분식점', building: 'snackbar', map: shopMap, giver: 'mom', seller: 'owner', mode: 'cash',
     itemStage: 'snackbar', counterName: '분식점', greet: ['안녕하세요!', ['야, 떡볶이 줘.', '안녕히 계세요.', '(아무 말 없이 서 있기)']], bye: ['감사합니다. 안녕히 계세요!', ['안녕히 가세요.', '(그냥 나가기)', '안녕하세요!']] },
+  { id: 'convenience', name: '편의점', building: 'convenience', map: convenienceMap, giver: 'mom', seller: 'cashier', mode: 'cash', promo: true, bag: true, kiosk: true, expiry: true,
+    itemStage: 'convenience', counterName: '편의점', greet: ['안녕하세요!', ['야, 이거 계산해.', '안녕히 계세요.', '(아무 말 없이 서 있기)']], bye: ['감사합니다. 안녕히 계세요!', ['안녕히 가세요.', '(그냥 나가기)', '안녕하세요!']] },
+  { id: 'market', name: '전통시장', building: 'market', map: marketMap, giver: 'mom', seller: 'grocer', mode: 'cash', cashOnly: true, dum: true, lowMax: 5000,
+    missions: { 하: 2, 중: 3, 상: 3 },
+    stalls: [{ seller: 'grocer', name: '채소·과일 가게', cats: ['채소', '과일', '생선'] }, { seller: 'baker', name: '떡·반찬 가게', cats: ['식품', '간식', '반찬', '잡화'] }],
+    itemStage: 'market', counterName: '전통시장', greet: ['안녕하세요!', ['야, 이거 줘.', '안녕히 계세요.', '(아무 말 없이 서 있기)']], bye: ['감사합니다. 안녕히 계세요!', ['안녕히 가세요.', '(그냥 가기)', '안녕하세요!']] },
+  { id: 'hairshop', name: '미용실', building: 'hairshop', map: hairshopMap, giver: 'mom', seller: 'stylist', mode: 'cash', hair: true, lowMax: 5000,
+    missions: { 하: 2, 중: 3, 상: 3 },
+    itemStage: 'hairshop', counterName: '미용실', greet: ['안녕하세요!', ['야, 머리 잘라 줘.', '안녕히 계세요.', '(아무 말 없이 서 있기)']], bye: ['감사합니다. 안녕히 계세요!', ['안녕히 가세요.', '(그냥 나가기)', '안녕하세요!']] },
+  { id: 'mart', name: '대형마트', building: 'mart', map: martMap, giver: 'mom', seller: 'cashier', mode: 'cash', mart: true, bag: true, kiosk: true,
+    maxBy: { 하: 6000, 중: 10000 }, missions: { 하: 2, 중: 3, 상: 3 },
+    itemStage: 'mart', counterName: '대형마트 계산대', greet: ['안녕하세요!', ['야, 계산해.', '안녕히 계세요.', '(아무 말 없이 서 있기)']], bye: ['감사합니다. 안녕히 계세요!', ['안녕히 가세요.', '(그냥 나가기)', '안녕하세요!']] },
+  { id: 'edu_office', name: '교육지원청', building: 'edu_office', map: eduOfficeMap, giver: 'mom', reviewBy: 'officer', seller: 'officer', mode: 'script',
+    leaveLine: '학교에서 받은 서류를 교육지원청 민원실에 내고 오렴. 번호표를 뽑고 차례를 기다리면 돼.',
+    steps: lv => (lv === '하' ? ['ticket', 'officer', 'vending'] : ['ticket', 'officer', 'elevator', 'vending']),
+    itemStage: 'edu_office', counterName: '민원실' },
+  { id: 'moe', name: '교육부', building: 'moe', map: moeMap, giver: 'mom', reviewBy: 'guide', seller: 'giftclerk', mode: 'script', lowMax: 4000,
+    leaveLine: '오늘은 교육부 견학 가는 날이야! 꿈이든 카드 꼭 챙겨 가렴.',
+    steps: () => ['guard', 'gate', 'guide', 'giftclerk'],
+    itemStage: 'moe', counterName: '기념품 가게', greet: ['안녕하세요!', ['야, 이거 줘.', '안녕히 계세요.', '(아무 말 없이 서 있기)']], bye: ['감사합니다. 안녕히 계세요!', ['안녕히 가세요.', '(그냥 가기)', '안녕하세요!']] },
 ];
+// 대형마트 코너
+const MART_CORNER = { 식품: 'c_food', 간식: 'c_food', 생활용품: 'c_daily', 과일: 'c_fruit' };
+const CORNER_NAME = { c_food: '식품 코너', c_daily: '생활용품 코너', c_fruit: '과일 코너' };
+const martNeed = st => st.errand.items.filter(i => !st.errand.got.includes(i.id));
+const NAME_OF_CASHIER = '점원';
+const HAIR_STYLES = ['앞머리만 조금 잘라 주세요.', '짧게 잘라 주세요.', '머리 감겨 주세요.'];
+const stallOf = (def, item) => def.stalls?.find(st => st.cats.includes(item.category)) || def.stalls?.[1];
+const poolOf = def => itemsFor(D, def.itemStage, S.level, def.maxBy?.[areaLevel(S, 'money')] || (areaLevel(S, 'money') === '하' ? def.lowMax : 0), L().maxPrice);
 const stageById = id => STAGES.find(d => d.id === id);
 function currentDef() { return STAGES.find(d => !S.cleared.includes(d.id)) || null; }
-function missionsFor() { return D.config.session.missionsPerStage[S.level]; }
+function missionsFor(def) { def ||= run.stage?.def; return def?.missions?.[S.level] ?? D.config.session.missionsPerStage[S.level]; }
 const isSchool = def => def?.building === 'school';
 const verbOf = def => (def.mode === 'rental' ? '빌려 올 것' : '사 올 것');
 
@@ -633,7 +702,7 @@ function startStage(def) {
     notify(`급식카드가 ${won(charge)} 충전됐어요.`);
     flashHud('meal');
   }
-  run.stage = { def, id: def.id, mission: 0, mistakes: 0, tries: 0, log: [], phase: 'atHome', bought: [], incidentAt: Math.min(2, missionsFor() - 1), cardsTried: [] };
+  run.stage = { def, id: def.id, mission: 0, mistakes: 0, tries: 0, log: [], phase: 'atHome', bought: [], incidentAt: Math.min(2, missionsFor(def) - 1), cardsTried: [] };
   hud(); persist();
 }
 
@@ -653,7 +722,7 @@ async function nextStage() {
 
 // 학교 가기: 엄마 → 현관에서 "다녀오겠습니다" → 학교
 async function leaveForSchool(def) {
-  await talk('mom', `오늘은 학교 ${def.name}에서 할 일이 있대. 선생님 말씀 잘 듣고 다녀와!`);
+  await talk('mom', def.leaveLine || `오늘은 학교 ${def.name}에서 할 일이 있대. 선생님 말씀 잘 듣고 다녀와!`);
   run.stage.phase = 'toSchool';
   run.lockHomeDoor = true;
   run.onHomeDoor = async () => {
@@ -662,24 +731,37 @@ async function leaveForSchool(def) {
     await maybeIdCheck();
     run.lockHomeDoor = false; run.onHomeDoor = null;
     await fade(() => enterTown(townSpawn('home')));
-    goal('school', `학교에 가요. 오늘은 ${def.name}!`);
+    goal(def.building, def.building === 'school' ? `학교에 가요. 오늘은 ${def.name}!` : `${def.name}에 가요.`);
   };
   goal('door', '현관으로 가요.');
 }
 
 function pickErrand(def) {
-  let pool = itemsFor(D, def.itemStage, S.level);
+  let pool = poolOf(def);
   if (def.mode !== 'rental') pool = pool.filter(i => i.price);
   const per = L().itemsPerMission;
   let n = Array.isArray(per) ? per[0] + Math.floor(Math.random() * (per[1] - per[0] + 1)) : per;
   if (def.mode === 'rental') n = Math.min(n, 3); // 빌리는 건 3개까지
+  if (def.hair) {
+    // 미용실: 첫 미션은 머리 손질(서비스), 그다음은 물건 사기
+    const kind = run.stage.mission === 0 ? '서비스' : '판매';
+    pool = pool.filter(i => i.category === kind);
+    n = kind === '서비스' ? 1 : Math.min(n, 2);
+  }
+  if (def.stalls) {
+    // 시장: 두 가게에서 하나씩은 사게 (가게마다 따로 계산)
+    n = Math.max(2, Math.min(n, 4));
+    const picks = def.stalls.map(stl => shuffle(pool.filter(i => stallOf(def, i) === stl))[0]).filter(Boolean);
+    const rest = shuffle(pool.filter(i => !picks.includes(i)));
+    return [...picks, ...rest].slice(0, Math.min(n, pool.length));
+  }
   return shuffle([...pool]).slice(0, Math.min(n, pool.length));
 }
 
 // 현금 주기 (하: 딱 맞게, 중·상: 조금 큰 지폐)
 function cashFor(total) {
   const denoms = L().money;
-  if (S.level === '하') return breakDown(total, denoms);
+  if (areaLevel(S, 'money') === '하') return breakDown(total, denoms);
   // 그 단계에서 쓰는 지폐만 줘요 (중 단계에는 만 원이 없으니 오천 원 여러 장)
   const bills = [...denoms].filter(d => d >= 1000 && d <= 10000).sort((a, b) => a - b);
   const one = bills.find(d => d >= total);
@@ -694,11 +776,17 @@ async function giveErrand() {
   const k = st.mission;
   const items = pickErrand(def);
   const total = items.reduce((t, i) => t + i.price, 0);
-  st.errand = { items, total, payBy: k === 1 ? 'card' : 'cash' };
+  st.errand = { items, total, payBy: k === 1 && !def.cashOnly ? 'card' : 'cash' };
+  if (def.kiosk && k === 1 && L().card.kiosk) st.errand.payBy = 'kiosk';
+  if (def.promo && S.level !== '하' && st.errand.payBy !== 'kiosk') st.errand.promo = items[0].id; // 첫 품목을 1+1 행사로
+  if (def.stalls) st.errand.left = def.stalls.filter(stl => items.some(i => stallOf(def, i) === stl)).map(stl => stl.seller);
+  if (def.hair && items[0]?.category === '서비스') st.errand.style = items[0].id === 'hair_wash' ? HAIR_STYLES[2] : HAIR_STYLES[Math.floor(Math.random() * 2)];
   await talk('mom', k === 0 ? `${def.name}에 심부름 다녀와 줄래? 여기 메모야.` : '하나 더 부탁해도 될까? 새 메모야.');
   await showMemo(true);
-  if (st.errand.payBy === 'card') {
-    await talk('mom', `이번에는 체크카드로 사 와. 엄마가 계좌로 ${won(total)}을 보내 줄게.`);
+  if (st.errand.payBy === 'card' || st.errand.payBy === 'kiosk') {
+    await talk('mom', st.errand.payBy === 'kiosk'
+      ? `이번에는 셀프 계산대(키오스크)에서 체크카드로 계산해 보렴. 엄마가 계좌로 ${won(total)}을 보내 줄게.`
+      : `이번에는 체크카드로 사 와. 엄마가 계좌로 ${won(total)}을 보내 줄게.`);
     S.account += total; hud(); flashHud('account');
     notify(`띵동! 엄마가 계좌로 ${won(total)}을 보냈어요.`);
   } else {
@@ -709,7 +797,15 @@ async function giveErrand() {
   }
   st.phase = 'toShop';
   persist();
-  goal(def.building, `${def.name}에서 ${S.level === '상' ? '메모에 적힌 것' : items.map(i => i.name).join(', ')}을 사 와요.`);
+  if (def.cashOnly) await talk('mom', '전통시장은 현금만 받는 가게가 많아. 현금으로 내렴.');
+  if (def.mart) {
+    st.errand.got = [];
+    if (!st.cartDone) {
+      if (!(S.cash[100] > 0)) { addPieces(S.cash, [100]); hud(); }
+      await talk('mom', '마트에서는 입구에서 카트를 빼야 해. 카트에 100원짜리 동전을 넣으면 빠져. 다 쓰면 돌려받을 수 있어.');
+    }
+  }
+  goal(def.building, `${def.name}에서 ${S.level === '상' ? '메모에 적힌 것을' : josa(listOf(items), '을', '를')} ${def.hair && st.errand.style ? '하고' : '사'} 와요.`);
   memoButton(true);
 }
 
@@ -754,7 +850,7 @@ async function giveSchoolMission() {
   }
   st.phase = 'toCounter';
   persist();
-  goal('counter', `${def.counterName}에서 ${S.level === '상' ? '메모에 적힌 것' : items.map(i => i.name).join(', ')}을 ${def.mode === 'rental' ? '빌려' : '사'} 와요.`);
+  goal('counter', `${def.counterName}에서 ${S.level === '상' ? '메모에 적힌 것을' : josa(listOf(items), '을', '를')} ${def.mode === 'rental' ? '빌려' : '사'} 와요.`);
   memoButton(true);
 }
 
@@ -775,12 +871,15 @@ function showMemo(fromGiver) {
     for (const it of e.items) {
       const li = el('li');
       const price = def.mode === 'cash' ? ` (${won(it.price)})` : def.mode === 'token' ? ` (토큰 ${it.price}개)` : '';
-      li.append(itemImg(it, 3), el('span', null, it.name + (S.level === '하' ? price : '')));
+      const promo = (e.promo === it.id ? ' 2개 (1+1 행사: 1개 값)' : '') + (def.stalls ? ` · ${stallOf(def, it).name}` : '');
+      li.append(itemImg(it, 3), el('span', null, it.name + promo + (S.level === '하' ? price : '')));
       ul.append(li);
     }
     card.append(ul);
+    if (e.style) card.append(el('p', null, `미용사 선생님께: "${e.style}"`));
+    if (e.payBy === 'kiosk') card.append(el('p', null, '셀프 계산대(키오스크)에서 체크카드로 계산하기'));
     m.append(card);
-    if (S.level === '상' && fromGiver) m.append(el('p', 'hint', '잘 기억해 두세요. 메모를 다시 보면 별을 받기 어려워져요.'));
+    if (areaLevel(S, 'memory') === '상' && fromGiver) m.append(el('p', 'hint', '잘 기억해 두세요. 메모를 다시 보면 별을 받기 어려워져요.'));
     say(`${def.counterName}에서 ${verbOf(def)}. ` + e.items.map(i => i.name).join(', '));
     const ok = el('button', 'btn primary big', '기억했어요');
     ok.style.display = 'flex'; ok.style.margin = '8px auto';
@@ -792,6 +891,13 @@ function showMemo(fromGiver) {
 // ----- 계산대 사람 -----
 async function sellerTalk(who) {
   const st = run.stage, def = st?.def;
+  if (def?.stalls && def.stalls.some(stl => stl.seller === who)) {
+    if (st.phase === 'toShop' && st.errand.left.includes(who)) return counterBuy(def, { stall: who });
+    if (st.phase === 'toShop') return talk(who, '우리 가게 건 다 샀구나! 다른 가게에도 들러 보렴.');
+    return talk(who, '또 와!');
+  }
+  if (def && def.seller === who && st.phase === 'toShop' && st.errand.payBy === 'kiosk') return talk(who, '이번에는 셀프 계산대에서 계산해 보세요.');
+  if (def?.mart && def.seller === who && st.phase === 'toShop' && (!st.cartDone || martNeed(st).length)) return talk(who, '먼저 카트를 가져와서 코너에서 물건을 담아 오세요.');
   if (!def || def.seller !== who) {
     await talk(who, who === 'owner' ? '어서 와! 지금은 심부름이 없구나.' : '안녕! 지금은 할 일이 없구나.');
     return;
@@ -816,7 +922,7 @@ async function counterBye(def) {
   await greetLoop(null, '다 끝났어요. 떠날 때는 뭐라고 할까요?', right, wrongs);
   await maybeIdCheck();
 }
-const NAME_OF = { owner: '사장님', clerk: '반장', helper: '체육 도우미 선생님', parent: '부스 도우미', teacher: '선생님' };
+const NAME_OF = { officer: '민원실 직원', guard: '안내 데스크 직원', guide: '견학 안내 선생님', giftclerk: '기념품 가게 직원', grocer: '채소 가게 사장님', baker: '떡집 사장님', stylist: '미용사 선생님', cashier: NAME_OF_CASHIER, owner: '사장님', clerk: '반장', helper: '체육 도우미 선생님', parent: '부스 도우미', teacher: '선생님' };
 
 function afterCounter(def) {
   const st = run.stage;
@@ -827,11 +933,15 @@ function afterCounter(def) {
 }
 
 // 사기 (현금·토큰)
-async function counterBuy(def) {
+async function counterBuy(def, opts = {}) {
   const st = run.stage;
   world.frozen = true;
   setGoal('');
-  const e = st.errand;
+  const all = st.errand;
+  const e = opts.stall ? { ...all, items: all.items.filter(i => stallOf(def, i).seller === opts.stall) } : all;
+  if (opts.stall) e.total = e.items.reduce((t, i) => t + i.price, 0);
+  const seller = opts.stall || def.seller;
+  def = { ...def, seller, counterName: opts.stall ? def.stalls.find(x => x.seller === opts.stall).name : def.counterName };
   if (def.mode === 'cash' && st.mission === st.incidentAt && !st.incidentDone && S.level === '하') {
     st.incidentDone = true;
     await greetLoop(null, 'shop.queue', '줄 서서 기다려요', ['앞으로 끼어들어요', '큰 소리로 불러요']);
@@ -845,8 +955,33 @@ async function counterBuy(def) {
     await greetLoop(null, '어떻게 말할까요?', '괜찮아요. 그럼 다른 날 살게요.', ['왜 없어요! 빨리 줘요!', '(화내고 나가기)']);
     await talk(def.seller, '고마워! 그건 오늘은 빼고 줄게. 다른 건 있어.');
   }
-  await orderItems(def);
+  if (def.mart) { await talk(def.seller, '바코드를 찍을게요. 삑, 삑!'); sfx('beep'); }
+  else await orderItems(def, { items: e.items });
   await maybeIdCheck();
+  if (def.expiry && S.level !== '하' && st.mission === st.incidentAt && !st.expiryDone) {
+    st.expiryDone = true;
+    for (;;) {
+      const ok = await expiryPick(e.items[0]);
+      if (ok) { sfx('ok'); log('expiry', { ok: true }); break; }
+      sfx('no');
+      await talk(def.seller, '어머, 그건 유통기한이 지났어요. 날짜를 다시 확인해 볼까요?');
+      await mistake('expiry'); await maybeIdCheck();
+    }
+  }
+  if (def.hair && e.style) {
+    await greetLoop(null, '잠깐 기다려 달래요. 어떻게 할까요?', '의자에 앉아서 기다려요', ['계속 빨리 해 달라고 해요', '그냥 나가요']);
+    await talk(def.seller, '기다려 줘서 고마워. 이제 앉아 볼까? 어떻게 해 줄까?');
+    await greetLoop(null, `메모를 떠올려 봐요. 미용사 선생님께 뭐라고 할까요?`, e.style, HAIR_STYLES.filter(x => x !== e.style).concat(['아무렇게나 해 주세요.']));
+    log('style', { said: e.style });
+    await holdStill(4);
+    log('hold', {});
+    await talk(def.seller, '다 됐어! 정말 잘 참았구나.');
+  }
+  if (e.promo) {
+    const pi = e.items.find(i => i.id === e.promo);
+    await talk(def.seller, `${josa(pi.name, '은', '는')} 1+1 행사라서 하나 값으로 2개를 드려요!`);
+    log('promo', { name: pi.name });
+  }
   if (def.mode === 'token') {
     await tokenPay({ state: S, config: D.config, total: e.total, who: def.seller, mistake: k => mistake(k), ownerLine: `모두 토큰 ${e.total}개야.` });
     log('paid', { total: e.total, items: e.items.map(i => i.name), token: true });
@@ -864,7 +999,7 @@ async function counterBuy(def) {
       ownerLine = `맞아! 모두 ${won(e.total)}이야.`;
     }
     const ctx = {
-      state: S, config: D.config, total: e.total, purpose: 'errand', log: st, ownerLine, who: def.seller,
+      state: S, config: D.config, total: e.total, purpose: 'errand', log: st, ownerLine, who: def.seller, cashOnly: def.cashOnly,
       wrongChange: S.level === '상' && st.mission === st.incidentAt && !st.wrongChangeDone,
       mistake: k => mistake(k),
     };
@@ -890,12 +1025,194 @@ async function counterBuy(def) {
       }
     }
   }
+  if (def.dum && st.mission === 0 && !st.dumDone) {
+    st.dumDone = true;
+    await talk(def.seller, '이건 덤이야! 하나 더 넣었어.');
+    await greetLoop(null, '덤을 받았어요. 뭐라고 할까요?', '감사합니다!', ['(그냥 받기)', '더 주세요.', '안녕하세요!']);
+    log('dum', {});
+  }
+  if (def.bag) {
+    await greetLoop(def.seller, '봉투 필요하세요?', '괜찮아요. 장바구니 있어요.', ['(대답 안 하기)', '봉투 내놔요.', '몰라요.']);
+    log('bag', {});
+    await maybeIdCheck();
+  }
   await talk(def.seller, def.mode === 'token' ? '자, 여기 있어!' : 'shop.owner.thanks');
   await counterBye(def);
   st.bought.push(...e.items.map(i => i.id));
   for (const it of e.items) if (!S.stickers.includes(it.id)) S.stickers.push(it.id);
-  afterCounter(def);
+  if (opts.script) { world.frozen = false; return; }
+  if (opts.stall) {
+    all.left = all.left.filter(x => x !== opts.stall);
+    if (all.left.length) {
+      const next = run.stage.def.stalls.find(x => x.seller === all.left[0]);
+      goal('counter', `${next.name}에도 가서 사요.`);
+      world.frozen = false;
+      return;
+    }
+  }
+  afterCounter(run.stage.def);
   if (def.mode === 'cash') await hungryOffer(def);
+  world.frozen = false;
+}
+
+// ---------- 대형마트: 카트, 코너 ----------
+function martGoal() {
+  const st = run.stage;
+  if (!st.cartDone) { run.goalTarget = 'cart'; goal('obj', '입구의 카트에 100원을 넣어요.'); return; }
+  const need = martNeed(st);
+  if (need.length) {
+    const c = MART_CORNER[need[0].category] || 'c_food';
+    run.goalTarget = c;
+    goal('obj', `${CORNER_NAME[c]}에서 ${josa(need.filter(i => (MART_CORNER[i.category] || 'c_food') === c).map(i => i.name).join(', '), '을', '를')} 찾아요.`);
+    return;
+  }
+  goal(st.errand.payBy === 'kiosk' ? 'kiosk' : 'counter', st.errand.payBy === 'kiosk' ? '셀프 계산대에서 계산해요.' : '계산대에서 계산해요.');
+}
+
+async function martObject(id) {
+  const st = run.stage, def = st.def;
+  if (id === 'cart') {
+    if (st.cartDone) return talk(null, '카트는 이미 빌렸어요.');
+    for (;;) {
+      let opts = L().choices === 2 ? ['100원', shuffle(['500원', '1,000원'])[0]] : ['100원', '500원', '1,000원'];
+      opts = shuffle(opts);
+      const i = await choose(null, '카트에 어떤 돈을 넣을까요?', opts.map(t => ({ text: t })));
+      if (opts[i] === '100원') break;
+      sfx('no'); await talk(null, '카트에는 100원짜리 동전을 넣어요.'); await mistake('cart'); await maybeIdCheck();
+    }
+    removePieces(S.cash, [100]); hud(); flashHud('cash'); sfx('coin');
+    st.cartDone = true; log('cart', {});
+    await talk(null, '딸깍! 카트를 뺐어요.');
+    return martGoal();
+  }
+  // 코너
+  const need = martNeed(st).filter(i => (MART_CORNER[i.category] || 'c_food') === id);
+  const corner = poolOf(def).filter(i => i.price && (MART_CORNER[i.category] || 'c_food') === id);
+  if (!need.length) { await talk(null, `${CORNER_NAME[id]}예요. 여기서 살 건 없어요.`); return martGoal(); }
+  for (;;) {
+    const picked = await new Promise(res => {
+      const m = panel('order');
+      m.append(el('h2', null, CORNER_NAME[id]));
+      const grid = el('div', 'menu'); const sel = new Set();
+      for (const it of corner) {
+        const b = el('button', 'menu-item'); b.setAttribute('aria-pressed', 'false');
+        b.append(itemImg(it, 4), el('span', 'nm', it.name), el('span', 'pr', won(it.price)));
+        b.onclick = () => { sel.has(it.id) ? sel.delete(it.id) : sel.add(it.id); b.setAttribute('aria-pressed', sel.has(it.id)); say(it.name); };
+        grid.append(b);
+      }
+      const ok = el('button', 'btn primary big', '카트에 담기'); ok.style.display = 'flex'; ok.style.margin = '14px auto';
+      ok.onclick = () => { closePanel(); res([...sel]); };
+      m.append(grid, ok);
+      say(`${CORNER_NAME[id]}예요. 메모에 있는 물건을 담아요.`);
+    });
+    if (picked.slice().sort().join() === need.map(i => i.id).sort().join()) break;
+    sfx('no'); await talk(null, '메모와 달라요. 다시 골라 볼까요?'); await mistake('corner'); await maybeIdCheck();
+  }
+  st.errand.got.push(...need.map(i => i.id));
+  sfx('ok'); notify(`${josa(need.map(i => i.name).join(', '), '을', '를')} 카트에 담았어요.`, 'coin');
+  log('corner', { id });
+  martGoal();
+}
+
+// ---------- 교육지원청·교육부: 정해진 순서대로 ----------
+const STEP_TEXT = {
+  ticket: '번호표 기계에서 번호표를 뽑아요.', officer: '민원실 창구로 가요.', elevator: '엘리베이터를 타요.', vending: '자판기에서 음료를 사요.',
+  guard: '안내 데스크로 가요.', gate: '보안 검색대를 지나가요.', guide: '견학 안내 선생님께 가요.', giftclerk: '기념품 가게에 가요.',
+};
+function stepGoal() {
+  const st = run.stage;
+  const target = st.def.steps(S.level)[st.step];
+  run.goalTarget = target;
+  goal('step', STEP_TEXT[target]);
+}
+
+async function runStep(target) {
+  const st = run.stage, def = st.def;
+  world.frozen = true; setGoal('');
+  if (target === 'ticket') {
+    await choose(null, '번호표 기계예요. 버튼을 눌러요.', [{ text: '번호표 뽑기' }]);
+    st.ticket = 10 + Math.floor(Math.random() * 30);
+    sfx('beep'); notify(`${st.ticket}번 번호표를 뽑았어요.`, 'coin');
+    await waitTurn(st.ticket, k => mistake(k));
+    log('ticket', { n: st.ticket });
+  } else if (target === 'officer') {
+    await talk('officer', `${st.ticket || ''}번 손님, 이쪽으로 오세요.`);
+    await greetLoop(null, '창구 직원에게 뭐라고 인사할까요?', '안녕하세요!', ['야!', '안녕히 계세요.', '(아무 말 안 하기)']);
+    await greetLoop('officer', '어떻게 오셨어요?', '서류를 내러 왔어요.', ['그냥 왔어요.', '몰라요.', '(아무 말 안 하기)']);
+    await talk('officer', '신청서를 써 주세요. 꿈이든 카드를 보고 쓰면 돼요.');
+    await formFill(S, L().choices === 2 ? 2 : 3, k => mistake(k));
+    log('form', {});
+    await talk('officer', '접수됐어요. 수고하셨어요!');
+    await greetLoop(null, '다 끝났어요. 뭐라고 할까요?', '감사합니다. 안녕히 계세요!', ['안녕히 가세요.', '(그냥 가기)', '안녕하세요!']);
+  } else if (target === 'elevator') {
+    const floor = 2 + Math.floor(Math.random() * 4);
+    await talk(null, `안내판: 교육과는 ${floor}층이에요.`);
+    for (;;) {
+      const opts = [1, 2, 3, 4, 5].map(n => ({ text: `${n}층` }));
+      const i = await choose(null, '엘리베이터 버튼을 눌러요. 몇 층으로 갈까요?', opts, { grid: true });
+      if (i + 1 === floor) break;
+      sfx('no'); await talk(null, `안내판을 다시 봐요. 교육과는 ${floor}층이에요.`); await mistake('floor'); await maybeIdCheck();
+    }
+    sfx('ding'); await talk(null, `${floor}층에 도착했어요. 교육과에 서류 사본을 드리고 내려왔어요.`);
+    log('floor', { floor });
+  } else if (target === 'vending') {
+    const it = D.items.find(i => i.id === 'office_vending');
+    await talk(null, `자판기예요. ${it.name}는 ${won(it.price)}이에요.`);
+    await pay({ state: S, config: D.config, total: it.price, purpose: 'eat', who: 'officer', log: st, mistake: k => mistake(k), ownerLine: `자판기: ${won(it.price)}을 넣어 주세요.` });
+    changeStamina(it.heal || 10); hud();
+    log('vending', {});
+  } else if (target === 'guard') {
+    await talk('guard', '교육부에 오신 걸 환영합니다.');
+    await greetLoop(null, '안내 데스크 직원에게 뭐라고 인사할까요?', '안녕하세요!', ['야!', '안녕히 계세요.', '(아무 말 안 하기)']);
+    await greetLoop('guard', '어떻게 오셨어요?', '견학 왔어요.', ['놀러 왔어요.', '몰라요.', '(아무 말 안 하기)']);
+    const cards = shuffle(['dream', 'check', 'meal']);
+    const names = { dream: '꿈이든 카드', check: '체크카드', meal: '급식카드' };
+    for (;;) {
+      const i = await choose('guard', '신분증을 보여 주세요.', cards.map(k => ({ text: names[k], img: toImg(cardCanvas(k), 2, '') })));
+      if (cards[i] === 'dream') break;
+      sfx('no'); await talk('guard', '그건 신분증이 아니에요. 이름과 주소가 있는 카드를 보여 주세요.'); await mistake('id'); await maybeIdCheck();
+    }
+    sfx('ok'); await talk('guard', `${S.student.name} 학생, 확인했어요. 방문 출입증이에요. 목에 걸어 주세요.`);
+    if (!S.stickers.includes('moe_badge')) S.stickers.push('moe_badge');
+    notify('방문 출입증을 받았어요.', 'coin');
+    log('id', {});
+  } else if (target === 'gate') {
+    await greetLoop(null, '보안 검색대예요. 어떻게 할까요?', '가방을 검색대 위에 올려요', ['가방을 메고 그냥 지나가요', '뛰어서 지나가요']);
+    sfx('beep'); await talk(null, '삑! 통과했어요.');
+    log('gate', {});
+  } else if (target === 'guide') {
+    await talk('guide', '반가워요! 이제 견학을 시작할게요.');
+    await greetLoop(null, '견학하는 동안에는 어떻게 할까요?', '조용히 따라가요', ['뛰어다녀요', '큰 소리로 떠들어요']);
+    await talk('guide', '여기서는 학생들이 배우는 교육 과정을 만들고, 학교를 도와요. 잘 들어 줘서 고마워요!');
+    log('tour', {});
+  } else if (target === 'giftclerk') {
+    const pool = poolOf(def).filter(i => i.price && i.category === '기념품');
+    const it = shuffle(pool)[0];
+    st.errand = { items: [it], total: it.price, payBy: 'cash' };
+    await talk('guide', `기념품 가게에서 ${josa(it.name, '을', '를')} 하나 사 볼까요?`);
+    if (!(S.cash && Object.keys(S.cash).length)) addPieces(S.cash, cashFor(it.price));
+    await counterBuy({ ...def, seller: 'giftclerk', mode: 'cash' }, { script: true });
+  }
+  st.step++;
+  persist();
+  world.frozen = false;
+  if (st.step >= def.steps(S.level).length) return finishStage();
+  stepGoal();
+}
+
+// 셀프 계산대 (편의점)
+async function kioskTalk() {
+  const st = run.stage, def = st?.def;
+  if (def?.mart && st.phase === 'toShop' && (!st.cartDone || martNeed(st).length)) return talk(null, '먼저 코너에서 물건을 담아 와요.');
+  if (!def || st.phase !== 'toShop' || st.errand.payBy !== 'kiosk') return talk(null, '셀프 계산대예요. 화면을 눌러서 직접 계산할 수 있어요.');
+  world.frozen = true; setGoal('');
+  const pool = poolOf(def).filter(i => i.price);
+  await kiosk({ state: S, config: D.config, pool, want: st.errand.items.map(i => i.id), full: L().card.kiosk === 'full', mistake: k => mistake(k) });
+  log('kiosk', {});
+  hud(); persist();
+  await maybeIdCheck();
+  for (const it of st.errand.items) if (!S.stickers.includes(it.id)) S.stickers.push(it.id);
+  afterCounter(def);
   world.frozen = false;
 }
 
@@ -923,7 +1240,7 @@ async function rentalBorrow(def) {
   await orderItems(def);
   await maybeIdCheck();
   log('borrowed', { items: e.items.map(i => i.name) });
-  notify(`${e.items.map(i => i.name).join(', ')}을 빌렸어요.`, 'coin');
+  notify(`${josa(listOf(e.items), '을', '를')} 빌렸어요.`, 'coin');
   await talk(def.seller, '다 쓰면 꼭 반납하러 와!');
   await counterBye(def);
   for (const it of e.items) if (!S.stickers.includes(it.id)) S.stickers.push(it.id);
@@ -948,15 +1265,17 @@ async function rentalReturn(def) {
 }
 
 async function orderItems(def, opts = {}) {
-  const st = run.stage, e = st.errand;
-  let pool = itemsFor(D, def.itemStage, S.level);
+  const st = run.stage, e = { ...st.errand, items: opts.items || st.errand.items };
+  let pool = poolOf(def);
   if (def.mode !== 'rental') pool = pool.filter(i => i.price);
+  if (def.hair) pool = pool.filter(i => i.category === e.items[0].category);
+  if (def.stalls) pool = pool.filter(i => stallOf(def, i).seller === def.seller);
   const title = opts.returning ? '반납할 도구를 모두 골라요' : def.mode === 'rental' ? '빌릴 도구를 골라요' : `${def.counterName} 메뉴`;
   for (;;) {
     const picked = await new Promise(res => {
       const m = panel('order');
       m.append(el('h2', null, title));
-      if (S.level === '하' && !opts.returning) {
+      if (areaLevel(S, 'memory') === '하' && !opts.returning) {
         const memo = el('div', 'memo-card');
         memo.append(el('h4', null, '메모'));
         const ul = el('ul'); e.items.forEach(it => { const li = el('li'); li.append(itemImg(it, 2), el('span', null, it.name)); ul.append(li); });
@@ -1001,7 +1320,7 @@ async function hungryOffer(def) {
   if (!S.settings.stamina || S.stamina >= 60) return;
   const i = await choose(def.seller, 'shop.owner.hungry', [{ text: '네, 먹고 갈래요' }, { text: '괜찮아요' }]);
   if (i !== 0) return;
-  const food = itemsFor(D, def.itemStage, S.level).filter(it => it.heal && it.price);
+  const food = poolOf(def).filter(it => it.heal && it.price);
   if (!food.length) return;
   const pick = await new Promise(res => {
     const m = panel('order');
@@ -1020,7 +1339,8 @@ async function hungryOffer(def) {
     m.append(grid, no);
   });
   if (!pick) return;
-  await pay({ state: S, config: D.config, total: pick.price, purpose: 'eat', who: def.seller, log: run.stage || {}, mistake: k => mistake(k), ownerLine: `${pick.name} ${won(pick.price)}이야. 급식카드도 돼.` });
+  const cardWord = S.hasMealCard ? (def.cashOnly ? ' 현금이나 급식카드로 내렴.' : ' 급식카드도 돼.') : '';
+  await pay({ state: S, config: D.config, total: pick.price, purpose: 'eat', who: def.seller, cashOnly: def.cashOnly, log: run.stage || {}, mistake: k => mistake(k), ownerLine: `${pick.name} ${won(pick.price)}이야.${cardWord}` });
   changeStamina(pick.heal);
   notify(`냠냠! 체력이 ${pick.heal} 올랐어요.`, 'ok');
 }
@@ -1085,15 +1405,15 @@ function buildReview(def) {
   const st = run.stage;
   const qs = [];
   const n = S.level === '하' ? 2 : 3;
-  if (st.log.some(l => l.type === 'greetCounter')) {
+  if (st.log.some(l => l.type === 'greetCounter') && def.greet) {
     const [right, wrongs] = def.greet;
     qs.push({ q: `${def.counterName}에서 ${NAME_OF[def.seller]}에게 처음에 뭐라고 했나요?`, a: right, options: shuffle([right, ...shuffle([...wrongs]).slice(0, n - 1)]) });
   }
   const paid = st.log.filter(l => l.type === 'paid');
   const one = paid[0];
   const it = one && D.items.find(i => i.name === one.items[0]);
-  if (it && def.mode === 'cash') qs.push({ q: `${it.name}은 얼마였나요?`, a: won(it.price), options: numberChoices(it.price, n, [500, 1000]).map(won) });
-  if (it && def.mode === 'token') qs.push({ q: `${it.name}은 학급 토큰 몇 개였나요?`, a: `${it.price}개`, options: numberChoices(it.price, n, [1, 2]).map(v => `${v}개`) });
+  if (it && def.mode === 'cash') qs.push({ q: `${josa(it.name, '은', '는')} 얼마였나요?`, a: won(it.price), options: numberChoices(it.price, n, [500, 1000]).map(won) });
+  if (it && def.mode === 'token') qs.push({ q: `${josa(it.name, '은', '는')} 학급 토큰 몇 개였나요?`, a: `${it.price}개`, options: numberChoices(it.price, n, [1, 2]).map(v => `${v}개`) });
   const ch = paid.find(p => p.change > 0);
   if (ch && S.level !== '하') qs.push({ q: '거스름돈을 얼마 받았나요?', a: won(ch.change), options: numberChoices(ch.change, 3, [100, 500]).map(won) });
   if (def.mode === 'rental') {
@@ -1105,6 +1425,22 @@ function buildReview(def) {
     qs.push({ q: '체육 도구를 빌릴 때 보여 준 카드는?', a: '대여카드', options: shuffle(['대여카드', '꿈이든 카드', '체크카드']).slice(0, 3) });
     qs.push({ q: '빌린 물건은 다 쓰면 어떻게 하나요?', a: '빌린 곳에 반납해요', options: shuffle(['빌린 곳에 반납해요', '집에 가져가요']) });
   }
+  if (st.log.some(l => l.type === 'cart')) qs.push({ q: '마트 카트에는 어떤 동전을 넣었나요?', a: '100원', options: shuffle(['100원', '500원']) });
+  if (st.log.some(l => l.type === 'corner')) qs.push({ q: '마트에서 물건은 어떻게 찾았나요?', a: '코너 표지판을 보고 찾아요', options: shuffle(['코너 표지판을 보고 찾아요', '아무 데나 돌아다녀요']) });
+  if (st.log.some(l => l.type === 'ticket')) qs.push({ q: '번호표를 뽑은 뒤에는 어떻게 하나요?', a: '내 번호가 나올 때까지 기다려요', options: shuffle(['내 번호가 나올 때까지 기다려요', '바로 창구로 가요']) });
+  if (st.log.some(l => l.type === 'form')) qs.push({ q: '신청서에 이름과 주소를 쓸 때 무엇을 보고 썼나요?', a: '꿈이든 카드', options: shuffle(['꿈이든 카드', '체크카드']) });
+  const fl = st.log.find(l => l.type === 'floor');
+  if (fl) qs.push({ q: '교육과는 몇 층이었나요?', a: `${fl.floor}층`, options: shuffle([`${fl.floor}층`, `${fl.floor === 5 ? 4 : fl.floor + 1}층`]) });
+  if (st.log.some(l => l.type === 'id')) qs.push({ q: '교육부에 들어갈 때 신분증으로 보여 준 카드는?', a: '꿈이든 카드', options: shuffle(['꿈이든 카드', '체크카드', '급식카드']) });
+  if (st.log.some(l => l.type === 'gate')) qs.push({ q: '보안 검색대에서는 어떻게 했나요?', a: '가방을 검색대 위에 올려요', options: shuffle(['가방을 검색대 위에 올려요', '뛰어서 지나가요']) });
+  if (st.log.some(l => l.type === 'tour')) qs.push({ q: '견학하는 동안에는 어떻게 하나요?', a: '조용히 따라가요', options: shuffle(['조용히 따라가요', '큰 소리로 떠들어요']) });
+  if (def.cashOnly) qs.push({ q: '전통시장 가게에서는 무엇으로 계산했나요?', a: '현금', options: shuffle(['현금', '체크카드']) });
+  if (st.log.some(l => l.type === 'dum')) qs.push({ q: '사장님이 덤을 주셨을 때 뭐라고 했나요?', a: '감사합니다!', options: shuffle(['감사합니다!', '더 주세요.']) });
+  if (st.log.some(l => l.type === 'hold')) qs.push({ q: '머리를 자르는 동안에는 어떻게 하나요?', a: '가만히 있어요', options: shuffle(['가만히 있어요', '고개를 돌려요']) });
+  if (st.log.some(l => l.type === 'kiosk')) qs.push({ q: '셀프 계산대에서는 무엇으로 계산했나요?', a: '카드', options: shuffle(['카드', '현금']) });
+  if (st.log.some(l => l.type === 'expiry')) qs.push({ q: '유통기한이 지난 물건은 어떻게 하나요?', a: '사지 않아요', options: shuffle(['사지 않아요', '그냥 사요']) });
+  if (st.log.some(l => l.type === 'promo')) qs.push({ q: '1+1 행사는 무엇인가요?', a: '하나 값에 두 개를 줘요', options: shuffle(['하나 값에 두 개를 줘요', '두 개 값에 하나를 줘요']) });
+  if (st.log.some(l => l.type === 'bag')) qs.push({ q: '봉투가 필요하냐고 물으면 뭐라고 했나요?', a: '괜찮아요. 장바구니 있어요.', options: shuffle(['괜찮아요. 장바구니 있어요.', '(대답 안 하기)']) });
   if (def.mode === 'token') qs.push({ q: '친구에게 물건을 빌렸을 때 뭐라고 말하나요?', a: '고마워! 다 쓰고 돌려줄게.', options: shuffle(['고마워! 다 쓰고 돌려줄게.', '이거 내 거야.']) });
   qs.push({ q: '돈으로 쓸 수 없는 카드는 무엇인가요?', a: '꿈이든 카드', options: shuffle(['꿈이든 카드', '체크카드']) });
   if (def.mode === 'cash') {
@@ -1117,10 +1453,11 @@ function buildReview(def) {
 async function finishStage() {
   const st = run.stage, def = st.def;
   memoButton(false); setGoal('');
-  await talk(def.giver, `오늘 ${def.name}에서 정말 잘했어! 한 일을 같이 떠올려 볼까?`);
+  await talk(def.reviewBy || def.giver, `오늘 ${def.name}에서 정말 잘했어요! 한 일을 같이 떠올려 볼까요?`);
   const qs = buildReview(def);
   await fade();
-  const score = await review(qs, S.level, def.seller, def.counterName);
+  const score = await review(qs, S.level, def.reviewBy || def.seller, def.mode === 'script' ? def.name : def.counterName);
+  if (def.mart && st.cartDone) { addPieces(S.cash, [100]); hud(); notify('카트를 돌려놓고 100원을 돌려받았어요.', 'coin'); }
   let stars = 1;
   if (st.mistakes <= 3) stars++;
   if (score >= qs.length - 1) stars++;
@@ -1232,7 +1569,7 @@ async function comeHome() {
 function endingScreen() {
   const sc = $('#screen'); sc.hidden = false; sc.innerHTML = '';
   const e = el('div', 'ending');
-  e.append(el('h1', 'logo', '다녀왔습니다'), el('p', null, '체험판은 여기까지예요. 다음에는 편의점, 전통시장, 미용실이 열려요.'));
+  e.append(el('h1', 'logo', '다녀왔습니다'), el('p', null, '집에서 교육부까지, 모든 곳을 혼자서 다녀왔어요. 정말 잘했어요!'));
   const ok = el('button', 'btn primary big', '처음 화면으로');
   ok.onclick = () => titleScreen();
   e.append(ok);
@@ -1301,7 +1638,7 @@ function openBook() {
 }
 
 // 자동 점검용 (게임에는 영향 없음)
-window.__dbg = { get world() { return world; }, get S() { return S; }, run };
+window.__dbg = { get world() { return world; }, get S() { return S; }, get busy() { return busy; }, run };
 
 window.addEventListener('beforeunload', () => { if (S) persist(); });
 boot();

@@ -1,9 +1,9 @@
 // 계산대 결제, 거스름돈, 카드 단말기, 은행 입금, 꿈이든 카드 확인, 되돌아보기 화면
-import { moneyCanvas, cardCanvas, toImg, PEOPLE, itemCanvas, MONEY, iconCanvas, tokenCanvas } from './sprites.js?v=202611271129';
-import { el, panel, closePanel, warn, line, flashHud } from './ui.js?v=202611271129';
-import { say, sfx } from './voice.js?v=202611271129';
-import { cashTotal, breakDown, exactFromWallet, fewestPieces, removePieces, addPieces } from './state.js?v=202611271129';
-import { won } from './data.js?v=202611271129';
+import { moneyCanvas, cardCanvas, toImg, PEOPLE, itemCanvas, MONEY, iconCanvas, tokenCanvas } from './sprites.js?v=202611271132';
+import { el, panel, closePanel, warn, line, flashHud } from './ui.js?v=202611271132';
+import { say, sfx } from './voice.js?v=202611271132';
+import { cashTotal, breakDown, exactFromWallet, fewestPieces, removePieces, addPieces } from './state.js?v=202611271132';
+import { won, levelCfg, areaLevel } from './data.js?v=202611271132';
 
 const MONEY_NAME = { 10: '십 원', 50: '오십 원', 100: '백 원', 500: '오백 원', 1000: '천 원', 5000: '오천 원', 10000: '만 원', 50000: '오만 원' };
 const money = (v, s = 3) => toImg(moneyCanvas(v), s, MONEY_NAME[v]);
@@ -76,7 +76,7 @@ export function dragCard(host, dev, kind, tipText) {
   });
 }
 
-function makeDevice(withSlotLabel) {
+export function makeDevice(withSlotLabel) {
   const dev = el('div', 'device');
   dev.append(el('div', 'screen', ''), el('div', 'slot'));
   if (withSlotLabel) dev.append(el('span', 'slot-label', '카드 꽂는 곳'));
@@ -87,7 +87,7 @@ function makeDevice(withSlotLabel) {
 // ctx: { state, config, total, purpose: 'errand'|'eat'|'tutorial', mistake(), log, items }
 export function pay(ctx) {
   const { state, config, total } = ctx;
-  const L = config.levels[state.level];
+  const L = levelCfg(config, state);
   const denoms = L.money;
   const tray = [];
   let cardPaid = null;
@@ -191,6 +191,11 @@ export function pay(ctx) {
         ctx.mistake?.('nonPaymentCard');
         return;
       }
+      if (ctx.cashOnly && kind === 'check') {
+        ownerSays(talkBox, '미안해요, 우리 가게는 현금만 받아요. 현금으로 내 줄래요?');
+        ctx.log?.cardsTried?.push('cashOnly');
+        return;
+      }
       if (kind === 'meal' && ctx.purpose !== 'eat') {
         await warn('popup.meal', 'popup.meal_sub', 'meal');
         ctx.mistake?.('mealCardMisuse');
@@ -270,7 +275,7 @@ export function pay(ctx) {
         ctx.mistake?.('underpay');
         return;
       }
-      if (state.level === '하' && paid > total && exactFromWallet(state.cash, total)) {
+      if (areaLevel(state, 'money') === '하' && paid > total && exactFromWallet(state.cash, total)) {
         ownerSays(talkBox, '돈이 너무 많아. 그림자랑 똑같이 맞춰 볼까?');
         ctx.mistake?.('overpay');
         return;
@@ -394,7 +399,7 @@ export function keypadAsk(area, prompt, answer, onWrong) {
 // ---------- 은행 입금 ----------
 export function deposit(ctx) {
   const { state, config } = ctx;
-  const L = config.levels[state.level];
+  const L = levelCfg(config, state);
   const unit = config.bank.depositUnit;
   const billsOnly = L.bank.deposit === 'billsOnly';
   const tray = [];
@@ -621,7 +626,7 @@ export { money, MONEY_NAME, shuffle, iconCanvas };
 // ctx: { state, config, total, who, mistake() }
 export function tokenPay(ctx) {
   const { state, config, total } = ctx;
-  const L = config.levels[state.level];
+  const L = levelCfg(config, state);
   let tray = 0;
   return new Promise(resolve => {
     const m = panel('pay');
@@ -671,5 +676,199 @@ export function tokenPay(ctx) {
     };
     draw();
     ownerSays(talkBox, ctx.ownerLine || `토큰 ${total}개야.`);
+  });
+}
+
+// ---------- 셀프 계산대 (키오스크) ----------
+// ctx: { state, config, pool, want(품목 id 목록), full(상: 봉투 단계), mistake() }
+export function kiosk(ctx) {
+  const { state, pool, want } = ctx;
+  return new Promise(async resolve => {
+    const m = panel('kiosk');
+    const screen = el('div', 'kiosk-screen');
+    m.append(el('h2', null, '셀프 계산대'), screen);
+    const step = (title) => { screen.innerHTML = ''; screen.append(el('h3', null, title)); say(title); };
+    const ask = (title, options) => new Promise(res => {
+      step(title);
+      const row = el('div', 'row');
+      options.forEach((o, i) => { const b = el('button', 'btn big', o); b.onclick = () => res(i); row.append(b); });
+      screen.append(row);
+    });
+    // 1. 물건 담기
+    let cart;
+    for (;;) {
+      cart = await new Promise(res => {
+        step('살 물건을 눌러서 담아요');
+        const grid = el('div', 'menu');
+        const sel = new Set();
+        const sum = el('p', 'kiosk-sum');
+        const upd = () => { sum.textContent = `담은 물건 ${sel.size}개 · 합계 ${won([...sel].reduce((t, id) => t + pool.find(i => i.id === id).price, 0))}`; };
+        for (const it of pool) {
+          const b = el('button', 'menu-item');
+          b.setAttribute('aria-pressed', 'false');
+          b.append(itemImg(it, 3), el('span', 'nm', it.name), el('span', 'pr', won(it.price)));
+          b.onclick = () => { sel.has(it.id) ? sel.delete(it.id) : sel.add(it.id); b.setAttribute('aria-pressed', sel.has(it.id)); say(it.name); upd(); };
+          grid.append(b);
+        }
+        const go = el('button', 'btn primary big', '결제하기');
+        go.onclick = () => res([...sel]);
+        upd();
+        screen.append(grid, sum, go);
+      });
+      if (cart.slice().sort().join() === [...want].sort().join()) break;
+      sfx('no'); ctx.mistake?.('kioskCart');
+      await ask('메모와 담은 물건이 달라요. 다시 담아 볼까요?', ['다시 담기']);
+    }
+    const total = cart.reduce((t, id) => t + pool.find(i => i.id === id).price, 0);
+    // 2. 봉투 (상)
+    if (ctx.full) {
+      for (;;) {
+        const i = await ask('봉투가 필요하세요?', ['필요 없어요 (장바구니 있어요)', '봉투 사기 (100원)']);
+        if (i === 0) break;
+        sfx('no'); ctx.mistake?.('kioskBag');
+        await ask('장바구니를 가져왔으니 봉투는 필요 없어요.', ['알겠어요']);
+      }
+    }
+    // 3. 결제 방법
+    for (;;) {
+      const i = await ask(`합계 ${won(total)} · 결제 방법을 고르세요`, ['카드 결제', '현금 결제']);
+      if (i === 0) break;
+      sfx('no');
+      await ask('이 계산대는 카드만 돼요. 현금은 계산대 점원에게 내요.', ['알겠어요']);
+    }
+    if (state.account < total) { await warn('popup.no_balance', 'popup.no_balance_sub', 'check'); }
+    // 4. 카드 대기
+    step('카드를 리더기에 대 주세요');
+    const dev = makeDevice(false);
+    dev.querySelector('.screen').textContent = '카드를 대 주세요';
+    screen.append(dev);
+    await dragCard(screen, dev, 'check');
+    sfx('beep');
+    state.account -= total;
+    flashHud('account');
+    dev.querySelector('.screen').textContent = '결제 완료';
+    await wait(700);
+    // 5. 영수증
+    await ask('영수증을 출력할까요?', ['출력하기', '출력 안 하기']);
+    sfx('ok');
+    closePanel();
+    resolve({ total, items: cart });
+  });
+}
+
+// ---------- 가만히 있기 (미용실) ----------
+export function holdStill(seconds = 4) {
+  return new Promise(res => {
+    const m = panel('hold');
+    m.append(el('h2', null, '가만히 있어요'), el('p', 'hint', '머리를 자르는 동안 버튼을 꾹 누른 채로 가만히 있어요.'));
+    const bar = el('div', 'hold-bar'); const fill = el('i'); bar.append(fill);
+    const btn = el('button', 'btn primary big hold-btn', '꾹 누르기');
+    const msg = el('p', 'q', '');
+    m.append(bar, btn, msg);
+    say('머리를 자르는 동안 버튼을 꾹 누른 채로 가만히 있어요.');
+    let t0 = 0, raf = 0, done = false;
+    const tick = () => {
+      const k = Math.min(1, (performance.now() - t0) / (seconds * 1000));
+      fill.style.width = (k * 100) + '%';
+      if (k >= 1) { done = true; sfx('ok'); say('다 잘랐어요! 잘 참았어요.'); setTimeout(() => { closePanel(); res(); }, 600); return; }
+      raf = requestAnimationFrame(tick);
+    };
+    const down = e => { if (done) return; e.preventDefault(); t0 = performance.now(); msg.textContent = '싹둑싹둑…'; btn.classList.add('on'); raf = requestAnimationFrame(tick); };
+    const up = () => {
+      if (done || !t0) return;
+      cancelAnimationFrame(raf); t0 = 0; fill.style.width = '0%'; btn.classList.remove('on');
+      msg.textContent = '움직이면 위험해요! 다시 가만히 있어 볼까요?'; say(msg.textContent); sfx('no');
+    };
+    btn.addEventListener('pointerdown', down);
+    btn.addEventListener('pointerup', up);
+    btn.addEventListener('pointerleave', up);
+    btn.addEventListener('pointercancel', up);
+    btn.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) down(e); });
+    btn.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') up(); });
+  });
+}
+
+// ---------- 유통기한 고르기 ----------
+export function expiryPick(item) {
+  return new Promise(res => {
+    const d = new Date();
+    const fmt = dt => `${dt.getMonth() + 1}월 ${dt.getDate()}일까지`;
+    const past = new Date(d); past.setDate(d.getDate() - 2);
+    const good = new Date(d); good.setDate(d.getDate() + 5);
+    const opts = shuffle([{ ok: false, label: fmt(past) }, { ok: true, label: fmt(good) }]);
+    const m = panel('order');
+    m.append(el('h2', null, '유통기한을 확인해요'), el('p', 'hint', `오늘은 ${d.getMonth() + 1}월 ${d.getDate()}일이에요. 어느 ${item.name}을(를) 살까요?`));
+    say(`오늘은 ${d.getMonth() + 1}월 ${d.getDate()}일이에요. 유통기한을 보고 골라요.`);
+    const grid = el('div', 'menu');
+    for (const o of opts) {
+      const b = el('button', 'menu-item');
+      b.append(itemImg(item, 4), el('span', 'nm', item.name), el('span', 'pr', '유통기한 ' + o.label));
+      b.onclick = () => { closePanel(); res(o.ok); };
+      grid.append(b);
+    }
+    m.append(grid);
+  });
+}
+
+// ---------- 번호표 기다리기 (교육지원청) ----------
+export function waitTurn(ticket, mistake) {
+  return new Promise(res => {
+    const m = panel('order');
+    m.append(el('h2', null, '내 차례를 기다려요'));
+    const board = el('div', 'queue-board', '');
+    const mine = el('p', 'my-ticket', `내 번호표: ${ticket}번`);
+    const msg = el('p', 'hint', '전광판에 내 번호가 나오면 버튼을 눌러요.');
+    const btn = el('button', 'btn primary big', '제 차례예요!');
+    btn.style.display = 'flex'; btn.style.margin = '10px auto';
+    m.append(el('p', 'hint', '전광판'), board, mine, msg, btn);
+    let cur = ticket - 3, timer;
+    const show = () => { board.textContent = String(cur).padStart(3, '0'); say(`${cur}번 손님`); };
+    const next = () => {
+      cur++;
+      if (cur > ticket + 1) { cur = ticket - 2; msg.textContent = '내 번호가 지나갔어요! 다시 한번 잘 봐요.'; say(msg.textContent); sfx('no'); }
+      show();
+    };
+    show();
+    timer = setInterval(next, 2200);
+    btn.onclick = () => {
+      if (cur === ticket) { clearInterval(timer); sfx('ok'); say('내 차례예요!'); closePanel(); res(); return; }
+      sfx('no'); msg.textContent = '아직 내 번호가 아니에요. 전광판을 보고 기다려요.'; say(msg.textContent); mistake?.('ticketEarly');
+    };
+  });
+}
+
+// ---------- 신청서 쓰기 (교육지원청): 꿈이든 카드를 보고 이름·주소 고르기 ----------
+export function formFill(state, nChoices, mistake) {
+  const s = state.student;
+  return new Promise(res => {
+    const m = panel('idcheck');
+    m.append(el('h2', null, '신청서를 써요'));
+    const card = el('div', 'idcard');
+    const body = el('div', 'idcard-body');
+    const photo = el('div', 'photo'); photo.append(toImg(PEOPLE.player()[0], 4, '내 사진'));
+    const info = el('dl'); info.append(el('dt', null, '이름'), el('dd', null, s.name), el('dt', null, '주소'), el('dd', null, s.address));
+    body.append(photo, info); card.append(el('div', 'idcard-top', '꿈이든 카드'), body);
+    m.append(el('p', 'hint', '꿈이든 카드를 보고 신청서에 알맞은 것을 골라요.'), card);
+    const fields = [
+      ['이름', s.name, ['이하늘', '박바다', '최나무'].filter(x => x !== s.name)],
+      ['주소', s.address, ['별빛동 무지개로 7', '해님동 큰길 101', '달빛동 작은길 5'].filter(x => x !== s.address)],
+      ['온 이유', '서류 제출', ['놀러 옴', '물건 사기']],
+    ];
+    const done = new Set();
+    for (const [label, right, wrongs] of fields) {
+      const row = el('div', 'form-row'); row.append(el('b', null, label));
+      const opts = el('div', 'row');
+      for (const v of shuffle([right, ...shuffle(wrongs).slice(0, nChoices - 1)])) {
+        const b = el('button', 'btn', v);
+        b.onclick = () => {
+          if (done.has(label)) return;
+          if (v === right) { done.add(label); b.classList.add('primary'); sfx('ok'); say(v); if (done.size === fields.length) setTimeout(() => { closePanel(); res(); }, 600); }
+          else { sfx('no'); b.disabled = true; mistake?.('form'); }
+        };
+        opts.append(b);
+      }
+      row.append(opts); m.append(row);
+    }
+    say('꿈이든 카드를 보고 신청서를 써요.');
   });
 }

@@ -5,10 +5,10 @@
   "gym": "gym.png",
   "snackbar_in": "snackbar.png",
   "field": "field.png",
-  "convenience_in": "convenience.png",
-  "mart_in": "mart.png",
-  "hairshop_in": "hairshop.png",
-  "moe_in": "moe.png",
-  "edu_office_in": "edu_office.png",
-  "market_in": "market.png"
+  "convenience": "convenience.png",
+  "market": "market.png",
+  "hairshop": "hairshop.png",
+  "mart": "mart.png",
+  "edu_office": "edu_office.png",
+  "moe": "moe.png"
 }
