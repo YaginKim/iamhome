@@ -1,5 +1,5 @@
-import { keys as myClips, getClip, initRecordings } from './recordings.js?v=202611271831';
-import { duckBgm } from './bgm.js?v=202611271831';
+import { keys as myClips, getClip, initRecordings } from './recordings.js?v=202611271849';
+import { duckBgm } from './bgm.js?v=202611271849';
 
 // 음성: voice/manifest.json에 적힌 녹음 파일이 있으면 그 파일을, 없으면 브라우저 TTS를 씁니다.
 // 녹음 파일 이름은 대사 글자로 정해져요 (voiceKey). 대본: docs/대사-녹음-대본.xlsx, 방법: voice/README.md
@@ -25,10 +25,28 @@ export function setSiteFiles(obj) { recorded = new Map(Object.entries(obj)); }
 export function setVoiceEnabled(on) { enabled = on; if (!on) stop(); }
 export function voiceEnabled() { return enabled; }
 
-export function stop() {
+// 말소리 순서: 학생이 화면을 누르지 않았는데 새 말이 오면, 하던 말을 끝까지 하고 이어서 해요.
+// 학생이 「다음」 등을 눌렀을 때만 하던 말을 바로 끊어요. (예전에는 늘 끊어서, 고른 인사·알림이 0초 만에 끊겼어요)
+let sayToken = 0, speaking = false, startedAt = 0, lastInput = 0, guard = 0;
+const queue = [];
+for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => { lastInput = performance.now(); }, true);
+
+function halt() {
   sayToken++;
-  if (current) { current.pause(); current = null; }
+  clearTimeout(guard);
+  speaking = false;
+  if (current) { const c = current; current = null; c.onended = c.onpause = c.onerror = null; c.pause(); duckBgm(false); }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
+}
+export function stop() { queue.length = 0; halt(); }
+
+function finished(token) {
+  if (token !== sayToken) return; // 이미 다른 말로 넘어감
+  clearTimeout(guard);
+  speaking = false; current = null;
+  duckBgm(false);
+  const next = queue.shift();
+  if (next) start(...next);
 }
 
 // 대사 글자 → 녹음 파일 이름 (tools/voice_script.py 와 같은 계산: 공백 정리 후 FNV-1a 32비트)
@@ -39,47 +57,63 @@ export function voiceKey(text) {
   return 'v' + h.toString(16).padStart(8, '0');
 }
 
-let sayToken = 0;
-function playUrl(url, text, onEnd) {
-  current = new Audio(url);
-  current.onplay = () => duckBgm(true);
-  current.onended = current.onpause = () => { duckBgm(false); onEnd?.(); };
-  current.play().catch(() => { onEnd?.(); speakTTS(text); });
+function playUrl(url, text, token, onEnd) {
+  const a = new Audio(url);
+  current = a;
+  a.onplay = () => duckBgm(true);
+  a.onended = () => { onEnd?.(); finished(token); };
+  a.onerror = () => { onEnd?.(); if (token === sayToken) speakTTS(text, token); };
+  a.play().catch(() => { if (token === sayToken && current === a) { current = null; onEnd?.(); speakTTS(text, token); } });
 }
 
 export function say(text, id) {
   if (!enabled || !text) return;
   window.__said?.push(text); // 자동 점검용
-  stop();
+  // 하던 말이 있고, 그 말이 시작된 뒤로 학생이 누른 적이 없으면 → 끝나고 이어서
+  if (speaking && lastInput < startedAt) {
+    queue.push([text, id]);
+    if (queue.length > 4) queue.shift();
+    return;
+  }
+  queue.length = 0;
+  start(text, id);
+}
+
+function start(text, id) {
+  halt();
+  const token = sayToken;
+  speaking = true;
+  startedAt = performance.now();
+  // 혹시 끝났다는 신호가 안 와도 멈춰 있지 않게 (글자 수로 넉넉히 잡은 시간)
+  guard = setTimeout(() => finished(token), 2500 + String(text).length * 260);
   const key = voiceKey(text);
-  // 1) 선생님이 게임에서 녹음한 것 2) voice 폴더의 파일 3) 기계 음성(TTS)
+  // 1) 선생님이 게임에서 녹음한 것 2) voice 폴더(사이트)의 녹음 3) 기계 음성(TTS)
   if (myClips.has(key)) {
-    const my = ++sayToken;
     getClip(key).then(c => {
-      if (my !== sayToken) return; // 그 사이에 다른 대사가 시작됨
-      if (!c) return speakTTS(text);
+      if (token !== sayToken) return; // 그 사이에 다른 대사가 시작됨
+      if (!c) return speakTTS(text, token);
       const url = URL.createObjectURL(c.blob);
-      playUrl(url, text, () => URL.revokeObjectURL(url));
+      playUrl(url, text, token, () => URL.revokeObjectURL(url));
     });
     return;
   }
   const file = (id && recorded.get(id)) || recorded.get(key);
-  if (file) { playUrl(`voice/${file}`, text); return; }
-  speakTTS(text);
+  if (file) { playUrl(`voice/${file}`, text, token); return; }
+  speakTTS(text, token);
 }
 
 // 녹음 화면에서 기계 음성과 비교해 들을 때
-export function sayTTS(text) { stop(); speakTTS(text); }
+export function sayTTS(text) { stop(); speakTTS(text, sayToken); }
 
-function speakTTS(text) {
-  if (!('speechSynthesis' in window)) return;
+function speakTTS(text, token) {
+  if (!('speechSynthesis' in window)) { finished(token); return; }
   const u = new SpeechSynthesisUtterance(text.replace(/[「」*]/g, ''));
   u.lang = 'ko-KR';
   u.rate = 0.9;
   const ko = speechSynthesis.getVoices().find(v => v.lang && v.lang.startsWith('ko'));
   if (ko) u.voice = ko;
   u.onstart = () => duckBgm(true);
-  u.onend = u.onerror = () => duckBgm(false);
+  u.onend = u.onerror = () => { duckBgm(false); finished(token); };
   speechSynthesis.speak(u);
 }
 

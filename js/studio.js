@@ -1,9 +1,9 @@
 // 대사 녹음하기 (선생님): 대사를 하나씩 보여 주고, 연결된 마이크로 녹음해요.
 // 녹음은 먼저 이 기기에 저장되고, 「사이트에 올리기」를 하면 모든 기기에서 들려요.
-import { el, notify } from './ui.js?v=202611271831';
-import { keys, getClip, putClip, delClip, recMime } from './recordings.js?v=202611271831';
-import { ghToken, setGhToken, checkToken, pending, publish, exportClips, markDeleted, unmarkDeleted, isDeleted, ghErrText } from './publish.js?v=202611271831';
-import { stop as stopVoice, sayTTS, siteFile, setSiteFiles } from './voice.js?v=202611271831';
+import { el, notify } from './ui.js?v=202611271849';
+import { keys, getClip, putClip, delClip, recMime } from './recordings.js?v=202611271849';
+import { ghToken, setGhToken, checkToken, pending, publish, exportClips, markDeleted, unmarkDeleted, isDeleted, ghErrText } from './publish.js?v=202611271849';
+import { stop as stopVoice, sayTTS, siteFile, setSiteFiles } from './voice.js?v=202611271849';
 
 const MAX_SEC = 20;
 // 녹음이 있는지: 이 기기에서 녹음했거나, 사이트에 올라가 있으면 (다른 기기에서 녹음해서 올린 것도)
