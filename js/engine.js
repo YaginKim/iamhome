@@ -1,6 +1,6 @@
 // 위에서 내려다보는 지도: 타일 그리기, 이동(키보드·터치), 길찾기, 문·사람과 만나기
-import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611271015';
-import { sfx } from './voice.js?v=202611271015';
+import { PAL, PEOPLE, iconCanvas, playerSprites } from './sprites.js?v=202611271033';
+import { sfx } from './voice.js?v=202611271033';
 
 export const T = 16;
 const BLOCK = new Set(['t', 'W', 'c', 'T', 'B', 'x', 'S', 'k', 'A', 'U', 'H', 'K', 'M', 'C', 'R', 'V', 'E', 'G']);

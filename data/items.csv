@@ -1,19 +1,19 @@
 id,stage,name,price,payment,heal,min_level,category,sprite
-home_wallet,home,지갑,,,,하,챙길 물건,
-home_checkcard,home,체크카드,,,,중,챙길 물건,
-home_mealcard,home,급식카드,,,,중,챙길 물건,
-home_dreamcard,home,꿈이든 카드,,,,하,챙길 물건,
-home_phone,home,휴대폰,,,,하,챙길 물건,
-home_key,home,열쇠,,,,하,챙길 물건,
-home_bag,home,장바구니,,,,하,챙길 물건,
-home_umbrella,home,우산,,,,하,챙길 물건,
-home_mask,home,마스크,,,,하,챙길 물건,
-home_bottle,home,물병,,,,하,챙길 물건,
+home_wallet,home,지갑,,,,하,챙길 물건,wallet
+home_checkcard,home,체크카드,,,,중,챙길 물건,card:check
+home_mealcard,home,급식카드,,,,중,챙길 물건,card:meal
+home_dreamcard,home,꿈이든 카드,,,,하,챙길 물건,card:dream
+home_phone,home,휴대폰,,,,하,챙길 물건,phone
+home_key,home,열쇠,,,,하,챙길 물건,key
+home_bag,home,장바구니,,,,하,챙길 물건,shopbag
+home_umbrella,home,우산,,,,하,챙길 물건,umbrella
+home_mask,home,마스크,,,,하,챙길 물건,mask
+home_bottle,home,물병,,,,하,챙길 물건,water
 home_toothbrush,home,칫솔,,,,하,생활용품,toothbrush
-home_toothpaste,home,치약,,,,하,생활용품,
-home_towel,home,수건,,,,하,생활용품,
-home_socks,home,양말,,,,하,생활용품,
-home_shoebag,home,실내화 주머니,,,,하,생활용품,
+home_toothpaste,home,치약,,,,하,생활용품,toothpaste
+home_towel,home,수건,,,,하,생활용품,towel
+home_socks,home,양말,,,,하,생활용품,socks
+home_shoebag,home,실내화 주머니,,,,하,생활용품,shoebag
 class_pencil,classroom,연필,1,토큰,,하,학용품,pencil
 class_eraser,classroom,지우개,1,토큰,,하,학용품,eraser
 class_notebook,classroom,공책,2,토큰,,하,학용품,notebook
@@ -57,16 +57,16 @@ snack_coolpis,snackbar,쿨피스,1500,현금|체크|급식,10,중,음료,coolpis
 snack_tteokkochi,snackbar,떡꼬치,1000,현금|체크|급식,15,하,분식,tteokkochi
 snack_slush,snackbar,슬러시,1000,현금|체크|급식,10,하,음료,slush
 cvs_onigiri,convenience,삼각김밥,1500,현금|체크|급식,20,중,식품,onigiri
-cvs_cupramen,convenience,컵라면,1500,현금|체크|급식,25,중,식품,
+cvs_cupramen,convenience,컵라면,1500,현금|체크|급식,25,중,식품,cupramen
 cvs_milk,convenience,우유,1800,현금|체크|급식,15,중,음료,milk
 cvs_bananamilk,convenience,바나나우유,1700,현금|체크|급식,15,중,음료,milk
 cvs_water,convenience,생수,1000,현금|체크|급식,10,하,음료,water
-cvs_snack,convenience,과자,1500,현금|체크|급식,10,중,간식,
-cvs_chocolate,convenience,초콜릿,1500,현금|체크|급식,10,중,간식,
+cvs_snack,convenience,과자,1500,현금|체크|급식,10,중,간식,snackbag
+cvs_chocolate,convenience,초콜릿,1500,현금|체크|급식,10,중,간식,chocolate
 cvs_icecream,convenience,아이스크림,1200,현금|체크|급식,10,중,간식,icecream
-cvs_sandwich,convenience,샌드위치,3200,현금|체크|급식,30,상,식품,
-cvs_dosirak,convenience,도시락,5000,현금|체크|급식,50,상,식품,
-cvs_wetwipe,convenience,물티슈,1500,현금|체크,,중,생활용품,
+cvs_sandwich,convenience,샌드위치,3200,현금|체크|급식,30,상,식품,sandwich
+cvs_dosirak,convenience,도시락,5000,현금|체크|급식,50,상,식품,dosirak
+cvs_wetwipe,convenience,물티슈,1500,현금|체크,,중,생활용품,wetwipe
 market_greenonion,market,대파 한 단,3000,현금,,하,채소,greenonion
 market_apple,market,사과 3개,5000,현금|급식,20,중,과일,apple
 market_tofu,market,두부,2000,현금,,하,식품,tofu
@@ -94,13 +94,13 @@ mart_applebag,mart,사과 한 봉지,9900,현금|체크|급식,30,중,과일,app
 mart_bigsnack,mart,과자 대용량,5000,현금|체크|급식,25,하,간식,snackbag
 mart_shopbag,mart,장바구니,1000,현금|체크,,하,생활용품,shopbag
 office_ticket,edu_office,민원 번호표,,,,하,민원,ticket
-office_form,edu_office,신청서,,,,중,민원,notebook
-office_pen,edu_office,볼펜,,,,하,민원,pencil
-office_envelope,edu_office,서류봉투,,,,중,민원,notebook
+office_form,edu_office,신청서,,,,중,민원,form
+office_pen,edu_office,볼펜,,,,하,민원,pen
+office_envelope,edu_office,서류봉투,,,,중,민원,envelope
 office_vending,edu_office,자판기 음료,1200,현금|체크|급식,10,하,음료,ionic
 moe_badge,moe,방문 출입증,,,,하,출입,badge
-moe_guide,moe,견학 안내지,,,,하,출입,notebook
-moe_souvenir_pen,moe,기념 볼펜,2000,현금|체크,,하,기념품,pencil
+moe_guide,moe,견학 안내지,,,,하,출입,form
+moe_souvenir_pen,moe,기념 볼펜,2000,현금|체크,,하,기념품,pen
 moe_souvenir_note,moe,기념 노트,3000,현금|체크,,하,기념품,notebook
-moe_souvenir_badge,moe,기념 배지,4000,현금|체크,,중,기념품,badge
-moe_cafe,moe,카페 음료,2500,현금|체크|급식,15,중,음료,ionic
+moe_souvenir_badge,moe,기념 배지,4000,현금|체크,,중,기념품,pinbadge
+moe_cafe,moe,카페 음료,2500,현금|체크|급식,15,중,음료,cafecup
