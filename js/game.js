@@ -1,12 +1,13 @@
 // 「다녀오겠습니다」 게임 흐름: 타이틀 → 집(튜토리얼) → 동네 → 분식점 심부름 → 되돌아보기 → 은행 → 다녀왔습니다
-import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271156';
-import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271156';
-import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271156';
-import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271156';
-import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271156';
-import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271156';
-import { newState, load, save, wipe, lastSlot, setLastSlot, listSlots, slotId, slotLabel, teacherPin, setTeacherPin, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271156';
-import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271156';
+import { loadData, itemsFor, won, LEVELS, AREAS, areaLevel, levelCfg } from './data.js?v=202611271623';
+import { playBgm, getVolume, setVolume } from './bgm.js?v=202611271623';
+import { initVoice, say, sfx, setVoiceEnabled, stop as stopVoice } from './voice.js?v=202611271623';
+import { World, townMap, homeMap, shopMap, bankMap, classroomMap, gymMap, fieldMap, convenienceMap, marketMap, hairshopMap, martMap, eduOfficeMap, moeMap, loadBuildingManifest } from './engine.js?v=202611271623';
+import { renderHud, talk, choose, warn, notify, setGoal, el, line, setLines, highlightHud, highlightStamina, highlightLives, setBookHandler, panel, closePanel, fade, flashHud } from './ui.js?v=202611271623';
+import { pay, tokenPay, kiosk, holdStill, expiryPick, waitTurn, formFill, deposit, moneyIntro, tryCard, idCheck, review, itemImg, numberChoices, shuffle } from './pay.js?v=202611271623';
+import { syncOn, syncCfg, setSyncCfg, cloudSave, cloudLoad, cloudList, cloudDelete, cloudPing, errText, linkFor, readLinkHash, status as syncStatus } from './sync.js?v=202611271623';
+import { newState, load, save, wipe, lastSlot, setLastSlot, listSlots, slotId, slotLabel, teacherPin, setTeacherPin, today, breakDown, addPieces, removePieces, cashTotal, DEFAULT_STUDENT } from './state.js?v=202611271623';
+import { iconCanvas, toImg, cardCanvas, PEOPLE, itemCanvas, moneyCanvas } from './sprites.js?v=202611271623';
 
 const $ = s => document.querySelector(s);
 // 받침에 따라 조사 고르기: josa('우유', '은', '는') → '우유는'
@@ -31,6 +32,7 @@ async function boot() {
   soundButton();
   setBookHandler(openBook);
   touchLayout();
+  const linked = readLinkHash();
   await loadBuildingManifest();
   // 방 미리 보기: 주소 끝에 ?room=mart 처럼 붙이면 그 방만 띄워서 걸어 볼 수 있어요 (게임 진행과 무관)
   const preview = ROOM_PREVIEW[new URLSearchParams(location.search).get('room')];
@@ -42,6 +44,7 @@ async function boot() {
   }
   await world.load(townMap(null, ['home', 'school', 'snackbar', 'convenience', 'hairshop', 'market', 'bank', 'mart', 'edu_office', 'moe']), { x: 17, y: 9 });
   titleScreen();
+  if (linked) notify('구글 시트에 연결했어요. 이제 이 기기에서도 이어서 할 수 있어요.');
 }
 
 const ROOM_PREVIEW = {
@@ -49,7 +52,27 @@ const ROOM_PREVIEW = {
   convenience: convenienceMap, mart: martMap, hairshop: hairshopMap, moe: moeMap, edu_office: eduOfficeMap, market: marketMap,
 };
 
-function persist() { save(S); }
+function persist() { save(S); cloudSave(S); }
+function store(s) { save(s); cloudSave(s); }
+
+// 이 기기 기록과 시트 기록 중 더 최근 것을 골라요. 이름·주소는 이 기기 것을 그대로 써요.
+async function freshest(id) {
+  const local = load(id);
+  if (!syncOn() || id === 'teacher' || !id) return local;
+  let remote;
+  try { remote = await cloudLoad(id); } catch (e) {
+    notify(local ? '인터넷 기록을 불러오지 못해서 이 기기 기록으로 해요.' : '인터넷 기록을 불러오지 못했어요.', 'no');
+    return local;
+  }
+  if (remote && (!local || (remote.updated || 0) > (local.updated || 0))) {
+    const s = { ...remote, slot: id, student: local?.student || { ...DEFAULT_STUDENT } };
+    save(s, false);
+    if (local) notify('다른 기기에서 한 기록을 불러왔어요.');
+    return s;
+  }
+  if (local && (!remote || (local.updated || 0) > (remote.updated || 0))) cloudSave(local); // 이 기기가 더 최근이면 올려요
+  return local;
+}
 // 휴대폰·패드: 세로로 들고 있으면 게임 화면을 90도 돌려 출력하고, 오른쪽 아래에 방향키를 보여 줘요 (PC는 그대로)
 function touchLayout() {
   const apply = () => {
@@ -209,7 +232,7 @@ function titleScreen() {
   if (saved) {
     const c = el('button', 'btn primary big title-continue');
     c.append(el('span', null, '이어서 하기'), el('small', null, slotLabel(last)));
-    c.onclick = () => playSlot(last);
+    c.onclick = () => playSlot(last, c);
     row.append(c);
   }
   const n = el('button', 'btn big' + (saved ? '' : ' primary'), saved ? '다른 학생' : '시작하기');
@@ -232,8 +255,10 @@ function sheet(title, lead) {
 }
 
 // 저장된 학생 칸으로 게임 시작
-function playSlot(id) {
-  const s = load(id);
+async function playSlot(id, btn) {
+  if (btn) btn.disabled = true;
+  const s = await freshest(id);
+  if (btn) btn.disabled = false;
   if (!s) return setupScreen(id);
   S = s; setLastSlot(id);
   clearInterval(walkTimer); $('#screen').hidden = true;
@@ -265,10 +290,12 @@ function whoScreen() {
   const row = el('div', 'row');
   const back = el('button', 'btn big', '뒤로'); back.onclick = titleScreen;
   const go = el('button', 'btn primary big', '다음');
-  go.onclick = () => {
+  go.onclick = async () => {
     try { localStorage.setItem(WHO_KEY, JSON.stringify(pick)); } catch { /* */ }
     const id = slotId(pick.g, pick.c, pick.n);
-    const s = load(id);
+    go.disabled = true; back.disabled = true;
+    if (syncOn()) go.textContent = '불러오는 중…';
+    const s = await freshest(id);
     if (!s) return setupScreen(id);
     // 이미 기록이 있으면: 이어서 하기 또는 처음부터
     const sh2 = sheet(`${slotLabel(id)}`, '이 기기에 저장된 기록이 있어요.');
@@ -277,7 +304,7 @@ function whoScreen() {
     const b2 = el('button', 'btn big', '뒤로'); b2.onclick = whoScreen;
     const again = el('button', 'btn big', '처음부터 다시');
     again.onclick = () => teacherGate(() => setupScreen(id), '처음부터 다시 하려면 선생님 비밀번호가 필요해요.');
-    const cont = el('button', 'btn primary big', '이어서 하기'); cont.onclick = () => playSlot(id);
+    const cont = el('button', 'btn primary big', '이어서 하기'); cont.onclick = () => { S = load(id); setLastSlot(id); clearInterval(walkTimer); $('#screen').hidden = true; resume(); };
     r2.append(b2, again, cont);
     sh2.append(r2);
     say(`${slotLabel(id)}. 이어서 할까요?`);
@@ -377,6 +404,7 @@ function teacherMenu() {
   };
   item('스테이지 골라서 하기', '원하는 곳부터 바로 해 봐요. 학생 기록과 따로 저장되고, 하루 횟수 제한이 없어요.', stagePickScreen);
   item('학생 기록', `이 기기에 저장된 학생 ${listSlots().length}명. 난이도, 진행 위치, 음성 설정을 바꿔요.`, studentsScreen);
+  item('기기 사이 저장', syncOn() ? '구글 시트에 연결돼 있어요. 다른 기기에서도 이어서 할 수 있어요.' : '연결 안 됨. 구글 시트에 연결하면 다른 기기에서도 이어서 할 수 있어요.', syncScreen);
   item('비밀번호 바꾸기', '이 기기의 선생님 비밀번호를 새로 정해요.', () => { setTeacherPin(''); teacherOK = false; teacherGate(teacherMenu); });
   sh.append(grid);
   const row = el('div', 'row');
@@ -425,15 +453,25 @@ function stagePickScreen() {
   sh.append(row);
 }
 
-function studentsScreen() {
-  const ids = listSlots();
-  const sh = sheet('학생 기록', ids.length ? '학생을 누르면 설정을 바꿀 수 있어요. 이 기기에 저장된 기록만 보여요.' : '아직 이 기기에 저장된 학생이 없어요.');
+async function studentsScreen() {
+  const local = listSlots();
+  const sh = sheet('학생 기록', '불러오는 중…');
+  let remote = [];
+  if (syncOn()) { try { remote = await cloudList(); } catch (e) { notify('구글 시트 기록을 불러오지 못했어요. 이 기기 기록만 보여요.', 'no'); } }
+  const byId = new Map();
+  for (const id of local) { const s = load(id); if (s) byId.set(id, s); }
+  for (const r of remote) { const l = byId.get(r.id); if (!l || (r.updated || 0) > (l.updated || 0)) byId.set(r.id, { ...r, remoteOnly: !l }); }
+  const num = id => (id ? id.split('-').map(Number) : [0, 0, 0]);
+  const ids = [...byId.keys()].sort((a, b) => { const x = num(a), y = num(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; });
+  sh.querySelector('.lead').textContent = ids.length
+    ? (syncOn() ? '학생을 누르면 설정을 바꿀 수 있어요. 이 기기와 구글 시트의 기록을 함께 보여요.' : '학생을 누르면 설정을 바꿀 수 있어요. 이 기기에 저장된 기록만 보여요.')
+    : '아직 저장된 학생이 없어요.';
   const list = el('div', 'student-list');
   for (const id of ids) {
-    const s = load(id); if (!s) continue;
+    const s = byId.get(id);
     const b = el('button', 'btn student-row');
     b.append(el('b', null, slotLabel(id)), slotSummary(s));
-    b.onclick = () => settingsScreen(id);
+    b.onclick = async () => { b.disabled = true; await freshest(id); settingsScreen(id); };
     list.append(b);
   }
   sh.append(list);
@@ -443,22 +481,74 @@ function studentsScreen() {
   sh.append(row);
 }
 
+// 구글 시트 연결 (docs/구글시트-저장.md)
+function syncScreen() {
+  const c = syncCfg() || { url: D.config.sync?.url || '', key: '' };
+  const sh = sheet('기기 사이 저장', '선생님 구글 스프레드시트에 학생 기록을 보관해요. 학년·반·번호와 게임 진행만 보내고, 꿈이든 카드의 이름과 주소는 보내지 않아요.');
+  const mk = (id, label, val, type) => {
+    const f = el('div', 'field'); const lb = el('label', null, label); const i = el('input');
+    i.id = id; lb.htmlFor = id; i.value = val; i.autocomplete = 'off'; i.spellcheck = false; if (type) i.type = type;
+    f.append(lb, i); sh.append(f); return i;
+  };
+  const u = mk('sync-url', '웹 앱 주소 (https://script.google.com/macros/s/…/exec)', c.url);
+  const k = mk('sync-key', '시트 비밀번호 (스크립트의 SECRET과 같게)', c.key, 'password');
+  const msg = el('p', 'note', syncOn() ? '연결돼 있어요.' : '설정 방법은 사이트 저장소의 docs/구글시트-저장.md 에 있어요.');
+  sh.append(msg);
+  const row = el('div', 'row');
+  const back = el('button', 'btn big', '뒤로'); back.onclick = teacherMenu;
+  const test = el('button', 'btn primary big', '연결하기');
+  test.onclick = async () => {
+    const cfg = { url: u.value.trim(), key: k.value.trim() };
+    if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(cfg.url)) { msg.textContent = '주소는 https://script.google.com/ 으로 시작해야 해요.'; return; }
+    if (!cfg.key) { msg.textContent = '시트 비밀번호를 넣어 주세요.'; return; }
+    test.disabled = true; msg.textContent = '확인하는 중…';
+    try {
+      const r = await cloudPing(cfg);
+      setSyncCfg(cfg);
+      // 이 기기에만 있던 학생 기록도 올려요
+      for (const id of listSlots()) if (id) cloudSave(load(id));
+      msg.textContent = `연결됐어요. 시트에 학생 ${r.count}명의 기록이 있어요.`;
+      syncScreen();
+      notify('구글 시트에 연결했어요.');
+    } catch (e) { msg.textContent = errText(e.message); test.disabled = false; }
+  };
+  row.append(back, test);
+  if (syncOn()) {
+    const off = el('button', 'btn big', '연결 끊기');
+    off.onclick = () => { if (confirm('이 기기의 연결을 끊을까요? 시트의 기록은 그대로 남아요.')) { setSyncCfg(null); syncScreen(); } };
+    row.append(off);
+  }
+  sh.append(row);
+  if (syncOn()) {
+    sh.append(el('h3', null, '다른 기기 연결하기'), el('p', 'note', '아래 링크를 다른 태블릿에서 열면 주소와 비밀번호를 넣지 않아도 바로 연결돼요. 학생에게는 보여 주지 마세요.'));
+    const link = el('input', 'link-box'); link.readOnly = true; link.value = linkFor(); link.setAttribute('aria-label', '연결 링크');
+    const copy = el('button', 'btn', '링크 복사');
+    copy.onclick = async () => {
+      try { await navigator.clipboard.writeText(link.value); copy.textContent = '복사했어요'; }
+      catch { link.select(); copy.textContent = '선택했어요. 복사해 주세요'; }
+    };
+    const r2 = el('div', 'row'); r2.style.justifyContent = 'flex-start'; r2.append(link, copy);
+    sh.append(r2);
+    if (syncStatus.ok === false) sh.append(el('p', 'note', `마지막 저장 실패: ${errText(syncStatus.error)}`));
+  }
+}
+
 function settingsScreen(id) {
   const cur = load(id);
-  if (!cur) return studentsScreen();
+  if (!cur) { studentsScreen(); return; }
   const sh = sheet(`${slotLabel(id)} 설정`, '이 학생에게만 적용돼요.');
   const redraw = () => { const y = $('#screen').scrollTop; settingsScreen(id); $('#screen').scrollTop = y; };
   const tog = (label, on, fn) => {
     const l = el('label', 'toggle'); const i = el('input'); i.type = 'checkbox'; i.checked = on;
     i.onchange = () => fn(i.checked); l.append(i, el('span', null, label)); sh.append(l);
   };
-  tog('음성으로 읽어 주기', cur.settings.voice, v => { cur.settings.voice = v; save(cur); });
-  tog('체력 사용하기', cur.settings.stamina, v => { cur.settings.stamina = v; save(cur); });
+  tog('음성으로 읽어 주기', cur.settings.voice, v => { cur.settings.voice = v; store(cur); });
+  tog('체력 사용하기', cur.settings.stamina, v => { cur.settings.stamina = v; store(cur); });
   const f = el('div', 'field'); const lb = el('label', null, '난이도'); const sel = el('div', 'row');
   sel.style.justifyContent = 'flex-start';
   for (const l of LEVELS) {
     const b = el('button', 'btn' + (cur.level === l ? ' primary' : ''), l);
-    b.onclick = () => { cur.level = l; cur.hasMealCard = l !== '하'; save(cur); redraw(); };
+    b.onclick = () => { cur.level = l; cur.hasMealCard = l !== '하'; store(cur); redraw(); };
     sel.append(b);
   }
   f.append(lb, sel); sh.append(f);
@@ -470,7 +560,7 @@ function settingsScreen(id) {
     for (const l of ['기본', ...LEVELS]) {
       const on = (cur.areas[key] || '기본') === l;
       const b = el('button', 'btn' + (on ? ' primary' : ''), l);
-      b.onclick = () => { if (l === '기본') delete cur.areas[key]; else cur.areas[key] = l; save(cur); redraw(); };
+      b.onclick = () => { if (l === '기본') delete cur.areas[key]; else cur.areas[key] = l; store(cur); redraw(); };
       r.append(b);
     }
     sh.append(r);
@@ -482,7 +572,7 @@ function settingsScreen(id) {
   ALL_STOPS().forEach((d, i) => {
     const b = el('button', 'btn stage-btn' + (d.id === next ? ' primary' : ''));
     b.append(el('i', null, String(i)), el('span', null, d.name));
-    b.onclick = () => { if (d.id === next) return; jumpTo(cur, d.id); save(cur); notify(`다음은 ${d.name}부터 해요.`); redraw(); };
+    b.onclick = () => { if (d.id === next) return; jumpTo(cur, d.id); store(cur); notify(`다음은 ${d.name}부터 해요.`); redraw(); };
     grid.append(b);
   });
   sh.append(grid);
@@ -490,9 +580,9 @@ function settingsScreen(id) {
   const row = el('div', 'row');
   const back = el('button', 'btn big', '뒤로'); back.onclick = studentsScreen;
   const r = el('button', 'btn big', '오늘 횟수 초기화');
-  r.onclick = () => { cur.day = { date: today(), count: 0 }; save(cur); redraw(); };
+  r.onclick = () => { cur.day = { date: today(), count: 0 }; store(cur); redraw(); };
   const w = el('button', 'btn big', '이 학생 기록 지우기');
-  w.onclick = () => { if (confirm(`${slotLabel(id)}의 기록을 모두 지울까요?`)) { wipe(id); studentsScreen(); } };
+  w.onclick = () => { if (confirm(`${slotLabel(id)}의 기록을 모두 지울까요?`)) { wipe(id); cloudDelete(id).catch(() => notify('구글 시트 기록은 지우지 못했어요.', 'no')); studentsScreen(); } };
   row.append(back, r, w);
   sh.append(row);
 }

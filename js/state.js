@@ -41,9 +41,9 @@ export function load(id) {
     return s;
   } catch { return null; }
 }
-export function save(s) {
+export function save(s, touch = true) {
   if (!s) return;
-  s.updated = Date.now();
+  if (touch) s.updated = Date.now();
   try { localStorage.setItem(keyOf(s.slot), JSON.stringify(s)); } catch { /* 저장 불가: 그대로 진행 */ }
 }
 export function wipe(id) { try { localStorage.removeItem(keyOf(id)); if (lastSlot() === id) localStorage.removeItem(LAST); } catch { /* */ } }
